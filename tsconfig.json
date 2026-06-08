@@ -1,0 +1,45 @@
+{
+  "compilerOptions": {
+    "target": "es5",
+    "lib": ["dom", "dom.iterable", "esnext"],
+    "allowJs": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "jsx": "preserve",
+    "incremental": true,
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
+    "paths": {
+      "@/*": ["./*"]
+    }
+  },
+  "include": ["next-env.d.ts", "app/**/*.ts", "app/**/*.tsx", ".next/types/**/*.ts"],
+  "exclude": [
+    "node_modules",
+    "website",
+    "frontend",
+    "backend",
+    "webapp",
+    "candado_zip",
+    "download_package",
+    "RossTaxAPI_Final",
+    "RossTaxAPI_v3",
+    "rise_crm_plugin",
+    "rentals-webapp",
+    "tests",
+    "screenshots",
+    "iap_promo_images",
+    "iap_promo_images_v2",
+    "memory",
+    "public"
+  ]
+}

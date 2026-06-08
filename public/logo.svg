@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <defs>
+    <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#10B981;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#059669;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  <rect width="200" height="200" rx="40" fill="#0a1020"/>
+  <path d="M60 140 L60 80 L100 50 L140 80 L140 140 Z" fill="url(#grad)" stroke="#10B981" stroke-width="3"/>
+  <rect x="85" y="100" width="30" height="40" fill="#0a1020" rx="3"/>
+  <circle cx="100" cy="115" r="3" fill="#10B981"/>
+  <text x="100" y="175" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="white" text-anchor="middle">RHR</text>
+</svg>

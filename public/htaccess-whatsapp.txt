@@ -1,0 +1,39 @@
+# .htaccess para permitir webhooks de Meta/WhatsApp
+# Sube este archivo a la misma carpeta que whatsapp-webhook.php (public_html/)
+
+# Permitir peticiones de Meta (Facebook/WhatsApp)
+<Files "whatsapp-webhook.php">
+    # Desactivar cualquier protección para este archivo
+    <IfModule mod_security.c>
+        SecFilterEngine Off
+        SecFilterScanPOST Off
+    </IfModule>
+    
+    # Permitir acceso sin restricciones
+    Order Allow,Deny
+    Allow from all
+    
+    # Satisfacer cualquier condición (no requerir autenticación)
+    Satisfy Any
+</Files>
+
+# Permitir IPs de Meta/Facebook (rangos conocidos)
+<IfModule mod_setenvif.c>
+    SetEnvIf Remote_Addr "^157\.240\." ALLOWED_BOT
+    SetEnvIf Remote_Addr "^66\.220\." ALLOWED_BOT
+    SetEnvIf Remote_Addr "^69\.63\." ALLOWED_BOT
+    SetEnvIf Remote_Addr "^69\.171\." ALLOWED_BOT
+    SetEnvIf Remote_Addr "^74\.119\." ALLOWED_BOT
+    SetEnvIf Remote_Addr "^173\.252\." ALLOWED_BOT
+    SetEnvIf Remote_Addr "^31\.13\." ALLOWED_BOT
+    SetEnvIf Remote_Addr "^185\.60\." ALLOWED_BOT
+    SetEnvIf Remote_Addr "^179\.60\." ALLOWED_BOT
+    SetEnvIf Remote_Addr "^204\.15\." ALLOWED_BOT
+</IfModule>
+
+# Desactivar verificación de bots para el webhook
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteCond %{REQUEST_URI} ^/whatsapp-webhook\.php$
+    RewriteRule .* - [E=noabort:1,L]
+</IfModule>

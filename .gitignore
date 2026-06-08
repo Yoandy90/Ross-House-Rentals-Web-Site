@@ -1,0 +1,151 @@
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# IDE and editors
+.idea/
+.vscode/
+
+# Dependencies
+node_modules/
+/node_modules
+/.pnp
+.pnp.js
+.yarn/install-state.gz
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+
+# Testing
+/coverage
+
+# Next.js
+/.next/
+/out/
+next-env.d.ts
+*.tsbuildinfo
+
+# Production builds
+/build
+dist/
+dist
+
+# Environment files (comprehensive coverage)
+
+*token.json*
+*credentials.json*
+
+# Logs and debug files
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+dump.rdb
+
+# System files
+.DS_Store
+*.pem
+
+# Python
+__pycache__/
+*pyc*
+venv/
+.venv/
+
+# Development tools
+chainlit.md
+.chainlit
+.ipynb_checkpoints/
+.ac
+
+# Deployment
+.vercel
+
+# Data and databases
+agenthub/agents/youtube/db
+
+# Archive files and large assets
+**/*.zip
+**/*.tar.gz
+**/*.tar
+**/*.tgz
+*.pack
+*.deb
+*.dylib
+
+# Build caches
+.cache/
+
+# Mobile development
+android-sdk/ -e 
+# Environment files
+
+# Environment files - DO NOT ignore for Emergent deployment
+# .env files are required and will be auto-updated
+ross-tax-frontend.tar.gz
+website/node_modules/@next/swc-linux-arm64-gnu/next-swc.linux-arm64-gnu.node
+website/node_modules/@next/swc-linux-arm64-musl/next-swc.linux-arm64-musl.node
+webapp/node_modules/@next/swc-linux-arm64-gnu/next-swc.linux-arm64-gnu.node
+webapp/node_modules/@next/swc-linux-arm64-musl/next-swc.linux-arm64-musl.node
+-e 
+# Environment files
+*.env
+*.env.*
+-e 
+# Environment files
+*.env
+*.env.*
+-e 
+# Environment files
+*.env
+*.env.*
+-e 
+# Environment files
+*.env
+*.env.*
+-e 
+# Environment files
+*.env
+*.env.*
+-e 
+# Environment files
+*.env
+*.env.*
+-e 
+# Environment files
+*.env
+*.env.*
+-e 
+# Environment files
+*.env
+*.env.*
+-e 
+# Environment files
+*.env
+*.env.*
+webapp/.next/cache/webpack/client-production/0.pack
+webapp/.next/cache/webpack/server-production/0.pack
+webapp/webapp/node_modules/@next/swc-linux-arm64-gnu/next-swc.linux-arm64-gnu.node
+webapp/webapp/node_modules/@next/swc-linux-arm64-musl/next-swc.linux-arm64-musl.node
+webapp/webapp/.next/cache/webpack/server-production/0.pack
+webapp/webapp/.next/cache/webpack/client-production/0.pack
+webapp/.next/cache/webpack/server-production/5.pack
+webapp/.next/cache/webpack/client-production/18.pack
+rentals-webapp/node_modules/@next/swc-linux-arm64-gnu/next-swc.linux-arm64-gnu.node
+rentals-webapp/node_modules/@next/swc-linux-arm64-musl/next-swc.linux-arm64-musl.node
+backend/.env
+rentals-web/website/node_modules/next/next-swc-fallback/@next/swc-linux-arm64-gnu/next-swc.linux-arm64-gnu.node
+rentals-web/.git/objects/pack/pack-4b77d522229108570be1fd01cea09e3075e08324.pack
+rentals-web/.git/objects/pack/pack-af3f53c8093ae85f3a7dcd8ce8521a5ab85e8cce.pack
+micasousa-web/node_modules/@next/swc-linux-arm64-gnu/next-swc.linux-arm64-gnu.node
+micasousa-web/node_modules/@next/swc-linux-arm64-musl/next-swc.linux-arm64-musl.node
+rosslending-web/node_modules/@next/swc-linux-arm64-gnu/next-swc.linux-arm64-gnu.node
+rosslending-web/node_modules/@next/swc-linux-arm64-musl/next-swc.linux-arm64-musl.node
+rosslending-web/webapp/node_modules/@next/swc-linux-arm64-gnu/next-swc.linux-arm64-gnu.node
+rosslending-web/webapp/node_modules/@next/swc-linux-arm64-musl/next-swc.linux-arm64-musl.node
+rosslending-web/webapp/.next/cache/webpack/server-production/0.pack
+rosslending-web/webapp/.next/cache/webpack/client-production/0.pack
+rosslending-web/.git/objects/pack/pack-6e18385e24c53f3f145e2c952373ad1195096487.pack
+webapp/.next/cache/webpack/server-production/1.pack
+node_modules/@next/swc-linux-arm64-gnu/next-swc.linux-arm64-gnu.node
+node_modules/@next/swc-linux-arm64-musl/next-swc.linux-arm64-musl.node
