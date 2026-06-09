@@ -6,6 +6,7 @@ import {
   Briefcase, Plus, DollarSign, Home, TrendingUp, Wrench,
   Tag, X, Calendar, MapPin, ChevronDown, ChevronUp,
   CheckCircle2, Clock, Hammer, ShoppingCart, BarChart3,
+  Pencil, Trash2, AlertTriangle,
 } from 'lucide-react';
 
 interface Investment {
@@ -41,8 +42,11 @@ export default function InversionesPage() {
   const [dashboard, setDashboard] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [filter, setFilter] = useState('all');
+  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   // Form state
   const [form, setForm] = useState({
@@ -77,11 +81,32 @@ export default function InversionesPage() {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  const createInvestment = async () => {
+  const resetForm = () => {
+    setForm({ address: '', city: '', state: 'TX', purchase_price: '', current_value: '', notes: '' });
+    setEditingId(null);
+  };
+
+  const openEditForm = (inv: Investment) => {
+    setForm({
+      address: inv.address || '',
+      city: inv.city || '',
+      state: inv.state || 'TX',
+      purchase_price: inv.purchase_price?.toString() || '',
+      current_value: inv.current_value?.toString() || '',
+      notes: inv.notes || '',
+    });
+    setEditingId(inv.id);
+    setShowForm(true);
+  };
+
+  const createOrUpdateInvestment = async () => {
     setSaving(true);
     try {
-      const res = await fetch('/api/admin/investments', {
-        method: 'POST',
+      const url = editingId ? `/api/admin/investments/${editingId}` : '/api/admin/investments';
+      const method = editingId ? 'PUT' : 'POST';
+      
+      const res = await fetch(url, {
+        method,
         headers: headers(),
         body: JSON.stringify({
           ...form,
@@ -91,11 +116,26 @@ export default function InversionesPage() {
       });
       if (res.ok) {
         setShowForm(false);
-        setForm({ address: '', city: '', state: 'TX', purchase_price: '', current_value: '', notes: '' });
+        resetForm();
         fetchData();
       }
     } catch (e) { console.error(e); }
     setSaving(false);
+  };
+
+  const deleteInvestment = async (invId: string) => {
+    setDeleting(true);
+    try {
+      const res = await fetch(`/api/admin/investments/${invId}`, {
+        method: 'DELETE',
+        headers: headers(),
+      });
+      if (res.ok) {
+        setDeleteConfirm(null);
+        fetchData();
+      }
+    } catch (e) { console.error(e); }
+    setDeleting(false);
   };
 
   const addExpense = async (invId: string) => {
@@ -156,7 +196,7 @@ export default function InversionesPage() {
           </div>
         </div>
         <button
-          onClick={() => setShowForm(true)}
+          onClick={() => { resetForm(); setShowForm(true); }}
           className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-orange-600 to-orange-500 text-white rounded-xl text-sm font-bold hover:opacity-90 shadow-[0_0_15px_rgba(249,115,22,0.3)]"
         >
           <Plus className="w-4 h-4" /> Nueva Inversión
@@ -202,9 +242,9 @@ export default function InversionesPage() {
             const isExpanded = expandedId === inv.id;
             return (
               <div key={inv.id} className="bg-white/[0.03] rounded-2xl border border-white/[0.06] overflow-hidden hover:border-orange-500/15 transition">
-                <div className="p-5 cursor-pointer" onClick={() => setExpandedId(isExpanded ? null : inv.id)}>
+                <div className="p-5">
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-4 cursor-pointer" onClick={() => setExpandedId(isExpanded ? null : inv.id)}>
                       <div className={`w-11 h-11 rounded-xl flex items-center justify-center border ${phase.bg}`}>
                         <phase.icon className={`w-5 h-5 ${phase.color}`} />
                       </div>
@@ -213,7 +253,7 @@ export default function InversionesPage() {
                         <p className="text-xs text-gray-500 flex items-center gap-1"><MapPin className="w-3 h-3" /> {inv.city}, {inv.state}</p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-6">
+                    <div className="flex items-center gap-4">
                       <div className="text-right hidden sm:block">
                         <p className="text-xs text-gray-500">Compra</p>
                         <p className="text-white font-bold">{fmt(inv.purchase_price)}</p>
@@ -222,12 +262,35 @@ export default function InversionesPage() {
                         <p className="text-xs text-gray-500">Gastos</p>
                         <p className="text-amber-400 font-bold">{fmt(inv.total_expenses)}</p>
                       </div>
-                      <div className="text-right hidden sm:block">
+                      <div className="text-right hidden md:block">
                         <p className="text-xs text-gray-500">Ganancia</p>
                         <p className={`font-bold ${inv.potential_profit >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>{fmt(inv.potential_profit)}</p>
                       </div>
                       <span className={`text-[10px] px-2.5 py-1 rounded-full font-bold border ${phase.bg} ${phase.color}`}>{phase.label}</span>
-                      {isExpanded ? <ChevronUp className="w-4 h-4 text-gray-500" /> : <ChevronDown className="w-4 h-4 text-gray-500" />}
+                      
+                      {/* Action Buttons */}
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={(e) => { e.stopPropagation(); openEditForm(inv); }}
+                          className="p-2 text-gray-400 hover:text-cyan-400 hover:bg-cyan-500/10 rounded-lg transition"
+                          title="Editar"
+                        >
+                          <Pencil className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setDeleteConfirm(inv.id); }}
+                          className="p-2 text-gray-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition"
+                          title="Eliminar"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => setExpandedId(isExpanded ? null : inv.id)}
+                          className="p-2 text-gray-400 hover:text-white"
+                        >
+                          {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -327,13 +390,16 @@ export default function InversionesPage() {
         </div>
       )}
 
-      {/* New Investment Modal */}
+      {/* Create/Edit Investment Modal */}
       {showForm && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-[#111827] rounded-2xl border border-white/[0.1] w-full max-w-lg p-6 space-y-4">
             <div className="flex items-center justify-between">
-              <h3 className="text-lg font-bold text-white flex items-center gap-2"><Briefcase className="w-5 h-5 text-orange-400" /> Nueva Inversión</h3>
-              <button onClick={() => setShowForm(false)} className="text-gray-500 hover:text-white"><X className="w-5 h-5" /></button>
+              <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                <Briefcase className="w-5 h-5 text-orange-400" /> 
+                {editingId ? 'Editar Inversión' : 'Nueva Inversión'}
+              </h3>
+              <button onClick={() => { setShowForm(false); resetForm(); }} className="text-gray-500 hover:text-white"><X className="w-5 h-5" /></button>
             </div>
             <div className="space-y-3">
               <div>
@@ -366,13 +432,49 @@ export default function InversionesPage() {
               </div>
             </div>
             <div className="flex justify-end gap-2 pt-2">
-              <button onClick={() => setShowForm(false)} className="px-4 py-2.5 text-gray-400 hover:text-white text-sm">Cancelar</button>
+              <button onClick={() => { setShowForm(false); resetForm(); }} className="px-4 py-2.5 text-gray-400 hover:text-white text-sm">Cancelar</button>
               <button
-                onClick={createInvestment}
+                onClick={createOrUpdateInvestment}
                 disabled={saving || !form.address || !form.city || !form.purchase_price}
                 className="px-6 py-2.5 bg-gradient-to-r from-orange-600 to-orange-500 text-white rounded-xl text-sm font-bold hover:opacity-90 disabled:opacity-30"
               >
-                {saving ? 'Guardando...' : 'Crear Inversión'}
+                {saving ? 'Guardando...' : editingId ? 'Guardar Cambios' : 'Crear Inversión'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {deleteConfirm && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-[#111827] rounded-2xl border border-red-500/20 w-full max-w-md p-6 space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-full bg-red-500/10 flex items-center justify-center">
+                <AlertTriangle className="w-6 h-6 text-red-400" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-white">¿Eliminar Inversión?</h3>
+                <p className="text-sm text-gray-400">Esta acción no se puede deshacer</p>
+              </div>
+            </div>
+            <p className="text-gray-300 text-sm">
+              Se eliminará la propiedad de inversión junto con todos sus gastos registrados.
+            </p>
+            <div className="flex justify-end gap-2 pt-2">
+              <button 
+                onClick={() => setDeleteConfirm(null)} 
+                className="px-4 py-2.5 text-gray-400 hover:text-white text-sm"
+                disabled={deleting}
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={() => deleteInvestment(deleteConfirm)}
+                disabled={deleting}
+                className="px-6 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl text-sm font-bold disabled:opacity-50"
+              >
+                {deleting ? 'Eliminando...' : 'Sí, Eliminar'}
               </button>
             </div>
           </div>
