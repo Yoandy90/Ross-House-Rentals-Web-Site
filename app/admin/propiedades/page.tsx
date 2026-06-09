@@ -136,6 +136,10 @@ export default function PropiedadesPage() {
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {filtered.map(p => {
             const st = STATUS_MAP[p.status] || STATUS_MAP.available;
+            // Get the first photo URL
+            const photoPath = p.photos?.[0] || '';
+            const photoUrl = photoPath ? `/api/public/property-file/${photoPath}` : '';
+            
             return (
               <div key={p._id} className="relative overflow-hidden bg-white/[0.03] backdrop-blur-sm rounded-2xl border border-white/[0.06] hover:border-cyan-500/20 transition group">
                 {/* Corner gradient orbs */}
@@ -144,8 +148,19 @@ export default function PropiedadesPage() {
                 {/* Top gradient bar */}
                 <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-t-2xl" />
                 {/* Image area */}
-                <div className="h-32 bg-gradient-to-br from-cyan-500/10 to-blue-500/5 flex items-center justify-center relative">
-                  <Home className="w-10 h-10 text-cyan-500/30" />
+                <div className="h-32 bg-gradient-to-br from-cyan-500/10 to-blue-500/5 flex items-center justify-center relative overflow-hidden">
+                  {photoUrl ? (
+                    <img 
+                      src={photoUrl} 
+                      alt={`${p.address || 'Propiedad'}`}
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).style.display = 'none';
+                        (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden');
+                      }}
+                    />
+                  ) : null}
+                  <Home className={`w-10 h-10 text-cyan-500/30 ${photoUrl ? 'hidden' : ''}`} />
                   <span className={`absolute top-2 right-2 text-[10px] px-2 py-0.5 rounded-full font-bold ${st.bg} ${st.color} flex items-center gap-1`}>
                     <st.Icon className="w-3 h-3" /> {st.label}
                   </span>
