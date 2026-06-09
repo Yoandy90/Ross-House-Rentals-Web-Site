@@ -1,11 +1,11 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useAdminAuth } from '../layout';
 import {
   Settings, Save, Building2, DollarSign, CreditCard, Mail,
   FileText, Eye, EyeOff, CheckCircle2, AlertTriangle, RefreshCw,
-  Shield, Percent, Bell, Key, Globe, Phone, MapPin, Hash, Scale, Languages
+  Shield, Percent, Bell, Key, Globe, Phone, MapPin, Hash, Scale, Languages, Pen, Trash2
 } from 'lucide-react';
 
 export default function ConfiguracionPage() {
@@ -27,6 +27,14 @@ export default function ConfiguracionPage() {
   const [legalSaved, setLegalSaved] = useState(false);
   const [legalLang, setLegalLang] = useState<'es' | 'en'>('es');
   const [legalDoc, setLegalDoc] = useState<'terms' | 'privacy'>('terms');
+
+  // Admin signature state
+  const [adminSignature, setAdminSignature] = useState<string | null>(null);
+  const [signatureLoading, setSignatureLoading] = useState(false);
+  const [signatureSaving, setSignatureSaving] = useState(false);
+  const [signatureSaved, setSignatureSaved] = useState(false);
+  const [isDrawing, setIsDrawing] = useState(false);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
 
   const fetchConfig = useCallback(async () => {
     try {
@@ -54,6 +62,112 @@ export default function ConfiguracionPage() {
   useEffect(() => {
     if (activeTab === 'legal') fetchLegalDocs();
   }, [activeTab]);
+
+  // Fetch admin signature when tab is active
+  const fetchAdminSignature = useCallback(async () => {
+    setSignatureLoading(true);
+    try {
+      const res = await fetch('/api/admin/admin-signature', { headers: headers() });
+      if (res.ok) {
+        const d = await res.json();
+        setAdminSignature(d.signature || null);
+      }
+    } catch (e) { console.error(e); }
+    setSignatureLoading(false);
+  }, []);
+
+  useEffect(() => {
+    if (activeTab === 'firma') fetchAdminSignature();
+  }, [activeTab]);
+
+  // Canvas drawing functions
+  const initCanvas = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    ctx.strokeStyle = '#1e3a5f';
+    ctx.lineWidth = 2;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+  }, []);
+
+  useEffect(() => {
+    if (activeTab === 'firma') {
+      setTimeout(initCanvas, 100);
+    }
+  }, [activeTab, initCanvas]);
+
+  const startDrawing = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    setIsDrawing(true);
+    const rect = canvas.getBoundingClientRect();
+    ctx.beginPath();
+    ctx.moveTo(e.clientX - rect.left, e.clientY - rect.top);
+  };
+
+  const draw = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    if (!isDrawing) return;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    const rect = canvas.getBoundingClientRect();
+    ctx.lineTo(e.clientX - rect.left, e.clientY - rect.top);
+    ctx.stroke();
+  };
+
+  const stopDrawing = () => {
+    setIsDrawing(false);
+  };
+
+  const clearCanvas = () => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+  };
+
+  const saveSignature = async () => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    
+    setSignatureSaving(true);
+    try {
+      const signatureData = canvas.toDataURL('image/png');
+      const res = await fetch('/api/admin/admin-signature', {
+        method: 'PUT',
+        headers: headers(),
+        body: JSON.stringify({ signature: signatureData })
+      });
+      if (res.ok) {
+        setAdminSignature(signatureData);
+        setSignatureSaved(true);
+        setTimeout(() => setSignatureSaved(false), 3000);
+      }
+    } catch (e) { console.error(e); }
+    setSignatureSaving(false);
+  };
+
+  const deleteSignature = async () => {
+    if (!confirm('¿Estás seguro de eliminar la firma?')) return;
+    setSignatureSaving(true);
+    try {
+      const res = await fetch('/api/admin/admin-signature', {
+        method: 'DELETE',
+        headers: headers()
+      });
+      if (res.ok) {
+        setAdminSignature(null);
+        clearCanvas();
+      }
+    } catch (e) { console.error(e); }
+    setSignatureSaving(false);
+  };
 
   const handleSaveLegal = async () => {
     setLegalSaving(true);
@@ -106,6 +220,7 @@ export default function ConfiguracionPage() {
 
   const tabs = [
     { key: 'empresa', label: 'Empresa', icon: Building2, color: 'blue' },
+    { key: 'firma', label: 'Firma Admin', icon: Pen, color: 'indigo' },
     { key: 'stripe', label: 'Stripe', icon: CreditCard, color: 'purple' },
     { key: 'pagos', label: 'Pagos', icon: DollarSign, color: 'amber' },
     { key: 'contratos', label: 'Contratos', icon: FileText, color: 'emerald' },
@@ -192,6 +307,99 @@ export default function ConfiguracionPage() {
               </p>
             </div>
           </Card>
+        </div>
+      )}
+
+      {/* ═══════════ Tab: Firma Admin ═══════════ */}
+      {activeTab === 'firma' && (
+        <div className="space-y-4">
+          <div className="p-5 rounded-2xl bg-[#141414] border border-white/[0.06]">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500/20 to-indigo-500/5 border border-indigo-500/20 flex items-center justify-center">
+                <Pen className="w-5 h-5 text-indigo-400" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-white">Firma del Administrador</h3>
+                <p className="text-xs text-gray-500">Esta firma se usará automáticamente en todos los contratos</p>
+              </div>
+              {signatureSaved && (
+                <span className="ml-auto flex items-center gap-1.5 text-xs text-emerald-400 bg-emerald-500/10 px-3 py-1.5 rounded-lg border border-emerald-500/20">
+                  <CheckCircle2 className="w-3.5 h-3.5" /> Guardada
+                </span>
+              )}
+            </div>
+
+            {signatureLoading ? (
+              <div className="flex items-center justify-center h-48">
+                <div className="w-8 h-8 border-3 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin" />
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {/* Current signature preview */}
+                {adminSignature && (
+                  <div className="p-4 bg-white/[0.02] rounded-xl border border-white/[0.06]">
+                    <p className="text-xs text-gray-500 mb-2">Firma Actual:</p>
+                    <div className="bg-white rounded-lg p-4 flex items-center justify-center">
+                      <img src={adminSignature} alt="Firma actual" className="max-h-24 object-contain" />
+                    </div>
+                    <button
+                      onClick={deleteSignature}
+                      disabled={signatureSaving}
+                      className="mt-3 flex items-center gap-2 px-4 py-2 bg-red-500/10 text-red-400 border border-red-500/20 rounded-xl text-sm hover:bg-red-500/20 transition disabled:opacity-50"
+                    >
+                      <Trash2 className="w-4 h-4" /> Eliminar Firma
+                    </button>
+                  </div>
+                )}
+
+                {/* Signature canvas */}
+                <div className="p-4 bg-white/[0.02] rounded-xl border border-white/[0.06]">
+                  <p className="text-xs text-gray-500 mb-2">{adminSignature ? 'Actualizar Firma:' : 'Dibujar Nueva Firma:'}</p>
+                  <div className="relative">
+                    <canvas
+                      ref={canvasRef}
+                      width={500}
+                      height={150}
+                      className="w-full bg-white rounded-lg cursor-crosshair"
+                      style={{ touchAction: 'none' }}
+                      onMouseDown={startDrawing}
+                      onMouseMove={draw}
+                      onMouseUp={stopDrawing}
+                      onMouseLeave={stopDrawing}
+                    />
+                    <p className="absolute bottom-2 left-2 text-xs text-gray-400">Dibuja tu firma aquí</p>
+                  </div>
+                  
+                  <div className="flex items-center gap-3 mt-3">
+                    <button
+                      onClick={clearCanvas}
+                      className="flex items-center gap-2 px-4 py-2 bg-white/[0.04] text-gray-400 border border-white/[0.08] rounded-xl text-sm hover:bg-white/[0.08] transition"
+                    >
+                      <RefreshCw className="w-4 h-4" /> Limpiar
+                    </button>
+                    <button
+                      onClick={saveSignature}
+                      disabled={signatureSaving}
+                      className="flex items-center gap-2 px-5 py-2 bg-gradient-to-r from-indigo-600 to-indigo-500 text-white rounded-xl text-sm font-bold hover:opacity-90 disabled:opacity-30 shadow-[0_0_15px_rgba(99,102,241,0.3)] transition"
+                    >
+                      {signatureSaving ? (
+                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      ) : (
+                        <><Save className="w-4 h-4" /> Guardar Firma</>
+                      )}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="p-3 bg-indigo-500/5 rounded-xl border border-indigo-500/10">
+                  <p className="text-xs text-indigo-400/80">
+                    <Shield className="w-3.5 h-3.5 inline mr-1" />
+                    La firma guardada se aplicará automáticamente como "Landlord Signature" en todos los contratos generados.
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       )}
 
