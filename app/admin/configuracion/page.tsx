@@ -557,16 +557,16 @@ export default function ConfiguracionPage() {
       {activeTab === 'pagos' && (
         <div className="grid lg:grid-cols-2 gap-4">
           <Card title="Configuración de Pagos" icon={DollarSign} color="amber">
-            <Field label="Cargo por Retraso ($)" value={String(config.late_fee_default || config.default_late_fee || '')} onChange={v => setConfig({...config, late_fee_default: parseFloat(v), default_late_fee: parseFloat(v)})} type="number" icon={DollarSign} />
-            <Field label="Período de Gracia (días)" value={String(config.grace_days_default || config.grace_period_days || '')} onChange={v => setConfig({...config, grace_days_default: parseInt(v), grace_period_days: parseInt(v)})} type="number" icon={Hash} />
-            <Field label="Depósito Predeterminado ($)" value={String(config.default_deposit || '')} onChange={v => setConfig({...config, default_deposit: parseFloat(v)})} type="number" icon={DollarSign} />
+            <Field label="Cargo por Retraso ($)" value={String(config.late_fee_default || config.default_late_fee || '')} onChange={v => setConfig({...config, late_fee_default: parseFloat(v) || 0, default_late_fee: parseFloat(v) || 0})} type="number" icon={DollarSign} />
+            <Field label="Período de Gracia (días)" value={String(config.grace_days_default || config.grace_period_days || '')} onChange={v => setConfig({...config, grace_days_default: parseInt(v) || 0, grace_period_days: parseInt(v) || 0})} type="number" icon={Hash} />
+            <Field label="Depósito Predeterminado ($)" value={String(config.default_deposit || '')} onChange={v => setConfig({...config, default_deposit: parseFloat(v) || 0})} type="number" icon={DollarSign} />
           </Card>
 
           <Card title="Métodos de Pago" icon={CreditCard} color="amber">
             <div className="space-y-2">
               {['card', 'bank_transfer', 'cash', 'check'].map(method => {
                 const labels: Record<string, string> = { card: 'Tarjeta de Crédito/Débito', bank_transfer: 'Transferencia Bancaria', cash: 'Efectivo', check: 'Cheque' };
-                const methods = config.payment_methods || ['card'];
+                const methods = Array.isArray(config.payment_methods) ? config.payment_methods : ['card'];
                 const active = methods.includes(method);
                 return (
                   <div key={method} className="flex items-center justify-between p-3 bg-white/[0.02] rounded-xl border border-white/[0.06]">
