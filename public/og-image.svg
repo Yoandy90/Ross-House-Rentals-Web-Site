@@ -1,0 +1,19 @@
+<svg width="1200" height="630" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0a1020;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#1a2030;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="accent" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#C8102E;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#a00d25;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  <rect x="50" y="250" width="8" height="130" fill="url(#accent)"/>
+  <text x="80" y="320" font-family="Arial, sans-serif" font-size="72" font-weight="bold" fill="white">Ross House Rentals</text>
+  <text x="80" y="380" font-family="Arial, sans-serif" font-size="36" fill="#888">Casas en Renta en Dumas, Texas</text>
+  <text x="80" y="450" font-family="Arial, sans-serif" font-size="24" fill="#C8102E">(806) 934-2018 • rosshouserentals.com</text>
+  <path d="M1050 200 L1050 140 L1100 100 L1150 140 L1150 200 Z" fill="url(#accent)" stroke="#C8102E" stroke-width="3"/>
+  <rect x="1080" y="160" width="40" height="40" fill="#0a1020" rx="3"/>
+</svg>

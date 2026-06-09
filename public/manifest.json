@@ -1,0 +1,16 @@
+{
+  "name": "Ross House Rentals",
+  "short_name": "RHR",
+  "description": "Casas en renta en Dumas, Texas - Administración profesional de propiedades",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#C8102E",
+  "icons": [
+    {
+      "src": "/logo.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

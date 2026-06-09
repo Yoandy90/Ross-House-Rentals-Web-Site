@@ -2,16 +2,21 @@
 
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { Home, Bed, Bath, Ruler, MapPin, DollarSign, ArrowRight, Loader2 } from 'lucide-react'
+import { Bed, Bath, Square, MapPin, ArrowRight, Loader2 } from 'lucide-react'
 import { useLanguage } from '../i18n/LanguageContext'
-
-const API_URL = 'https://app-nueva-production.up.railway.app/api'
+import Image from 'next/image'
 
 interface Property {
-  id: string; address: string; city: string; state: string; zip_code: string;
-  property_type: string; bedrooms: number; bathrooms: number; square_feet: number;
-  rent_amount: number; deposit_amount: number; description: string; features: string[];
-  photos: string[]; status: string;
+  _id: string
+  address: string
+  city: string
+  state: string
+  bedrooms: number
+  bathrooms: number
+  square_feet: number
+  rent_amount: number
+  status: string
+  photos?: { url: string; category: string }[]
 }
 
 export default function Properties() {
@@ -20,75 +25,145 @@ export default function Properties() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    fetch(`${API_URL}/public/properties`)
-      .then(r => r.json())
-      .then(d => { setProperties(d.properties || []); setLoading(false) })
-      .catch(() => setLoading(false))
+    const fetchProperties = async () => {
+      try {
+        const res = await fetch('/api/public/properties?status=available&limit=6')
+        if (res.ok) {
+          const data = await res.json()
+          setProperties(data.properties || [])
+        }
+      } catch (e) {
+        console.error('Error fetching properties:', e)
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchProperties()
   }, [])
 
+  const formatPrice = (price: number) => 
+    new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 }).format(price)
+
+  // Fallback properties if API fails
+  const fallbackProperties = [
+    { _id: '1', address: '812 NE 2nd', city: 'Dumas', state: 'TX', bedrooms: 2, bathrooms: 1, square_feet: 965, rent_amount: 1200, status: 'available', photos: [] },
+    { _id: '2', address: '121 Oak Ave', city: 'Dumas', state: 'TX', bedrooms: 2, bathrooms: 2, square_feet: 1100, rent_amount: 1100, status: 'available', photos: [] },
+  ]
+
+  const displayProperties = properties.length > 0 ? properties : fallbackProperties
+
   return (
-    <section id="properties" className="py-24 bg-white">
+    <section id="properties" className="py-20 bg-white" aria-labelledby="properties-heading">
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
-        <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
-          className="text-center mb-16">
-          <span className="text-primary font-semibold text-sm uppercase tracking-widest">{t.properties.badge}</span>
-          <h2 className="font-display text-4xl md:text-5xl font-bold text-charcoal mt-3 mb-4">{t.properties.title}</h2>
-          <p className="text-gray-500 text-lg max-w-2xl mx-auto">{t.properties.subtitle}</p>
+        {/* Section Header */}
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="text-center mb-16"
+        >
+          <span className="inline-block bg-primary/10 text-primary px-4 py-2 rounded-full text-sm font-semibold mb-4">
+            {t.properties?.badge || 'Propiedades Disponibles'}
+          </span>
+          <h2 id="properties-heading" className="font-display text-4xl md:text-5xl font-bold text-charcoal mb-4">
+            {t.properties?.title || 'Encuentra Tu Hogar Ideal'}
+          </h2>
+          <p className="text-gray-600 text-lg max-w-2xl mx-auto">
+            {t.properties?.subtitle || 'Casas de calidad disponibles para alquiler en Dumas, Texas'}
+          </p>
         </motion.div>
 
+        {/* Properties Grid */}
         {loading ? (
-          <div className="text-center py-20"><Loader2 className="w-8 h-8 text-primary animate-spin mx-auto" /><p className="text-gray-400 mt-3">Loading properties...</p></div>
-        ) : properties.length === 0 ? (
-          <div className="text-center py-20 bg-warm/50 rounded-3xl">
-            <Home className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-            <h3 className="text-xl font-bold text-gray-700 mb-2">All Properties Currently Leased</h3>
-            <p className="text-gray-500 mb-6">We&apos;re at full occupancy! Apply below to join our waitlist.</p>
-            <a href="#apply" className="inline-flex items-center gap-2 bg-primary text-white px-6 py-3 rounded-xl font-semibold hover:bg-primary-dark transition-all">Join Waitlist <ArrowRight className="w-4 h-4" /></a>
+          <div className="flex justify-center items-center py-20" aria-label="Cargando propiedades">
+            <Loader2 className="w-8 h-8 animate-spin text-primary" />
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {properties.map((p, i) => (
-              <motion.div key={p.id} initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.1 }}
-                className="group bg-white rounded-3xl overflow-hidden shadow-md hover:shadow-2xl transition-all duration-500 border border-gray-100">
-                <div className="relative h-56 bg-gradient-to-br from-primary/10 to-secondary/10 overflow-hidden">
-                  {p.photos?.[0] ? (
-                    <img src={p.photos[0]} alt={p.address} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center">
-                      <Home className="w-16 h-16 text-primary/20" />
-                    </div>
-                  )}
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8" role="list" aria-label="Lista de propiedades disponibles">
+            {displayProperties.slice(0, 6).map((property, index) => (
+              <motion.article
+                key={property._id}
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: index * 0.1 }}
+                className="group bg-white rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 border border-gray-100"
+                role="listitem"
+              >
+                {/* Property Image */}
+                <div className="relative h-56 overflow-hidden">
+                  <Image
+                    src={property.photos?.[0]?.url || 'https://images.pexels.com/photos/1396122/pexels-photo-1396122.jpeg?auto=compress&cs=tinysrgb&w=600'}
+                    alt={`Casa en renta en ${property.address}, ${property.city}, ${property.state}`}
+                    fill
+                    sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                    className="object-cover group-hover:scale-105 transition-transform duration-500"
+                    loading={index < 3 ? 'eager' : 'lazy'}
+                  />
                   <div className="absolute top-4 left-4">
-                    <span className={`px-3 py-1.5 rounded-full text-xs font-bold shadow-lg ${
-                      p.status === 'available' ? 'bg-secondary text-white' : 'bg-gray-700 text-white'
-                    }`}>
-                      {p.status === 'available' ? '✨ Available' : 'Leased'}
+                    <span className="bg-primary text-white px-3 py-1 rounded-full text-sm font-semibold">
+                      {formatPrice(property.rent_amount)}/mes
                     </span>
                   </div>
-                  <div className="absolute bottom-4 right-4 bg-white/95 backdrop-blur-sm px-4 py-2 rounded-xl shadow-lg">
-                    <span className="text-2xl font-display font-bold text-primary">${p.rent_amount.toLocaleString()}</span>
-                    <span className="text-gray-500 text-sm">/mo</span>
-                  </div>
                 </div>
+
+                {/* Property Info */}
                 <div className="p-6">
-                  <h3 className="font-display text-xl font-bold text-charcoal mb-1 group-hover:text-primary transition-colors">{p.address}</h3>
-                  <p className="flex items-center gap-1.5 text-gray-400 text-sm mb-4"><MapPin className="w-3.5 h-3.5" />{p.city}, {p.state} {p.zip_code}</p>
-                  <div className="flex items-center gap-4 py-4 border-t border-gray-100">
-                    <div className="flex items-center gap-1.5 text-gray-600"><Bed className="w-4 h-4 text-primary" /><span className="text-sm font-medium">{p.bedrooms} Bed</span></div>
-                    <div className="flex items-center gap-1.5 text-gray-600"><Bath className="w-4 h-4 text-primary" /><span className="text-sm font-medium">{p.bathrooms} Bath</span></div>
-                    {p.square_feet > 0 && <div className="flex items-center gap-1.5 text-gray-600"><Ruler className="w-4 h-4 text-primary" /><span className="text-sm font-medium">{p.square_feet.toLocaleString()} ft²</span></div>}
+                  <div className="flex items-center gap-2 text-gray-500 text-sm mb-3">
+                    <MapPin className="w-4 h-4 text-primary" aria-hidden="true" />
+                    <address className="not-italic">
+                      {property.address}, {property.city}, {property.state}
+                    </address>
                   </div>
-                  <div className="flex items-center justify-between mt-4">
-                    <div className="text-xs text-gray-400"><DollarSign className="w-3 h-3 inline" /> Deposit: ${p.deposit_amount.toLocaleString()}</div>
-                    <a href="#apply" className="inline-flex items-center gap-1 text-primary font-semibold text-sm hover:text-secondary transition-colors">
-                      Apply Now <ArrowRight className="w-4 h-4" />
-                    </a>
+
+                  {/* Features */}
+                  <div className="flex items-center gap-4 text-sm text-gray-600 mb-4" role="list" aria-label="Características de la propiedad">
+                    <div className="flex items-center gap-1" role="listitem">
+                      <Bed className="w-4 h-4" aria-hidden="true" />
+                      <span>{property.bedrooms} {property.bedrooms === 1 ? 'Hab' : 'Habs'}</span>
+                    </div>
+                    <div className="flex items-center gap-1" role="listitem">
+                      <Bath className="w-4 h-4" aria-hidden="true" />
+                      <span>{property.bathrooms} {property.bathrooms === 1 ? 'Baño' : 'Baños'}</span>
+                    </div>
+                    {property.square_feet > 0 && (
+                      <div className="flex items-center gap-1" role="listitem">
+                        <Square className="w-4 h-4" aria-hidden="true" />
+                        <span>{property.square_feet.toLocaleString()} ft²</span>
+                      </div>
+                    )}
                   </div>
+
+                  <a 
+                    href="#apply" 
+                    className="w-full bg-charcoal hover:bg-charcoal/90 text-white py-3 rounded-xl font-semibold transition-colors flex items-center justify-center gap-2 group/btn focus:outline-none focus:ring-2 focus:ring-primary"
+                    aria-label={`Aplicar para alquilar ${property.address}`}
+                  >
+                    Aplicar Ahora
+                    <ArrowRight className="w-4 h-4 group-hover/btn:translate-x-1 transition-transform" aria-hidden="true" />
+                  </a>
                 </div>
-              </motion.div>
+              </motion.article>
             ))}
           </div>
         )}
+
+        {/* View All Button */}
+        <motion.div 
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
+          viewport={{ once: true }}
+          className="text-center mt-12"
+        >
+          <a 
+            href="/admin" 
+            className="inline-flex items-center gap-2 text-primary hover:text-primary-dark font-semibold text-lg transition-colors focus:outline-none focus:ring-2 focus:ring-primary rounded-lg px-4 py-2"
+            aria-label="Ver todas las propiedades disponibles"
+          >
+            Ver Todas las Propiedades
+            <ArrowRight className="w-5 h-5" aria-hidden="true" />
+          </a>
+        </motion.div>
       </div>
     </section>
   )
