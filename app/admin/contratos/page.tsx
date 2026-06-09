@@ -1,11 +1,13 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useAdminAuth } from '../layout';
 import {
   FileText, Plus, Search, Calendar, DollarSign, Home, Users,
   Edit3, Trash2, CheckCircle2, Clock, AlertTriangle, X, Save,
   RefreshCw, Download, ChevronDown, ChevronUp, FileSignature,
+  Mail, Send, Eye, Printer, Building, User, Phone, CreditCard,
+  PenTool, Tablet, RotateCcw,
 } from 'lucide-react';
 
 const fmt = (n: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 }).format(n);
@@ -16,6 +18,7 @@ const STATUS_MAP: Record<string, { label: string; color: string; bg: string; bor
   expired: { label: 'Vencido', color: 'text-amber-400', bg: 'bg-amber-500/10', border: 'border-amber-500/20' },
   terminated: { label: 'Terminado', color: 'text-red-400', bg: 'bg-red-500/10', border: 'border-red-500/20' },
   pending_signature: { label: 'Pendiente Firma', color: 'text-indigo-400', bg: 'bg-indigo-500/10', border: 'border-indigo-500/20' },
+  pending_tenant: { label: 'Pendiente Inquilino', color: 'text-orange-400', bg: 'bg-orange-500/10', border: 'border-orange-500/20' },
 };
 
 export default function ContratosPage() {
@@ -47,7 +50,18 @@ export default function ContratosPage() {
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
 
-  const getPropName = (id: string) => properties.find(p => p._id === id)?.name || 'N/A';
+  const getPropDisplayName = (p: any) => {
+    if (!p) return 'Propiedad desconocida';
+    const name = p.name?.trim();
+    const address = p.address?.trim();
+    const propNum = p.property_number?.trim();
+    const idShort = p._id?.slice(-4) || '';
+    return name || address || (propNum ? `Propiedad ${propNum}` : `Propiedad #${idShort}`);
+  };
+  const getPropName = (id: string) => {
+    const p = properties.find(p => p._id === id);
+    return getPropDisplayName(p);
+  };
   const getTenantName = (id: string) => { const t = tenants.find(t => t._id === id); return t ? `${t.first_name} ${t.last_name}` : 'N/A'; };
 
   const resetForm = () => { setForm({ property_id: '', tenant_id: '', start_date: '', end_date: '', rent_amount: '', deposit_amount: '', payment_day: '1', status: 'draft', late_fee: '25', grace_period_days: '5', terms: '' }); setEditing(null); setShowForm(false); };
@@ -67,6 +81,133 @@ export default function ContratosPage() {
   const downloadPdf = async (id: string) => {
     const res = await fetch(`/api/admin/rental-contracts/${id}/pdf`, { headers: headers() });
     if (res.ok) { const data = await res.json(); if (data.pdf_base64) { const link = document.createElement('a'); link.href = `data:application/pdf;base64,${data.pdf_base64}`; link.download = `contrato_${id}.pdf`; link.click(); }}
+  };
+
+  const [sendingEmail, setSendingEmail] = useState<string | null>(null);
+  const [emailSent, setEmailSent] = useState<string | null>(null);
+
+  const sendContractEmail = async (id: string, tenantEmail: string) => {
+    if (!tenantEmail) { alert('El inquilino no tiene email registrado'); return; }
+    if (!confirm(`¿Enviar contrato por email a ${tenantEmail}?`)) return;
+    setSendingEmail(id);
+    try {
+      const res = await fetch(`/api/rental/admin/rental-contracts/${id}/send-email`, { 
+        method: 'POST', 
+        headers: headers(), 
+        body: JSON.stringify({ email: tenantEmail }) 
+      });
+      if (res.ok) { 
+        setEmailSent(id);
+        setTimeout(() => setEmailSent(null), 3000);
+        alert('✅ Contrato enviado por email exitosamente');
+      } else {
+        const err = await res.json();
+        alert(`❌ Error: ${err.detail || 'No se pudo enviar el email'}`);
+      }
+    } catch (e) { 
+      console.error(e); 
+      alert('❌ Error enviando email');
+    }
+    setSendingEmail(null);
+  };
+
+  const getTenantEmail = (id: string) => { const t = tenants.find(t => t._id === id); return t?.email || ''; };
+
+  // Office Signing States
+  const [showSignModal, setShowSignModal] = useState(false);
+  const [signingContract, setSigningContract] = useState<any>(null);
+  const [signMode, setSignMode] = useState<'canvas' | 'topaz'>('canvas');
+  const [signerName, setSignerName] = useState('');
+  const [signerRole, setSignerRole] = useState<'tenant' | 'admin'>('tenant');
+  const [signing, setSigning] = useState(false);
+  const [isDrawing, setIsDrawing] = useState(false);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  const openSignModal = (contract: any) => {
+    const tenant = tenants.find(t => t._id === contract.tenant_id);
+    setSigningContract(contract);
+    setSignerName(tenant ? `${tenant.first_name || ''} ${tenant.last_name || ''}`.trim() : '');
+    setSignerRole('tenant');
+    setSignMode('canvas');
+    setShowSignModal(true);
+  };
+
+  const clearSignature = () => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+  };
+
+  const startDrawing = (e: React.MouseEvent | React.TouchEvent) => {
+    setIsDrawing(true);
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    const rect = canvas.getBoundingClientRect();
+    const x = 'touches' in e ? e.touches[0].clientX - rect.left : e.clientX - rect.left;
+    const y = 'touches' in e ? e.touches[0].clientY - rect.top : e.clientY - rect.top;
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+  };
+
+  const draw = (e: React.MouseEvent | React.TouchEvent) => {
+    if (!isDrawing) return;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    const rect = canvas.getBoundingClientRect();
+    const x = 'touches' in e ? e.touches[0].clientX - rect.left : e.clientX - rect.left;
+    const y = 'touches' in e ? e.touches[0].clientY - rect.top : e.clientY - rect.top;
+    ctx.lineTo(x, y);
+    ctx.strokeStyle = '#1a1a2e';
+    ctx.lineWidth = 2;
+    ctx.lineCap = 'round';
+    ctx.stroke();
+  };
+
+  const stopDrawing = () => setIsDrawing(false);
+
+  const submitOfficeSignature = async () => {
+    if (!signingContract || !signerName.trim()) {
+      alert('Por favor ingrese el nombre del firmante');
+      return;
+    }
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    
+    setSigning(true);
+    const signature = canvas.toDataURL('image/png');
+    
+    try {
+      const res = await fetch(`/api/rental/admin/rental-contracts/${signingContract._id}/office-sign`, {
+        method: 'POST',
+        headers: headers(),
+        body: JSON.stringify({
+          type: signMode,
+          signature,
+          signer_name: signerName,
+          signer_role: signerRole,
+        }),
+      });
+      
+      if (res.ok) {
+        const data = await res.json();
+        alert(`✅ Firma capturada exitosamente\nFirmante: ${signerName}\nTipo: ${signMode === 'topaz' ? 'Topaz Pad' : 'Canvas'}`);
+        setShowSignModal(false);
+        fetchAll();
+      } else {
+        const err = await res.json();
+        alert(`❌ Error: ${err.detail || 'No se pudo guardar la firma'}`);
+      }
+    } catch (e) {
+      console.error(e);
+      alert('❌ Error al guardar la firma');
+    }
+    setSigning(false);
   };
 
   const filtered = contracts.filter(c => !search || `${getPropName(c.property_id)} ${getTenantName(c.tenant_id)}`.toLowerCase().includes(search.toLowerCase()));
@@ -94,7 +235,7 @@ export default function ContratosPage() {
         <div className="bg-white/[0.03] backdrop-blur-xl rounded-2xl border border-emerald-500/20 p-6">
           <div className="flex items-center justify-between mb-4"><h3 className="text-lg font-bold text-white">{editing ? 'Editar Contrato' : 'Nuevo Contrato'}</h3><button onClick={resetForm} className="text-gray-500 hover:text-white"><X className="w-5 h-5" /></button></div>
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            <div><label className="block text-xs font-bold text-gray-400 mb-1 uppercase tracking-wider">Propiedad <span className="text-emerald-500">*</span></label><select value={form.property_id} onChange={e => setForm({...form, property_id: e.target.value})} className="w-full px-3 py-2.5 bg-[#0a1020]/60 border border-white/[0.08] rounded-xl text-white text-sm focus:border-emerald-500 focus:outline-none appearance-none"><option value="">Seleccionar...</option>{properties.map(p => <option key={p._id} value={p._id}>{p.name}</option>)}</select></div>
+            <div><label className="block text-xs font-bold text-gray-400 mb-1 uppercase tracking-wider">Propiedad <span className="text-emerald-500">*</span></label><select value={form.property_id} onChange={e => setForm({...form, property_id: e.target.value})} className="w-full px-3 py-2.5 bg-[#0a1020]/60 border border-white/[0.08] rounded-xl text-white text-sm focus:border-emerald-500 focus:outline-none appearance-none"><option value="">Seleccionar...</option>{properties.map(p => <option key={p._id} value={p._id}>{getPropDisplayName(p)}</option>)}</select></div>
             <div><label className="block text-xs font-bold text-gray-400 mb-1 uppercase tracking-wider">Inquilino <span className="text-emerald-500">*</span></label><select value={form.tenant_id} onChange={e => setForm({...form, tenant_id: e.target.value})} className="w-full px-3 py-2.5 bg-[#0a1020]/60 border border-white/[0.08] rounded-xl text-white text-sm focus:border-emerald-500 focus:outline-none appearance-none"><option value="">Seleccionar...</option>{tenants.map(t => <option key={t._id} value={t._id}>{t.first_name} {t.last_name}</option>)}</select></div>
             <div><label className="block text-xs font-bold text-gray-400 mb-1 uppercase tracking-wider">Estado</label><select value={form.status} onChange={e => setForm({...form, status: e.target.value})} className="w-full px-3 py-2.5 bg-[#0a1020]/60 border border-white/[0.08] rounded-xl text-white text-sm focus:border-emerald-500 focus:outline-none appearance-none"><option value="draft">Borrador</option><option value="active">Activo</option><option value="pending_signature">Pendiente Firma</option></select></div>
             <FInput label="Fecha Inicio" value={form.start_date} onChange={v => setForm({...form, start_date: v})} type="date" required />
@@ -146,6 +287,29 @@ export default function ContratosPage() {
                     </div>
                     <div className="flex flex-wrap gap-2">
                       <button onClick={() => downloadPdf(c._id)} className="flex items-center gap-1.5 text-xs px-3 py-1.5 bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded-lg hover:bg-blue-500/20 transition"><Download className="w-3 h-3" /> PDF</button>
+                      <button 
+                        onClick={() => sendContractEmail(c._id, getTenantEmail(c.tenant_id))} 
+                        disabled={sendingEmail === c._id}
+                        className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg transition ${
+                          emailSent === c._id 
+                            ? 'bg-green-500/10 text-green-400 border border-green-500/20' 
+                            : 'bg-purple-500/10 text-purple-400 border border-purple-500/20 hover:bg-purple-500/20'
+                        }`}
+                      >
+                        {sendingEmail === c._id ? (
+                          <><div className="w-3 h-3 border-2 border-purple-400/30 border-t-purple-400 rounded-full animate-spin" /> Enviando...</>
+                        ) : emailSent === c._id ? (
+                          <><CheckCircle2 className="w-3 h-3" /> Enviado!</>
+                        ) : (
+                          <><Mail className="w-3 h-3" /> Email</>
+                        )}
+                      </button>
+                      <button 
+                        onClick={() => openSignModal(c)} 
+                        className="flex items-center gap-1.5 text-xs px-3 py-1.5 bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 rounded-lg hover:bg-indigo-500/20 transition"
+                      >
+                        <PenTool className="w-3 h-3" /> Firmar en Oficina
+                      </button>
                       <button onClick={() => { setForm({ property_id: c.property_id, tenant_id: c.tenant_id, start_date: c.start_date || '', end_date: c.end_date || '', rent_amount: String(c.rent_amount || ''), deposit_amount: String(c.deposit_amount || ''), payment_day: String(c.payment_day || 1), status: c.status || 'draft', late_fee: String(c.late_fee || 25), grace_period_days: String(c.grace_period_days || 5), terms: c.terms || '' }); setEditing(c); setShowForm(true); }} className="flex items-center gap-1.5 text-xs px-3 py-1.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-lg hover:bg-emerald-500/20 transition"><Edit3 className="w-3 h-3" /> Editar</button>
                       <button onClick={() => handleDelete(c._id)} className="flex items-center gap-1.5 text-xs px-3 py-1.5 bg-red-500/10 text-red-400 border border-red-500/20 rounded-lg hover:bg-red-500/20 transition"><Trash2 className="w-3 h-3" /> Eliminar</button>
                     </div>
@@ -154,6 +318,162 @@ export default function ContratosPage() {
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* Office Signing Modal */}
+      {showSignModal && signingContract && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-[#0d1526] rounded-2xl border border-white/10 w-full max-w-lg overflow-hidden">
+            <div className="flex items-center justify-between p-4 border-b border-white/10">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-indigo-500/20 rounded-xl flex items-center justify-center">
+                  <PenTool className="w-5 h-5 text-indigo-400" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-white">Firmar en Oficina</h3>
+                  <p className="text-xs text-gray-500">{getPropName(signingContract.property_id)}</p>
+                </div>
+              </div>
+              <button onClick={() => setShowSignModal(false)} className="p-2 hover:bg-white/5 rounded-lg transition">
+                <X className="w-5 h-5 text-gray-400" />
+              </button>
+            </div>
+
+            <div className="p-4 space-y-4">
+              {/* Mode Selector */}
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setSignMode('canvas')}
+                  className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg text-sm font-medium transition ${
+                    signMode === 'canvas'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-700/50 text-gray-400 hover:bg-gray-700'
+                  }`}
+                >
+                  <PenTool className="w-4 h-4" />
+                  Canvas
+                </button>
+                <button
+                  onClick={() => setSignMode('topaz')}
+                  className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg text-sm font-medium transition ${
+                    signMode === 'topaz'
+                      ? 'bg-purple-600 text-white'
+                      : 'bg-gray-700/50 text-gray-400 hover:bg-gray-700'
+                  }`}
+                >
+                  <Tablet className="w-4 h-4" />
+                  Topaz Pad
+                </button>
+              </div>
+
+              {/* Signer Role */}
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setSignerRole('tenant')}
+                  className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition ${
+                    signerRole === 'tenant'
+                      ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                      : 'bg-gray-700/30 text-gray-400 border border-gray-700'
+                  }`}
+                >
+                  Inquilino
+                </button>
+                <button
+                  onClick={() => setSignerRole('admin')}
+                  className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition ${
+                    signerRole === 'admin'
+                      ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+                      : 'bg-gray-700/30 text-gray-400 border border-gray-700'
+                  }`}
+                >
+                  Administrador
+                </button>
+              </div>
+
+              {/* Signer Name */}
+              <div>
+                <label className="block text-xs font-bold text-gray-400 mb-1.5 uppercase tracking-wider">Nombre del Firmante</label>
+                <input
+                  type="text"
+                  value={signerName}
+                  onChange={(e) => setSignerName(e.target.value)}
+                  placeholder="Nombre completo"
+                  className="w-full px-3 py-2.5 bg-gray-900/60 border border-white/10 rounded-xl text-white text-sm focus:border-indigo-500 focus:outline-none"
+                />
+              </div>
+
+              {/* Canvas */}
+              {signMode === 'canvas' && (
+                <div className="relative">
+                  <canvas
+                    ref={canvasRef}
+                    width={440}
+                    height={150}
+                    className="w-full bg-white rounded-xl border-2 border-dashed border-gray-600 cursor-crosshair touch-none"
+                    onMouseDown={startDrawing}
+                    onMouseMove={draw}
+                    onMouseUp={stopDrawing}
+                    onMouseLeave={stopDrawing}
+                    onTouchStart={startDrawing}
+                    onTouchMove={draw}
+                    onTouchEnd={stopDrawing}
+                  />
+                  <p className="absolute bottom-2 left-1/2 -translate-x-1/2 text-gray-400 text-xs pointer-events-none">
+                    Firme aquí con el mouse o dedo
+                  </p>
+                </div>
+              )}
+
+              {/* Topaz Mode */}
+              {signMode === 'topaz' && (
+                <div className="bg-purple-500/10 border border-purple-500/30 rounded-xl p-4 text-center">
+                  <Tablet className="w-12 h-12 text-purple-400 mx-auto mb-2" />
+                  <p className="text-purple-300 text-sm font-medium">Modo Topaz Pad</p>
+                  <p className="text-gray-400 text-xs mt-1">El cliente debe firmar directamente en el pad Topaz conectado.</p>
+                  <p className="text-gray-500 text-xs mt-2">Asegúrese de tener SigWeb instalado y el pad conectado.</p>
+                  {/* For now, use canvas as fallback */}
+                  <div className="mt-3">
+                    <canvas
+                      ref={canvasRef}
+                      width={400}
+                      height={100}
+                      className="w-full bg-white rounded-lg border border-purple-500 cursor-crosshair touch-none"
+                      onMouseDown={startDrawing}
+                      onMouseMove={draw}
+                      onMouseUp={stopDrawing}
+                      onMouseLeave={stopDrawing}
+                      onTouchStart={startDrawing}
+                      onTouchMove={draw}
+                      onTouchEnd={stopDrawing}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Actions */}
+              <div className="flex gap-2">
+                <button
+                  onClick={clearSignature}
+                  className="flex-1 flex items-center justify-center gap-2 py-2.5 px-4 bg-gray-700/50 text-gray-300 rounded-xl hover:bg-gray-700 text-sm transition"
+                >
+                  <RotateCcw className="w-4 h-4" />
+                  Limpiar
+                </button>
+                <button
+                  onClick={submitOfficeSignature}
+                  disabled={signing || !signerName.trim()}
+                  className="flex-1 flex items-center justify-center gap-2 py-2.5 px-4 bg-emerald-600 text-white rounded-xl hover:bg-emerald-500 text-sm font-semibold transition disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {signing ? (
+                    <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Guardando...</>
+                  ) : (
+                    <><CheckCircle2 className="w-4 h-4" /> Guardar Firma</>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>
