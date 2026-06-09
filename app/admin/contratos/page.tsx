@@ -183,7 +183,7 @@ export default function ContratosPage() {
     const signature = canvas.toDataURL('image/png');
     
     try {
-      const res = await fetch(`/api/rental/admin/rental-contracts/${signingContract._id}/office-sign`, {
+      const res = await fetch(`/api/admin/rental-contracts/${signingContract._id}/office-sign`, {
         method: 'POST',
         headers: headers(),
         body: JSON.stringify({
