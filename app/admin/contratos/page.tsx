@@ -76,7 +76,27 @@ export default function ContratosPage() {
     setSaving(false);
   };
 
-  const handleDelete = async (id: string) => { if (!confirm('¿Eliminar este contrato?')) return; await fetch(`/api/admin/rental-contracts/${id}`, { method: 'DELETE', headers: headers() }); fetchAll(); };
+  const handleDelete = async (id: string, status?: string) => { 
+    const isActive = status === 'active';
+    const msg = isActive 
+      ? '⚠️ Este contrato está ACTIVO. ¿Estás seguro de eliminarlo? Esta acción no se puede deshacer.'
+      : '¿Eliminar este contrato?';
+    if (!confirm(msg)) return; 
+    try {
+      const url = isActive 
+        ? `/api/admin/rental-contracts/${id}?force=true`
+        : `/api/admin/rental-contracts/${id}`;
+      const res = await fetch(url, { method: 'DELETE', headers: headers() }); 
+      if (res.ok) {
+        fetchAll();
+      } else {
+        const err = await res.json().catch(() => ({}));
+        alert(err.detail || 'Error al eliminar el contrato');
+      }
+    } catch (e) {
+      alert('Error de conexión al eliminar');
+    }
+  };
 
   const downloadPdf = async (id: string) => {
     const res = await fetch(`/api/admin/rental-contracts/${id}/pdf`, { headers: headers() });
@@ -311,7 +331,7 @@ export default function ContratosPage() {
                         <PenTool className="w-3 h-3" /> Firmar en Oficina
                       </button>
                       <button onClick={() => { setForm({ property_id: c.property_id, tenant_id: c.tenant_id, start_date: c.start_date || '', end_date: c.end_date || '', rent_amount: String(c.rent_amount || ''), deposit_amount: String(c.deposit_amount || ''), payment_day: String(c.payment_day || 1), status: c.status || 'draft', late_fee: String(c.late_fee || 25), grace_period_days: String(c.grace_period_days || 5), terms: c.terms || '' }); setEditing(c); setShowForm(true); }} className="flex items-center gap-1.5 text-xs px-3 py-1.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-lg hover:bg-emerald-500/20 transition"><Edit3 className="w-3 h-3" /> Editar</button>
-                      <button onClick={() => handleDelete(c._id)} className="flex items-center gap-1.5 text-xs px-3 py-1.5 bg-red-500/10 text-red-400 border border-red-500/20 rounded-lg hover:bg-red-500/20 transition"><Trash2 className="w-3 h-3" /> Eliminar</button>
+                      <button onClick={() => handleDelete(c._id, c.status)} className="flex items-center gap-1.5 text-xs px-3 py-1.5 bg-red-500/10 text-red-400 border border-red-500/20 rounded-lg hover:bg-red-500/20 transition"><Trash2 className="w-3 h-3" /> Eliminar</button>
                     </div>
                   </div>
                 )}
