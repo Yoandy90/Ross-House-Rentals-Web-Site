@@ -136,9 +136,10 @@ export default function PropiedadesPage() {
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {filtered.map(p => {
             const st = STATUS_MAP[p.status] || STATUS_MAP.available;
-            // Get the first photo URL
+            // Get the first photo URL - remove ross-rentals/ prefix if present
             const photoPath = p.photos?.[0] || '';
-            const photoUrl = photoPath ? `/api/public/property-file/${photoPath}` : '';
+            const cleanPath = photoPath.replace('ross-rentals/', '');
+            const photoUrl = cleanPath ? `/api/public/property-file/${cleanPath}` : '';
             
             return (
               <div key={p._id} className="relative overflow-hidden bg-white/[0.03] backdrop-blur-sm rounded-2xl border border-white/[0.06] hover:border-cyan-500/20 transition group">
