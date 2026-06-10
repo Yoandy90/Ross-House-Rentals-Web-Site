@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import dynamic from 'next/dynamic';
 import { useAdminAuth } from '../layout';
 import {
   FileText, Plus, Search, Calendar, DollarSign, Home, Users,
@@ -9,6 +10,12 @@ import {
   Mail, Send, Eye, Printer, Building, User, Phone, CreditCard,
   PenTool, Tablet, RotateCcw,
 } from 'lucide-react';
+
+// Dynamically import TopazSignaturePad to avoid SSR issues
+const TopazSignaturePad = dynamic(
+  () => import('../components/TopazSignaturePad'),
+  { ssr: false, loading: () => <div className="p-4 text-center text-gray-400">Cargando componente Topaz...</div> }
+);
 
 const fmt = (n: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 }).format(n);
 
@@ -453,28 +460,32 @@ export default function ContratosPage() {
 
               {/* Topaz Mode */}
               {signMode === 'topaz' && (
-                <div className="bg-purple-500/10 border border-purple-500/30 rounded-xl p-4 text-center">
-                  <Tablet className="w-12 h-12 text-purple-400 mx-auto mb-2" />
-                  <p className="text-purple-300 text-sm font-medium">Modo Topaz Pad</p>
-                  <p className="text-gray-400 text-xs mt-1">El cliente debe firmar directamente en el pad Topaz conectado.</p>
-                  <p className="text-gray-500 text-xs mt-2">Asegúrese de tener SigWeb instalado y el pad conectado.</p>
-                  {/* For now, use canvas as fallback */}
-                  <div className="mt-3">
-                    <canvas
-                      ref={canvasRef}
-                      width={400}
-                      height={100}
-                      className="w-full bg-white rounded-lg border border-purple-500 cursor-crosshair touch-none"
-                      onMouseDown={startDrawing}
-                      onMouseMove={draw}
-                      onMouseUp={stopDrawing}
-                      onMouseLeave={stopDrawing}
-                      onTouchStart={startDrawing}
-                      onTouchMove={draw}
-                      onTouchEnd={stopDrawing}
-                    />
-                  </div>
-                </div>
+                <TopazSignaturePad
+                  signerName={signerName}
+                  width={440}
+                  height={150}
+                  onSignatureCapture={(imageBase64, sigData) => {
+                    // Update canvas with captured signature for preview
+                    const canvas = canvasRef.current;
+                    if (canvas) {
+                      const ctx = canvas.getContext('2d');
+                      if (ctx) {
+                        const img = new Image();
+                        img.onload = () => {
+                          ctx.clearRect(0, 0, canvas.width, canvas.height);
+                          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                        };
+                        img.src = imageBase64;
+                      }
+                    }
+                    // Submit the signature
+                    submitOfficeSignature();
+                  }}
+                  onError={(err) => {
+                    console.error('Topaz error:', err);
+                    alert(`Error de Topaz: ${err}`);
+                  }}
+                />
               )}
 
               {/* Actions */}

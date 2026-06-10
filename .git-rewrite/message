@@ -1,4 +1,0 @@
-Fix Tax Preparer auth - use correct localStorage token keys
-
-- Changed to check session_token, token, and adminToken
-- Consistent with other admin pages
