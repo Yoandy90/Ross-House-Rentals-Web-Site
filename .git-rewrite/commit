@@ -1,6 +1,9 @@
-tree fadf80525b0b37f636d7227fcea9db7dee786ccb
-parent c9ddac380b528f66ac4d92ad5704eb1ab3c7a28f
-author Yoandy90 <yoandy90@github.com> 1770793901 +0000
-committer Yoandy90 <yoandy90@github.com> 1770793901 +0000
+tree 295f21961b9f87344c6ed320645877b599b27d01
+parent ac205bc0d9d9ac78d6bd6c1f27561fb7877efcf4
+author Yoandy Ross <yoandyross@gmail.com> 1774231359 +0000
+committer Yoandy Ross <yoandyross@gmail.com> 1774231359 +0000
 
-auto-commit for 645818f5-4bbc-40c9-bce0-8382a3585c14
+Fix Tax Preparer auth - use correct localStorage token keys
+
+- Changed to check session_token, token, and adminToken
+- Consistent with other admin pages
