@@ -3,32 +3,33 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { Tablet, AlertCircle, CheckCircle, RefreshCw, Wifi, WifiOff } from 'lucide-react';
 
-// Topaz SigWeb API types
+// Declare global Topaz SigWeb functions
 declare global {
   interface Window {
-    IsSigWebInstalled?: () => boolean;
-    SetTabletState?: (state: number, ctx?: any, x?: number, y?: number) => void;
-    SetJustifyMode?: (mode: number) => void;
-    SetSigCompressionMode?: (mode: number) => void;
-    SetImageXSize?: (size: number) => void;
-    SetImageYSize?: (size: number) => void;
-    SetImagePenWidth?: (width: number) => void;
-    SetDisplayXSize?: (size: number) => void;
-    SetDisplayYSize?: (size: number) => void;
-    GetSigImageB64?: (callback: (sigString: string) => void) => void;
-    GetSigString?: (callback: (sigString: string) => void) => void;
-    ClearTablet?: () => void;
-    NumberOfTabletPoints?: () => number;
-    SetLCDCaptureMode?: (mode: number) => void;
-    LCDRefresh?: (mode: number, x1: number, y1: number, x2: number, y2: number) => void;
-    LCDWriteString?: (mode: number, font: number, x: number, y: number, text: string) => void;
-    GetSigWebVersion?: () => string;
+    IsSigWebInstalled: () => boolean;
+    SetTabletState: (state: number, ctx?: CanvasRenderingContext2D | null, delay?: number) => any;
+    SetJustifyMode: (mode: number) => void;
+    SetSigCompressionMode: (mode: number) => void;
+    SetImageXSize: (size: number) => void;
+    SetImageYSize: (size: number) => void;
+    SetImagePenWidth: (width: number) => void;
+    SetDisplayXSize: (size: number) => void;
+    SetDisplayYSize: (size: number) => void;
+    GetSigImageB64: (callback: (sig: string) => void) => void;
+    GetSigString: () => string;
+    ClearTablet: () => void;
+    NumberOfTabletPoints: () => number;
+    SetLCDCaptureMode: (mode: number) => void;
+    LCDRefresh: (mode: number, x1: number, y1: number, x2: number, y2: number) => void;
+    LCDWriteString: (mode: number, font: number, x: number, y: number, text: string) => void;
+    KeyPadClearHotSpotList: () => void;
+    LCDSetWindow: (x1: number, y1: number, x2: number, y2: number) => void;
     tmr?: any;
   }
 }
 
 interface TopazSignaturePadProps {
-  onSignatureCapture: (signatureBase64: string, signatureData: string) => void;
+  onSignatureCapture: (signatureBase64: string) => void;
   onError?: (error: string) => void;
   width?: number;
   height?: number;
@@ -48,44 +49,54 @@ export default function TopazSignaturePad({
   const [isSigWebInstalled, setIsSigWebInstalled] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [hasSignature, setHasSignature] = useState(false);
+  const timerRef = useRef<any>(null);
 
-  // Load SigWeb script dynamically
+  // Load SigWeb script
   useEffect(() => {
-    // Check if already loaded
-    if (typeof window !== 'undefined' && window.IsSigWebInstalled) {
-      setIsLoading(false);
-      checkSigWebInstalled();
-      return;
-    }
+    const loadScript = () => {
+      // Check if already loaded
+      if (typeof window !== 'undefined' && typeof window.IsSigWebInstalled === 'function') {
+        setIsLoading(false);
+        checkSigWebInstalled();
+        return;
+      }
 
-    // Load the SigWebTablet.js script
-    const script = document.createElement('script');
-    script.src = '/SigWebTablet.js'; // Must be placed in public folder
-    script.async = true;
-    
-    script.onload = () => {
-      setIsLoading(false);
-      checkSigWebInstalled();
-    };
-    
-    script.onerror = () => {
-      setIsLoading(false);
-      setError('No se pudo cargar el SDK de Topaz. Asegúrese de que SigWebTablet.js esté en /public.');
-      if (onError) onError('Failed to load Topaz SDK');
+      const script = document.createElement('script');
+      script.src = '/SigWebTablet.js';
+      script.async = true;
+      
+      script.onload = () => {
+        console.log('SigWebTablet.js loaded');
+        setIsLoading(false);
+        // Small delay to ensure all functions are available
+        setTimeout(checkSigWebInstalled, 500);
+      };
+      
+      script.onerror = (e) => {
+        console.error('Failed to load SigWebTablet.js', e);
+        setIsLoading(false);
+        setError('No se pudo cargar el SDK de Topaz');
+        if (onError) onError('Failed to load Topaz SDK');
+      };
+
+      document.head.appendChild(script);
     };
 
-    document.body.appendChild(script);
+    loadScript();
 
     return () => {
-      // Cleanup: stop tablet if connected
-      if (window.SetTabletState) {
+      // Cleanup on unmount
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+      if (typeof window !== 'undefined' && window.SetTabletState) {
         try {
           window.SetTabletState(0);
         } catch (e) {
-          // Ignore cleanup errors
+          // Ignore
         }
       }
-      // Don't remove script - it might be needed by other components
     };
   }, []);
 
@@ -93,94 +104,121 @@ export default function TopazSignaturePad({
     if (typeof window === 'undefined') return;
     
     try {
-      // SigWeb runs on localhost port 47289
-      // We check if it's available by trying to call the version
-      if (window.IsSigWebInstalled && window.IsSigWebInstalled()) {
-        setIsSigWebInstalled(true);
-        setError(null);
+      if (typeof window.IsSigWebInstalled === 'function') {
+        const installed = window.IsSigWebInstalled();
+        console.log('SigWeb installed:', installed);
+        setIsSigWebInstalled(installed);
         
-        // Get version for debugging
-        if (window.GetSigWebVersion) {
-          const version = window.GetSigWebVersion();
-          console.log('SigWeb Version:', version);
+        if (!installed) {
+          setError('SigWeb no está instalado o no está ejecutándose. Verifique que el servicio SigWeb esté activo.');
+        } else {
+          setError(null);
         }
       } else {
+        console.error('IsSigWebInstalled function not found');
         setIsSigWebInstalled(false);
-        setError('SigWeb no está instalado o no está ejecutándose. Instálelo desde topazsystems.com');
+        setError('SDK de Topaz no cargó correctamente');
       }
     } catch (e) {
+      console.error('Error checking SigWeb:', e);
       setIsSigWebInstalled(false);
-      setError('No se pudo conectar con SigWeb. Verifique que el servicio esté activo.');
+      setError('Error al verificar SigWeb');
     }
   }, []);
 
   const connectToTablet = useCallback(() => {
-    if (!isSigWebInstalled || typeof window === 'undefined') {
+    if (!isSigWebInstalled) {
       setError('SigWeb no está disponible');
       return;
     }
 
     try {
       const canvas = canvasRef.current;
-      if (!canvas) return;
+      if (!canvas) {
+        setError('Canvas no disponible');
+        return;
+      }
       
       const ctx = canvas.getContext('2d');
-      if (!ctx) return;
+      if (!ctx) {
+        setError('No se pudo obtener contexto del canvas');
+        return;
+      }
 
-      // Configure tablet settings
-      if (window.SetDisplayXSize) window.SetDisplayXSize(width);
-      if (window.SetDisplayYSize) window.SetDisplayYSize(height);
-      if (window.SetImageXSize) window.SetImageXSize(width);
-      if (window.SetImageYSize) window.SetImageYSize(height);
-      if (window.SetImagePenWidth) window.SetImagePenWidth(3);
+      // Clear canvas
+      ctx.fillStyle = 'white';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Configure tablet - using the actual SDK functions
+      if (window.SetDisplayXSize) window.SetDisplayXSize(canvas.width);
+      if (window.SetDisplayYSize) window.SetDisplayYSize(canvas.height);
+      if (window.SetImageXSize) window.SetImageXSize(canvas.width);
+      if (window.SetImageYSize) window.SetImageYSize(canvas.height);
       if (window.SetJustifyMode) window.SetJustifyMode(0);
       if (window.SetSigCompressionMode) window.SetSigCompressionMode(1);
 
-      // Set LCD mode if available (for color pads like T-LBK755)
-      if (window.SetLCDCaptureMode) {
-        window.SetLCDCaptureMode(2);
+      // For LCD pads - clear and show message
+      try {
+        if (window.KeyPadClearHotSpotList) window.KeyPadClearHotSpotList();
+        if (window.LCDRefresh) window.LCDRefresh(0, 0, 0, 240, 64);
+        if (window.LCDWriteString) {
+          window.LCDWriteString(0, 2, 10, 5, 'Firme Aqui');
+          window.LCDWriteString(0, 1, 10, 30, signerName.substring(0, 25));
+        }
+        if (window.LCDSetWindow) window.LCDSetWindow(0, 0, 1, 1);
+        if (window.SetLCDCaptureMode) window.SetLCDCaptureMode(2);
+      } catch (lcdError) {
+        console.log('LCD functions not available (OK for non-LCD pads)');
       }
 
-      // Write instructions to LCD
-      if (window.LCDRefresh && window.LCDWriteString) {
-        window.LCDRefresh(0, 0, 0, 240, 64);
-        window.LCDWriteString(0, 2, 0, 0, 'Por favor firme abajo');
-        window.LCDWriteString(0, 2, 0, 20, signerName);
-      }
-
-      // Start signature capture
-      if (window.SetTabletState) {
-        window.SetTabletState(1, ctx, 50);
-      }
+      // Start capture - SetTabletState(1, ctx, refreshRate)
+      const timer = window.SetTabletState(1, ctx, 50);
+      timerRef.current = timer;
 
       setIsConnected(true);
       setError(null);
       setHasSignature(false);
 
-      // Start polling for signature points
-      if (window.tmr) clearInterval(window.tmr);
-      window.tmr = setInterval(() => {
-        if (window.NumberOfTabletPoints && window.NumberOfTabletPoints() > 0) {
-          setHasSignature(true);
+      // Poll for signature points
+      const pointChecker = setInterval(() => {
+        try {
+          const points = window.NumberOfTabletPoints ? window.NumberOfTabletPoints() : 0;
+          if (points > 0) {
+            setHasSignature(true);
+          }
+        } catch (e) {
+          // Ignore polling errors
         }
-      }, 500);
+      }, 300);
 
-    } catch (e) {
+      // Store the point checker to clean up later
+      timerRef.current = { sigTimer: timer, pointChecker };
+
+    } catch (e: any) {
       console.error('Error connecting to tablet:', e);
-      setError('Error al conectar con el pad Topaz');
+      setError(`Error al conectar: ${e.message || 'Desconocido'}`);
       setIsConnected(false);
     }
-  }, [isSigWebInstalled, width, height, signerName]);
+  }, [isSigWebInstalled, signerName]);
 
   const disconnectTablet = useCallback(() => {
     try {
-      if (window.tmr) {
-        clearInterval(window.tmr);
-        window.tmr = null;
+      // Clear timers
+      if (timerRef.current) {
+        if (timerRef.current.pointChecker) {
+          clearInterval(timerRef.current.pointChecker);
+        }
+        if (timerRef.current.sigTimer) {
+          clearInterval(timerRef.current.sigTimer);
+        }
+        timerRef.current = null;
       }
+      
+      // Stop tablet capture
       if (window.SetTabletState) {
         window.SetTabletState(0);
       }
+      
       setIsConnected(false);
     } catch (e) {
       console.error('Error disconnecting:', e);
@@ -189,29 +227,30 @@ export default function TopazSignaturePad({
 
   const clearSignature = useCallback(() => {
     try {
-      // Clear the canvas
+      // Clear canvas
       const canvas = canvasRef.current;
       if (canvas) {
         const ctx = canvas.getContext('2d');
         if (ctx) {
-          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          ctx.fillStyle = 'white';
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
         }
       }
 
-      // Clear the tablet
+      // Clear tablet
       if (window.ClearTablet) {
         window.ClearTablet();
       }
 
       setHasSignature(false);
     } catch (e) {
-      console.error('Error clearing signature:', e);
+      console.error('Error clearing:', e);
     }
   }, []);
 
   const captureSignature = useCallback(() => {
     if (!hasSignature) {
-      setError('No hay firma capturada. El cliente debe firmar en el pad.');
+      setError('No hay firma. El cliente debe firmar en el pad.');
       return;
     }
 
@@ -220,33 +259,23 @@ export default function TopazSignaturePad({
       if (window.GetSigImageB64) {
         window.GetSigImageB64((sigImageB64: string) => {
           if (sigImageB64 && sigImageB64.length > 0) {
-            // Also get signature data string for storage
-            if (window.GetSigString) {
-              window.GetSigString((sigString: string) => {
-                onSignatureCapture(
-                  `data:image/png;base64,${sigImageB64}`,
-                  sigString
-                );
-                disconnectTablet();
-              });
-            } else {
-              onSignatureCapture(`data:image/png;base64,${sigImageB64}`, '');
-              disconnectTablet();
-            }
+            const fullBase64 = `data:image/png;base64,${sigImageB64}`;
+            onSignatureCapture(fullBase64);
+            disconnectTablet();
           } else {
             setError('No se pudo obtener la imagen de la firma');
           }
         });
       } else {
-        setError('Función de captura no disponible');
+        setError('Función GetSigImageB64 no disponible');
       }
-    } catch (e) {
-      console.error('Error capturing signature:', e);
-      setError('Error al capturar la firma');
+    } catch (e: any) {
+      console.error('Error capturing:', e);
+      setError(`Error al capturar: ${e.message || 'Desconocido'}`);
     }
   }, [hasSignature, onSignatureCapture, disconnectTablet]);
 
-  // Render loading state
+  // Loading state
   if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center p-6 bg-purple-500/10 border border-purple-500/30 rounded-xl">
@@ -258,7 +287,7 @@ export default function TopazSignaturePad({
 
   return (
     <div className="space-y-4">
-      {/* Connection Status */}
+      {/* Status */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           {isSigWebInstalled ? (
@@ -276,17 +305,17 @@ export default function TopazSignaturePad({
         <div className="flex items-center gap-2">
           {isConnected ? (
             <span className="flex items-center gap-1 text-xs text-emerald-400 font-medium">
-              <Wifi className="w-3 h-3" /> Pad Conectado
+              <Wifi className="w-3 h-3" /> Conectado
             </span>
           ) : (
             <span className="flex items-center gap-1 text-xs text-gray-500 font-medium">
-              <WifiOff className="w-3 h-3" /> Pad Desconectado
+              <WifiOff className="w-3 h-3" /> Desconectado
             </span>
           )}
         </div>
       </div>
 
-      {/* Error Message */}
+      {/* Error */}
       {error && (
         <div className="flex items-start gap-2 p-3 bg-red-500/10 border border-red-500/30 rounded-lg">
           <AlertCircle className="w-4 h-4 text-red-400 mt-0.5 flex-shrink-0" />
@@ -301,25 +330,17 @@ export default function TopazSignaturePad({
           width={width}
           height={height}
           className={`w-full bg-white rounded-xl border-2 ${
-            isConnected 
-              ? 'border-emerald-500' 
-              : 'border-dashed border-purple-500/50'
+            isConnected ? 'border-emerald-500' : 'border-dashed border-purple-500/50'
           }`}
+          style={{ touchAction: 'none' }}
         />
         {!isConnected && (
           <div className="absolute inset-0 flex items-center justify-center bg-white/90 rounded-xl">
             <div className="text-center">
               <Tablet className="w-10 h-10 text-purple-400 mx-auto mb-2" />
-              <p className="text-gray-600 text-sm">
-                Haga clic en "Conectar Pad" para iniciar
-              </p>
+              <p className="text-gray-600 text-sm">Haga clic en "Conectar Pad"</p>
             </div>
           </div>
-        )}
-        {isConnected && !hasSignature && (
-          <p className="absolute bottom-2 left-1/2 -translate-x-1/2 text-gray-400 text-xs pointer-events-none">
-            Esperando firma en el pad Topaz...
-          </p>
         )}
         {isConnected && hasSignature && (
           <div className="absolute top-2 right-2 bg-emerald-500 text-white text-xs px-2 py-1 rounded-full">
@@ -330,12 +351,11 @@ export default function TopazSignaturePad({
 
       {/* Instructions */}
       <div className="text-xs text-gray-500 space-y-1">
-        <p>• Asegúrese de que SigWeb esté instalado y ejecutándose</p>
+        <p>• SigWeb debe estar instalado y ejecutándose</p>
         <p>• El pad Topaz debe estar conectado por USB</p>
-        <p>• El cliente firmará directamente en el pad</p>
       </div>
 
-      {/* Action Buttons */}
+      {/* Buttons */}
       <div className="flex gap-2">
         {!isConnected ? (
           <button
@@ -361,19 +381,18 @@ export default function TopazSignaturePad({
               className="flex-1 flex items-center justify-center gap-2 py-2.5 px-4 bg-emerald-600 text-white rounded-xl hover:bg-emerald-500 text-sm font-semibold transition disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <CheckCircle className="w-4 h-4" />
-              Capturar Firma
+              Capturar
             </button>
           </>
         )}
       </div>
 
-      {/* Disconnect Button */}
       {isConnected && (
         <button
           onClick={disconnectTablet}
           className="w-full py-2 text-xs text-gray-500 hover:text-gray-400 transition"
         >
-          Desconectar Pad
+          Desconectar
         </button>
       )}
     </div>
