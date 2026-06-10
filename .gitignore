@@ -149,3 +149,8 @@ rosslending-web/.git/objects/pack/pack-6e18385e24c53f3f145e2c952373ad1195096487.
 webapp/.next/cache/webpack/server-production/1.pack
 node_modules/@next/swc-linux-arm64-gnu/next-swc.linux-arm64-gnu.node
 node_modules/@next/swc-linux-arm64-musl/next-swc.linux-arm64-musl.node
+
+# Firebase credentials
+backend/firebase_config.json
+firebase_config.json
+**/firebase_config.json
