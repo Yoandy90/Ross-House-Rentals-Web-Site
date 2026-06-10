@@ -13,7 +13,7 @@ import {
 
 // Dynamically import TopazSignaturePad to avoid SSR issues
 const TopazSignaturePad = dynamic(
-  () => import('../components/TopazSignaturePad'),
+  () => import('../../components/TopazSignaturePad'),
   { ssr: false, loading: () => <div className="p-4 text-center text-gray-400">Cargando componente Topaz...</div> }
 );
 
