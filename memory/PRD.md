@@ -366,3 +366,23 @@ Ver /app/memory/test_credentials.md
 - Deploys: backend Railway e917164; web Vercel 0c5c31a2a (squash).
 - PENDIENTE: usuario pagará $4,736.38 en línea (portal → carrito Certified Payments).
   Ofrecidas más mejoras de UI del menú (esperando decisión).
+
+## Mejoras de Navegación Admin + Cuenta de Impuestos en Propiedades (Ago 5, noche)
+- Backend rental/admin_nav_router.py (Railway 3d49d63):
+  GET /api/admin/nav-summary → conteos reales {new_applications, open_maintenance,
+    pending_signatures, late_payments, delinquent_taxes{count,total_due}, total}
+  GET /api/admin/global-search?q= → busca properties/tenants(app_users)/contracts/applications
+  Tests: tests/test_admin_nav.py 5/5 passing.
+- properties_router: create/update aceptan tax_account_id + tax_annual_estimate
+  (nuevas casas entran solas al sync diario de impuestos). FIX: update_property le
+  faltaba el parámetro background_tasks (crasheaba al pasar a 'available').
+- Frontend (Vercel 731b8ba08), TODAS verificadas con Playwright vs Railway:
+  1. 🔔 NavBell.tsx — campana en header con badge rojo total + dropdown de pendientes con links
+  2. ⭐ Favoritos — estrella en items del sidebar (localStorage rhr_nav_favs), grupo FAVORITOS arriba
+  3. ⌘K CommandPalette.tsx — Ctrl/Cmd+K o botón Buscar; menú + búsqueda backend con debounce,
+     navegación con flechas/Enter
+  4. Badges rojos en sidebar: aplicaciones/mantenimiento/contratos/pagos/impuestos
+  5. MobileBottomNav.tsx — barra inferior móvil (Inicio/Pagos/Contratos/Casas/Menú) lg:hidden
+  6. Formulario de propiedad: campos "Cuenta Impuestos (Moore County)" y "Impuesto anual estimado"
+- NOTA deploy Vercel: SIEMPRE push con squash (git commit-tree HEAD^{tree} -p vercel-site/main)
+  — la historia local contiene secretos bloqueados por GitHub Push Protection.
