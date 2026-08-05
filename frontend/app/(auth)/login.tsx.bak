@@ -1,0 +1,492 @@
+import React, { useState } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  KeyboardAvoidingView,
+  Platform,
+  Alert,
+  TouchableOpacity,
+  Linking,
+  Image,
+  TextInput,
+  StatusBar,
+} from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
+import { useAuth } from '../../contexts/AuthContext';
+import { Colors } from '../../constants/colors';
+import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
+import { LinearGradient } from 'expo-linear-gradient';
+import Svg, { Path, Defs, LinearGradient as SvgLinearGradient, Stop } from 'react-native-svg';
+import api from '../../services/api';
+
+export default function Login() {
+  const insets = useSafeAreaInsets();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const { signIn } = useAuth();
+  const router = useRouter();
+  const { t, i18n } = useTranslation();
+  
+  // Debug: Log insets
+  console.log('🔍 Safe Area Insets - Top:', insets.top);
+  console.log('🔍 Calculated Padding:', insets.top + 60);
+  
+  // Log current language for debugging
+  console.log('Current language:', i18n.language);
+
+  const handleLogin = async () => {
+    if (!email || !password) {
+      Alert.alert(t('common.error'), t('auth.fillAllFields'));
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await signIn(email, password);
+      
+      // Get user data to check role
+      const response = await api.get('/auth/me');
+      const userData = response.data;
+      
+      const isWeb = Platform.OS === 'web';
+      
+      // Redirect based on role and platform
+      if (userData.role === 'admin') {
+        if (isWeb) {
+          router.replace('/(admin)/dashboard');
+        } else {
+          router.replace('/(admin-mobile)');
+        }
+      } else {
+        router.replace('/(tabs)/');
+      }
+    } catch (error: any) {
+      Alert.alert(t('common.error'), error.response?.data?.detail || t('auth.loginError'));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGoogleLogin = () => {
+    const redirectUrl = encodeURIComponent('https://banking-filter-hub.preview.emergentagent.com/(tabs)/');
+    Linking.openURL(`https://auth.emergentagent.com/?redirect=${redirectUrl}`);
+  };
+
+  const handleSocialLogin = (platform: string) => {
+    Alert.alert('Social Login', `${platform} login will be implemented soon`);
+  };
+
+  return (
+    <View style={styles.outerContainer}>
+      <StatusBar barStyle="light-content" />
+      <SafeAreaView style={styles.container} edges={['bottom']}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.keyboardView}
+        >
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          {/* Header with wave shape */}
+          <View style={styles.headerContainer}>
+            {/* Main gradient header */}
+            <View style={[styles.headerBackground, { paddingTop: insets.top + 60 }]}>
+              <LinearGradient
+                colors={['#8B0000', '#DC143C', '#4682B4']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.gradientHeader}
+              />
+              
+              {/* White background for wave effect */}
+              <View style={styles.whiteBackground} />
+              
+              {/* Wave shape using SVG */}
+              <Svg
+                height="150"
+                width="100%"
+                viewBox="0 0 1440 320"
+                style={styles.waveShape}
+                preserveAspectRatio="none"
+              >
+                <Defs>
+                  <SvgLinearGradient id="waveGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                    <Stop offset="0%" stopColor="#8B0000" />
+                    <Stop offset="50%" stopColor="#DC143C" />
+                    <Stop offset="100%" stopColor="#4682B4" />
+                  </SvgLinearGradient>
+                </Defs>
+                <Path
+                  fill="url(#waveGradient)"
+                  d="M0,64L60,85.3C120,107,240,149,360,154.7C480,160,600,128,720,112C840,96,960,96,1080,112C1200,128,1320,160,1380,176L1440,192L1440,0L1380,0C1320,0,1200,0,1080,0C960,0,840,0,720,0C600,0,480,0,360,0C240,0,120,0,60,0L0,0Z"
+                />
+              </Svg>
+            </View>
+
+            {/* Circular logo overlapping the wave */}
+            <View style={styles.logoCircleContainer}>
+              {/* Outer gradient border circle */}
+              <LinearGradient
+                colors={['#8B0000', '#DC143C', '#4682B4']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.outerBorderCircle}
+              >
+                {/* Inner white circle with logo */}
+                <View style={styles.logoCircle}>
+                  <Image
+                    source={require('../../assets/ross-logo.png')}
+                    style={styles.logo}
+                    resizeMode="contain"
+                  />
+                </View>
+              </LinearGradient>
+            </View>
+          </View>
+
+          {/* Content Section */}
+          <View style={styles.contentSection}>
+            <Text style={styles.welcomeText}>{t('auth.welcomeBack')}</Text>
+
+            {/* Username Input */}
+            <View style={styles.inputContainer}>
+              <TextInput
+                style={styles.input}
+                placeholder={t('auth.username')}
+                placeholderTextColor="#999"
+                value={email}
+                onChangeText={setEmail}
+                autoCapitalize="none"
+                keyboardType="email-address"
+                autoComplete="email"
+              />
+            </View>
+
+            {/* Password Input */}
+            <View style={styles.inputContainer}>
+              <TextInput
+                style={styles.input}
+                placeholder={t('auth.password')}
+                placeholderTextColor="#999"
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry={!showPassword}
+                autoCapitalize="none"
+              />
+              <TouchableOpacity
+                style={styles.eyeIcon}
+                onPress={() => setShowPassword(!showPassword)}
+              >
+                <Ionicons
+                  name={showPassword ? 'eye-off-outline' : 'eye-outline'}
+                  size={22}
+                  color="#666"
+                />
+              </TouchableOpacity>
+            </View>
+
+            {/* Remember Me & Forgot Password */}
+            <View style={styles.optionsRow}>
+              <TouchableOpacity
+                style={styles.rememberMeContainer}
+                onPress={() => setRememberMe(!rememberMe)}
+              >
+                <View style={[styles.checkbox, rememberMe && styles.checkboxChecked]}>
+                  {rememberMe && <Ionicons name="checkmark" size={14} color="#fff" />}
+                </View>
+                <Text style={styles.rememberMeText}>{t('auth.rememberMe')}</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity onPress={() => Alert.alert(t('auth.forgotPassword'), 'Password reset feature coming soon')}>
+                <Text style={styles.forgotPasswordText}>{t('auth.forgotPassword')}</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Login Button */}
+            <TouchableOpacity
+              style={[styles.loginButton, loading && styles.loginButtonDisabled]}
+              onPress={handleLogin}
+              disabled={loading}
+            >
+              <Text style={styles.loginButtonText}>
+                {loading ? t('auth.loading') : t('auth.login')}
+              </Text>
+            </TouchableOpacity>
+
+            {/* OR Divider */}
+            <View style={styles.divider}>
+              <View style={styles.dividerLine} />
+              <Text style={styles.dividerText}>{t('auth.or')}</Text>
+              <View style={styles.dividerLine} />
+            </View>
+
+            {/* Social Media Icons - Solo Google */}
+            <View style={styles.socialIconsContainer}>
+              <TouchableOpacity
+                style={styles.socialIconSingle}
+                onPress={handleGoogleLogin}
+              >
+                <Ionicons name="logo-google" size={28} color="#DB4437" />
+              </TouchableOpacity>
+            </View>
+
+            <Text style={styles.socialLoginText}>{t('auth.signInWithAnother')}</Text>
+
+            {/* Register Link */}
+            <TouchableOpacity
+              onPress={() => router.push('/(auth)/register')}
+              style={styles.registerLink}
+            >
+              <Text style={styles.registerText}>
+                {t('auth.dontHaveAccount')}{' '}
+                <Text style={styles.registerTextBold}>{t('auth.registerButton')}</Text>
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  outerContainer: {
+    flex: 1,
+    backgroundColor: '#fff',
+  },
+  container: {
+    flex: 1,
+  },
+  keyboardView: {
+    flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
+  },
+  headerContainer: {
+    position: 'relative',
+    marginBottom: 60, // Reduced spacing
+  },
+  headerBackground: {
+    position: 'relative',
+    height: 280, // Aumentado para dar espacio al padding superior
+  },
+  gradientHeader: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 160, // Reduced from 200
+  },
+  whiteBackground: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 120, // Reduced from 150
+    backgroundColor: '#fff',
+  },
+  waveShape: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+  },
+  logoCircleContainer: {
+    position: 'absolute',
+    bottom: 20, // Lowered from 40 to respect top safe area
+    alignSelf: 'center',
+    width: 170,
+    height: 170,
+    zIndex: 10,
+  },
+  outerBorderCircle: {
+    width: 170,
+    height: 170,
+    borderRadius: 85,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  logoCircle: {
+    width: 140, // Smaller than outer circle to create gap
+    height: 140,
+    borderRadius: 70,
+    backgroundColor: '#fff',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  logo: {
+    width: 115,
+    height: 57,
+  },
+  contentSection: {
+    flex: 1,
+    paddingHorizontal: 24,
+    paddingTop: 8,
+  },
+  welcomeText: {
+    fontSize: 24, // Reduced from 28
+    fontWeight: '700',
+    color: '#000',
+    marginBottom: 20, // Reduced from 32
+  },
+  inputContainer: {
+    marginBottom: 12, // Reduced from 16
+    position: 'relative',
+  },
+  input: {
+    height: 48, // Reduced from 56
+    backgroundColor: '#F5F5F5',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    fontSize: 16,
+    color: '#000',
+  },
+  eyeIcon: {
+    position: 'absolute',
+    right: 16,
+    top: 13, // Adjusted for smaller input
+  },
+  optionsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16, // Reduced from 24
+  },
+  rememberMeContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  checkbox: {
+    width: 18, // Reduced from 20
+    height: 18,
+    borderRadius: 4,
+    borderWidth: 2,
+    borderColor: Colors.primary,
+    marginRight: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  checkboxChecked: {
+    backgroundColor: Colors.primary,
+  },
+  rememberMeText: {
+    fontSize: 13, // Reduced from 14
+    color: '#666',
+  },
+  forgotPasswordText: {
+    fontSize: 13, // Reduced from 14
+    color: Colors.primary,
+    fontWeight: '600',
+  },
+  loginButton: {
+    height: 48, // Reduced from 56
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: Colors.primary,
+    backgroundColor: Colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16, // Reduced from 24
+  },
+  loginButtonDisabled: {
+    opacity: 0.6,
+  },
+  loginButtonText: {
+    fontSize: 16, // Reduced from 18
+    fontWeight: '700',
+    color: '#fff',
+  },
+  divider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 12, // Reduced from 24
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: '#E0E0E0',
+  },
+  dividerText: {
+    marginHorizontal: 16,
+    fontSize: 13, // Reduced from 14
+    color: '#999',
+  },
+  socialIconsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 16, // Reduced from 20
+    marginBottom: 12, // Reduced from 16
+  },
+  socialIcon: {
+    width: 48, // Reduced from 56
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#fff',
+    borderWidth: 2,
+    borderColor: '#E0E0E0',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  socialIconSingle: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: '#f5f5f5',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  socialLoginText: {
+    textAlign: 'center',
+    fontSize: 12, // Reduced from 14
+    color: '#999',
+    marginBottom: 12, // Reduced from 24
+  },
+  registerLink: {
+    alignItems: 'center',
+    marginTop: 4, // Reduced from 8
+    marginBottom: 16, // Reduced from 32
+  },
+  registerText: {
+    fontSize: 13, // Reduced from 14
+    color: '#666',
+  },
+  registerTextBold: {
+    color: Colors.primary,
+    fontWeight: '700',
+  },
+});

@@ -1,0 +1,38 @@
+{
+  "summary": "Verification of new Xcel credentials-diagnostic flow. (1) Railway production endpoint verification — all 3 endpoints return HTTP 401 {\"detail\":\"No autorizado\"} without admin auth, proving they exist and are protected: GET /api/admin/xcel/application-information ✅, GET /api/admin/xcel/read-service-status ✅, GET /api/admin/xcel/status ✅. (2) Production OpenAPI spec at /openapi.json lists 17 Xcel/GreenButton routes (>=16 target met), including both new diagnostic endpoints. (3) Static analysis of /app/app/admin/energia/page.tsx: runs `tsc --noEmit -p tsconfig.json` → ZERO TypeScript errors specific to this file. The two new buttons exist with the exact requested testIDs (data-testid='diag-app-info-btn' at line 254 + data-testid='diag-service-status-btn' at line 263); runDiag() calls the correct paths and includes Authorization: Bearer ${token} header derived from useAdminAuth() (lines 39-43, 58-79). Next.js rewrites in /app/next.config.js correctly proxy /api/* → https://ross-house-backend-production.up.railway.app/api/*. (4) Expo mobile preview regression at http://localhost:3000 — bundles cleanly (Metro), renders welcome screen 'Bienvenido a Ross House Rentals' at 390x844 viewport, no red-screen, no pageerror, only pre-existing deprecation warnings (shadow*/textShadow*/pointerEvents + expo-notifications web compat — unchanged from iteration_8). Per main-agent context, admin Next.js is only deployed via Vercel (not localhost) so a live UI click-through of the new diagnostic buttons is not possible from this sandbox — verified through static analysis + production endpoint behavior. NOTE: existing TS errors in OTHER admin pages (contratos, marketplace, propiedades, propietarios, rendimiento, inversor/layout) are pre-existing and unrelated to this change; next.config.js sets `typescript.ignoreBuildErrors: true` so the Vercel build will still succeed.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [],
+    "react_native_issues": [
+      {"component": "RN deprecated style props", "issue": "Console warns shadow*/textShadow* and props.pointerEvents are deprecated. Pre-existing, unrelated to this change. Reference: /app/rosslending-app components (carried over from iteration_7/8)."}
+    ]
+  },
+  "test_report_links": [
+    "/app/test_reports/iteration_9.json"
+  ],
+  "action_items": [
+    "(Reminder for main agent) Push the Next.js admin repo 'Ross-House-Rentals-Web-Site' to GitHub so Vercel rebuilds with the new diagnostic UI — the backend endpoint is already live on Railway (verified 401 without auth), but the buttons won't appear in production until the frontend deploys.",
+    "(Pre-existing, optional) Fix ~30 TS errors in other admin pages (contratos, marketplace, propiedades, propietarios, rendimiento) — currently masked by next.config.js `typescript.ignoreBuildErrors: true`. Not blocking this change."
+  ],
+  "critical_code_review_comments": [
+    "runDiag() correctly uses a relative '/api/...' path which the Next.js rewrite in next.config.js proxies to Railway. Good — no CORS exposure, no hardcoded backend URL in the page.",
+    "diagResult typing is conservative ({kind, ok, status_code?, body_preview?, detail?}) — matches the backend ReadServiceStatus/ApplicationInformation envelope shape that returns {ok, status_code, body_preview}. Solid.",
+    "Both diagnostic buttons share a single disabled-when-busy state (diagBusy !== null) which correctly prevents double-clicking either button while one is in flight.",
+    "Pre-existing: /app/app/admin/energia/page.tsx is 512 lines — under the 700-line guideline, no split needed yet."
+  ],
+  "updated_files": [],
+  "success_rate": {
+    "backend": "100% (3/3 production endpoints return expected 401, OpenAPI lists 17 xcel routes)",
+    "frontend": "100% (TS clean for energia/page.tsx, both testIDs + Bearer header present, Expo mobile preview renders without regression)"
+  },
+  "seed_data_creation": "None — read-only verification against production Railway and local Expo.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "The new /api/admin/xcel/application-information + /api/admin/xcel/read-service-status endpoints are live on Railway (commit ee58ffa) and return 401 unauthenticated as expected. The admin diagnostic UI lives in /app/app/admin/energia/page.tsx (lines 244-302) with testIDs 'diag-app-info-btn' + 'diag-service-status-btn' + 'diag-result'. Next.js rewrites in /app/next.config.js proxy /api/* to Railway, so when the main agent pushes 'Ross-House-Rentals-Web-Site' to GitHub and Vercel rebuilds, the buttons will work from https://www.rosshouserentals.com/admin/energia. To live-test the diagnostic UI in production, log in with yoandyross@gmail.com / admin123, navigate to /admin/energia, and click the two new buttons — expect HTTP 200 + JSON envelope from Xcel if XCEL_APPLICATION_ID + XCEL_REGISTRATION_TOKEN env vars on Railway are correctly set. Existing pytest suite at /app/ross-house-backend/tests/test_xcel_greenbutton_fixes.py (9/9 pass in iteration_8) covers the backend logic. Do not start /app/backend (broken — KeyError: MONGO_URL); the real backend lives at /app/ross-house-backend and is deployed to Railway.",
+  "rca_of_issue": "Original report: user got 'No autorizado' when hitting /api/admin/xcel/application-information from a browser without an admin session — that response is CORRECT behavior (401 'No autorizado' is the intended guard via the require_admin_user dependency). The fix added 2 diagnostic buttons to /admin/energia that send the admin Bearer token automatically, so the user can verify Xcel sandbox credentials without manually constructing curl/cookie requests. Verified end-to-end except for the actual UI click (admin frontend is on Vercel, not local) — all components confirmed via static analysis + live Railway endpoint probing."
+}

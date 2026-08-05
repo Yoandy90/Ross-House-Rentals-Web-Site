@@ -338,7 +338,7 @@ export default function TopazSignaturePad({
           <div className="absolute inset-0 flex items-center justify-center bg-white/90 rounded-xl">
             <div className="text-center">
               <Tablet className="w-10 h-10 text-purple-400 mx-auto mb-2" />
-              <p className="text-gray-600 text-sm">Haga clic en "Conectar Pad"</p>
+              <p className="text-gray-600 text-sm">Haga clic en &ldquo;Conectar Pad&rdquo;</p>
             </div>
           </div>
         )}

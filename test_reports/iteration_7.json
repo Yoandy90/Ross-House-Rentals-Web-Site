@@ -1,0 +1,40 @@
+{
+  "summary": "Iteration 7 — Store-readiness verification for Expo/React Native app at /app/rosslending-app/ after metadata-only edits to app.json (removed unused Android permissions RECORD_AUDIO + ACCESS_FINE_LOCATION; removed unused iOS NSLocationWhenInUseUsageDescription + NSFaceIDUsageDescription; tightened remaining iOS usage strings; added NSPhotoLibraryAddUsageDescription + Android READ_MEDIA_IMAGES). NO REGRESSIONS DETECTED. (1) JSON validity: app.json parses cleanly via python json.load — name='Ross House', android.permissions=['CAMERA','READ_EXTERNAL_STORAGE','READ_MEDIA_IMAGES']. (2) Code-vs-permission audit: grep across app/ and src/ for expo-location, Location., expo-av, expo-audio, LocalAuthentication, FaceID, RECORD_AUDIO → ZERO matches, confirming the removed permissions/usage strings were truly unused in code (safe to drop, store-reject avoided). (3) ImagePicker (camera+library) is referenced in 7 screens (scan-bill.tsx, maintenance/new.tsx, chat.tsx, admin-create-expense.tsx, admin-inspection-detail.tsx, edit-profile.tsx, PhotoPicker.tsx) — kept NSCameraUsageDescription/NSPhotoLibraryUsageDescription/CAMERA/READ_MEDIA_IMAGES match actual usage. (4) Expo web preview at http://localhost:3000 bundles successfully (1505 modules, ~16s) and renders: splash/onboarding screen ('Bienvenido a Ross House Rentals'), /(auth)/login screen (phone+SMS, 'Iniciar con Email', ES/EN toggle), and /market tab (Mercado header, search, popular cities Dumas/Amarillo/Dallas/Houston/Austin, bottom tabs Inicio/Propiedades/Mercado/Perfil). NO red-screen errors, NO permission-related console messages, NO PAGEERROR events. Only pre-existing benign warnings: expo-notifications web compat, shadow*/textShadow*/pointerEvents deprecation (unrelated to app.json edits). The app is functionally unaffected by the store-readiness cleanup — ready for store submission from a permissions/metadata standpoint.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [],
+    "react_native_issues": [
+      {"component": "package versions", "issue": "Expo doctor reports 15 packages out of sync with installed expo@54.0.34 (expected 54.0.35). Notable mismatches: expo-image-picker@55.0.20 (expected ~17.0.11), expo-local-authentication@55.0.13 (expected ~17.0.8), expo-device@55.0.16 (expected ~8.0.10), @react-native-async-storage/async-storage@3.0.2 (expected 2.2.0). These are NOT blockers for the current store-readiness edit but should be aligned with `npx expo install --check` before the EAS build to avoid runtime surprises. Reference: /var/log/supervisor/expo.err.log + package.json."},
+      {"component": "expo-local-authentication", "issue": "Package expo-local-authentication is still in /app/rosslending-app/package.json but FaceID/biometric prompt is never called anywhere in app/ or src/ (grep returned 0 matches). Either wire up a biometric login flow OR remove the dependency to shrink the bundle and avoid Apple reviewers questioning unused biometric capability. Reference: package.json + app.json (NSFaceIDUsageDescription was already removed correctly)."},
+      {"component": "deprecated style props", "issue": "Many components use deprecated shadow*/textShadow*/pointerEvents props (RN web emits warnings on every render). Migrate to style.boxShadow/textShadow and style.pointerEvents to clean up the console. Not a store blocker but polish. Reference: /var/log/supervisor/expo.err.log."}
+    ]
+  },
+  "test_report_links": [],
+  "action_items": [
+    "OPTIONAL — Run `npx expo install --check` inside /app/rosslending-app to align 15 packages with expo@54.0.34's expected versions before the next EAS build.",
+    "OPTIONAL — Remove `expo-local-authentication` from package.json since no biometric flow exists in code (matches the FaceID usage string already removed from app.json).",
+    "OPTIONAL — Migrate deprecated style props (shadow*, textShadow*, pointerEvents) to their modern equivalents to silence RN web warnings.",
+    "NO ACTION REQUIRED for the actual store-readiness edits — app.json is valid, no regressions in app load/login/marketplace, no permission-related console errors."
+  ],
+  "critical_code_review_comments": [
+    "app.json:21 — buildNumber is hardcoded to '1' and android.versionCode is 1. For store submissions you'll need to bump these per upload (Apple/Google reject duplicate build numbers). Consider using EAS auto-increment in eas.json (`autoIncrement: 'buildNumber'`/`'versionCode'`).",
+    "app.json:30-38 — NSExceptionDomains allows insecure HTTP loads for photos.listhub.net and listhub.net (IDX/MLS image CDN). App Store reviewers occasionally ask for justification of NSAllowsArbitraryLoads exceptions; ensure the App Privacy questionnaire mentions third-party IDX feed.",
+    "app.json:8 — `scheme: 'rossrentals'` is set but verify the same scheme is registered in any OAuth/Stripe Connect redirect URIs (otherwise deep links from external providers will fail post-publish).",
+    "package.json — expo-local-authentication is installed but never imported (no FaceID/biometric flow); dead dependency."
+  ],
+  "updated_files": [],
+  "success_rate": {
+    "backend": "N/A — backend testing explicitly out of scope per request.",
+    "frontend": "100% on store-readiness scope: app.json JSON-valid ✅, removed permissions truly unused in code ✅, kept permissions still match real ImagePicker usage in 7 screens ✅, splash/onboarding renders ✅, /(auth)/login renders ✅, /market tab renders with API-loaded popular cities ✅, no red-screen, no permission console errors ✅."
+  },
+  "seed_data_creation": "None — read-only verification.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "The store-readiness fix (removing unused Android RECORD_AUDIO/ACCESS_FINE_LOCATION and iOS Location/FaceID) is verified safe: a grep for those API surfaces (expo-location, Location., expo-av, expo-audio, LocalAuthentication, FaceID, RECORD_AUDIO) returns ZERO matches in /app/rosslending-app/{app,src}/, confirming the permissions were dead weight that would have triggered automatic store rejection. The Expo web preview at http://localhost:3000 loads cleanly with no permission-related runtime errors. For a deeper review the main agent should: (a) bump iOS buildNumber + Android versionCode per upload (or enable EAS autoIncrement in eas.json), (b) remove expo-local-authentication from package.json since it's installed but unused, (c) run `npx expo install --check` to align 15 packages with expo 54.0.35. None of these are store-rejection blockers — they are hygiene items. App is ready for an EAS build & store submission from a permissions/metadata perspective.",
+  "rca_of_issue": "N/A — verification task, no bug to RCA. The original audit correctly identified the unused permissions and the app.json fixes are minimally invasive and correctly scoped."
+}

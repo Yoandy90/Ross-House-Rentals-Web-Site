@@ -1,0 +1,39 @@
+{
+  "summary": "Verified iOS App Store P0 auth fix on Railway prod backend (https://ross-house-backend-production.up.railway.app). All 5 pytest tests PASSED. The three mobile endpoints (/api/public/marketplace-register, /api/auth/forgot-password, /api/rental/phone/send-otp) now accept requests WITHOUT captcha_token and return 200 success. The web admin endpoint /api/admin/auth/login-step1 still correctly rejects requests missing captcha_token with 400 'Captcha requerido', and rejects invalid tokens with 400 'Captcha inválido'. Backend fix verified working in production. NOTE: The review request mentioned 'login-step1' for mobile — the actual mobile login-step1 equivalent is POST /api/rental/phone/send-otp (phone-OTP flow the iOS app uses); confirmed via git log of commit b096a30. Local /app/backend is broken (MONGO_URL missing per handoff) but that was NOT in scope — all testing done against Railway prod as instructed.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [],
+    "react_native_issues": []
+  },
+  "test_report_links": [
+    "/app/ross-house-backend/tests/test_mobile_captcha_optional.py",
+    "/app/test_reports/pytest/iter20_captcha_optional.xml"
+  ],
+  "action_items": [
+    "None — fix is verified in production. Safe to close the P0 ticket.",
+    "Optional cleanup: local /app/backend/server.py crashes on startup because MONGO_URL is missing from /app/backend/.env. Unrelated to this ticket but blocks any local testing of the Emergent-preview backend."
+  ],
+  "critical_code_review_comments": [
+    "auth_router.py has a `normalize_rental_phone` function defined TWICE (lines 63 and 458) — identical body. Dead duplicate should be removed.",
+    "auth_router.py marketplace_login (line 242) has unreachable code after line 310 (`return` statement). Lines 312-334 will never execute. Consider deleting.",
+    "auth_router.py is 987 lines — exceeds 700-line guideline; consider splitting into auth_router.py + password_router.py + phone_otp_router.py.",
+    "turnstile_helper.verify_turnstile_token now correctly honors `optional=True` and only bypasses when the token is missing (empty). If a token IS provided it still validates against Cloudflare — good defense-in-depth (a compromised mobile client sending garbage tokens is still rejected)."
+  ],
+  "updated_files": [
+    "/app/ross-house-backend/tests/test_mobile_captcha_optional.py (new)"
+  ],
+  "success_rate": {
+    "backend": "100% (5/5)",
+    "frontend": "n/a — not in scope"
+  },
+  "seed_data_creation": "Each run of test_marketplace_register creates one real app_users document on Railway (email TEST_mobile_<uuid>@example.com) because the endpoint has no test-mode. Not deleted (no admin auth in scope). Recommend main agent add a cleanup script or that these TEST_ users get purged periodically.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Railway prod URL: https://ross-house-backend-production.up.railway.app. Use env var BACKEND_BASE_URL to override. Local backend is broken (MONGO_URL missing). Turnstile secret on prod is Cloudflare's real key (not the always-pass test key), so submitting a bogus captcha_token to admin/login-step1 returns 'Captcha inválido' (400), while omitting it returns 'Captcha requerido' (400) — both are correct behaviors. Admin has 2FA; step1 with a valid Turnstile token is required to progress to OTP challenge.",
+  "rca_of_issue": "RCA (already fixed in commit b096a30 'fix(auth): make Turnstile CAPTCHA optional on mobile-app endpoints'): The web hardening PR (b950878) added `await verify_turnstile_token(body.get('captcha_token'), request)` to /public/marketplace-register, /auth/forgot-password, and /rental/phone/send-otp. iOS/Android clients cannot render a Cloudflare Turnstile widget, so they never send captcha_token, causing every mobile login/register/forgot-password to fail with HTTP 400 'Captcha requerido'. Fix added an `optional: bool = False` param to verify_turnstile_token; when optional=True AND token is missing, the request passes through; when a token IS present (web) it is still validated against Cloudflare. Applied `optional=True` only to the three mobile endpoints; /api/admin/auth/login-step1 and other web endpoints (tenant-leads, service-providers, pm-waitlist) still use the default optional=False. Verified end-to-end on Railway prod: mobile paths return 200 without captcha, admin path still returns 400 'Captcha requerido'."
+}

@@ -1,0 +1,52 @@
+{
+  "summary": "Backend-only QA of the FIXED /api/tenant/utilities/scan + new /api/admin/tenant-utilities endpoints on Railway prod. 15 pytest cases executed against https://ross-house-backend-production.up.railway.app; 12 PASSED, 3 FAILED — all 3 failures share ONE root cause: the Emergent LLM key is NOT configured in Railway's env (EMERGENT_LLM_KEY missing). Every scan call returns HTTP 500 with `{\"detail\":\"No hay API key configurada para AI Vision\"}`. The emergentintegrations import itself works (no missing dependency error) — the issue is purely env config. Auth gates (401 without token, 403 for non-admin), 400 for missing body, full tenant CRUD + summary, admin tenant-utilities listing with pagination/filters, and the admin /utility-ocr/extract regression all pass cleanly. Admin OCR works which proves emergentintegrations is installed and EMERGENT_LLM_KEY *is* available somewhere in the admin path — but the tenant scan path can't see it (or admin OCR uses a different key var). NEEDS INVESTIGATION: either set EMERGENT_LLM_KEY on Railway service or fix the env var name lookup in tenant_utilities_router.py.",
+  "backend_issues": {
+    "critical": [
+      {
+        "endpoint": "POST /api/tenant/utilities/scan",
+        "issue": "500 'No hay API key configurada para AI Vision' on every call (invalid base64, oversized payload, AND valid JPEG). Root cause: `os.getenv('EMERGENT_LLM_KEY') or os.getenv('OPENAI_API_KEY','')` returns empty on Railway. The env var is not set on the production service (or its name differs). Meanwhile POST /api/admin/utility-ocr/extract on the same Railway instance returns 200 with extracted data — so emergentintegrations is installed AND a key is available in that code path. Likely fix: (a) set EMERGENT_LLM_KEY in Railway env, OR (b) align tenant_utilities_router.py to read whatever variable utility_ocr_router.py reads.",
+        "priority": "CRITICAL"
+      },
+      {
+        "endpoint": "POST /api/tenant/utilities/scan",
+        "issue": "Validation ordering bug: the api-key check happens BEFORE base64 validation and size check. As a result, even sending invalid base64 or a >10 MB payload yields 500 (api key error) instead of 400/413. Fix: move the `if not llm_key` check inside the try-block AFTER `base64.b64decode` and the size guard. Also change status from 500 → 503 since 'no api key configured' is a service-availability issue, not a server bug.",
+        "priority": "HIGH"
+      }
+    ],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [],
+    "react_native_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_tenant_utilities_ocr.py",
+    "/app/test_reports/pytest/tenant_utilities_ocr.xml"
+  ],
+  "action_items": [
+    "P0: Set EMERGENT_LLM_KEY in the Railway 'ross-house-backend-production' service environment (or whatever var name the Emergent proxy expects). Verify by re-running pytest /app/backend/tests/test_tenant_utilities_ocr.py — 3 currently-failing tests should turn green.",
+    "P0: Inspect how /api/admin/utility-ocr/extract reads its key (works on Railway) vs how /api/tenant/utilities/scan reads it (returns 500). They likely look at different env var names; unify them.",
+    "P1: Reorder validation in tenant_utilities_router.py:scan_utility_bill so base64 decode + size check run BEFORE the api-key existence check. This lets the endpoint correctly return 400/413 for malformed input even if the key is missing.",
+    "P1: Change the missing-api-key response from 500 → 503 (Service Unavailable) — semantically correct.",
+    "P2: Once the key is wired up, run a manual smoke with a real Xcel bill to confirm the markdown ```json fence stripping works end-to-end (cannot validate today because the LLM never gets called)."
+  ],
+  "critical_code_review_comments": [
+    "tenant_utilities_router.py:309 — env var fallback chain `EMERGENT_LLM_KEY or OPENAI_API_KEY` differs from however utility_ocr_router.py reads it. Two endpoints calling the same LLM provider should not read different env names; centralize in rental/shared.py.",
+    "tenant_utilities_router.py:301-311 — validation order means a missing key masks user-input errors. Validate inputs first, then check infra readiness.",
+    "tenant_utilities_router.py:340 — `base64.b64decode(image_b64, validate=False)` will silently accept many garbage strings; consider `validate=True` to reliably return 400 on truly bad input rather than letting bytes pass through to the LLM and pay token cost."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_tenant_utilities_ocr.py (new — 15 pytest cases, 12 pass on Railway prod, 3 fail due to missing EMERGENT_LLM_KEY)"
+  ],
+  "success_rate": {
+    "backend": "80% (12/15 passed; 3 failures all caused by missing EMERGENT_LLM_KEY on Railway, not by code regressions)",
+    "frontend": "Not tested (backend-only review per request)"
+  },
+  "seed_data_creation": "One test utility record (city_water / Dumas Water / $65.50 / period 2026-01 / notes=TEST_qa_record) is created and DELETED in the same test class to avoid polluting prod data. Test cleanup verified.",
+  "retest_needed": true,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Re-run pytest /app/backend/tests/test_tenant_utilities_ocr.py -v after Railway env is updated. Backend rate limits at ~60s after several login attempts; the suite reuses a session-scoped token to minimize logins. The 3 currently-failing scan tests will validate (a) invalid base64 returns 400 or 200/success:false, (b) oversized payload returns 413/400/proxy-reject, and (c) a real LLM call returns 200 with success boolean + extracted_data + message — NOT 500. Admin OCR + admin tenant-utilities listing + tenant CRUD + summary are all green and act as regression baselines.",
+  "rca_of_issue": "FIX VERIFICATION RESULT: The CODE fix is correct (emergentintegrations import works, no missing-dependency error, no api.openai.com direct call). HOWEVER the fix is INVISIBLE in production because Railway is missing the EMERGENT_LLM_KEY env var for the tenant scan path. Evidence: (1) `from emergentintegrations.llm.chat import LlmChat` would raise 'AI Vision no disponible (emergentintegrations missing)' if the dep was unavailable — we get a different error message ('No hay API key configurada para AI Vision'), proving the import path succeeded. (2) /api/admin/utility-ocr/extract returns 200 with real LLM output on the same Railway instance, proving emergentintegrations + a key works for the admin code path. Therefore tenant_utilities_router.py:309 is reading the wrong env var, or the admin path reads a hard-coded value, or Railway has the key under a different name only available to the admin module. Reproduction: `curl -X POST $URL/api/tenant/utilities/scan -H 'Authorization: Bearer <tenant_jwt>' -H 'Content-Type: application/json' -d '{\"image_base64\":\"<any base64>\"}'` → 500. Mitigation: align env var name and/or set EMERGENT_LLM_KEY on Railway, then re-run the suite."
+}

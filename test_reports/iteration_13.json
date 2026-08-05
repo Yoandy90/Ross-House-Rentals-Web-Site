@@ -1,0 +1,26 @@
+{
+  "summary": "RETEST after CSV export None-handling fix. Ran the full existing pytest suite at /app/ross-house-backend/tests/test_tenant_waitlist.py against the deployed Railway backend (https://ross-house-backend-production.up.railway.app). Result: 18/18 PASS in 2.26s. The previously failing test_admin_export_csv now passes — endpoint returns HTTP 200 with content-type 'text/csv; charset=utf-8', proper Content-Disposition attachment header, and a valid CSV body containing the Spanish header row (Nombre, Email, Teléfono, Hab., Presupuesto, Mudanza, Personas, Mascotas, Empleo, Ingreso, Idioma, Estado, Prioridad, Notas, Creado) plus the QA lead row with '$0' rendered for the lead created without monthly_income — confirming the `(lead.get(key) or 0)` None-coalescing fix works. Sanity-checked public POST /api/public/tenant-leads (create + dedup) and admin GET /api/admin/tenant-leads (list + filter) — all green. No regressions.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [],
+    "react_native_issues": []
+  },
+  "test_report_links": [
+    "/app/ross-house-backend/tests/test_tenant_waitlist.py",
+    "/app/test_reports/pytest/iter13_tenant_waitlist.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [],
+  "updated_files": [],
+  "success_rate": {"backend": "100% (18/18)", "frontend": "not tested (backend-only retest)"},
+  "seed_data_creation": "Test fixture creates one QA lead per run with a timestamp-suffixed email (qa.lead.20260629+<ts>@example.com) and deletes it at the end of the admin test class. No residual data.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Tenant Waitlist (Lista de Espera) module is fully green on Railway. CSV export None-coalescing fix verified end-to-end. Test suite at /app/ross-house-backend/tests/test_tenant_waitlist.py is the canonical regression for this module — reuse it. JUnit XML at /app/test_reports/pytest/iter13_tenant_waitlist.xml.",
+  "rca_of_issue": "Original bug (iter_12): GET /api/admin/tenant-leads/export/csv 500'd because the CSV row builder used `lead.get('monthly_income', 0)` / `lead.get('max_budget', 0)` — when the key existed but the stored value was None (legacy records / optional inputs), dict.get returned None, and the downstream f-string `f\"${value:,.0f}\"` then raised TypeError on a NoneType. Fix: switched to `(lead.get('monthly_income') or 0)` / `(lead.get('max_budget') or 0)`, coercing both 'missing' and 'present-but-None' to 0. Verified via direct curl: response 200, body contains '$0' for the income column where the QA fixture lead has no monthly_income. Mitigation already shipped to Railway."
+}

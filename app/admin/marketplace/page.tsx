@@ -1,12 +1,14 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
+import Link from 'next/link';
 import { useAdminAuth } from '../layout';
 import {
   Store, Search, CheckCircle2, XCircle, Clock, Eye, X,
   MapPin, User, Phone, Mail, Calendar, Home, DollarSign,
   Image, ChevronDown, ChevronUp, MessageSquare, Filter,
-  Users, TrendingUp, Building2, AlertTriangle,
+  Users, TrendingUp, Building2, AlertTriangle, Award, ArrowRight,
+  Plus, Edit3, Trash2, Save, AlertCircle,
 } from 'lucide-react';
 
 interface Listing {
@@ -63,6 +65,118 @@ export default function MarketplacePage() {
   const [selectedListing, setSelectedListing] = useState<Listing | null>(null);
   const [photoModal, setPhotoModal] = useState<{ photos: string[]; index: number } | null>(null);
 
+  // CRUD modal state
+  const [crudOpen, setCrudOpen] = useState(false);
+  const [crudEditing, setCrudEditing] = useState<Listing | null>(null);
+  const [crudSaving, setCrudSaving] = useState(false);
+  const [crudErr, setCrudErr] = useState('');
+  const [owners, setOwners] = useState<Array<{ id: string; name: string; email: string }>>([]);
+  const blankForm = {
+    owner_id: '', listing_type: 'rent', property_type: 'house',
+    address: '', city: 'Dumas', state: 'TX', zip_code: '',
+    bedrooms: '3', bathrooms: '2', square_feet: '',
+    rent_amount: '', sale_price: '', deposit_amount: '',
+    description: '', commission_rate: '10', status: 'approved',
+  };
+  const [crudForm, setCrudForm] = useState(blankForm);
+
+  const fetchOwners = useCallback(async () => {
+    try {
+      const r = await fetch('/api/admin/owners', { headers: headers() });
+      if (r.ok) {
+        const d = await r.json();
+        setOwners((d.owners || []).map((o: any) => ({ id: o.id, name: o.name, email: o.email })));
+      }
+    } catch (e) { console.error(e); }
+  }, [headers]);
+
+  const openCreate = () => {
+    setCrudEditing(null);
+    setCrudForm(blankForm);
+    setCrudErr('');
+    setCrudOpen(true);
+    if (owners.length === 0) fetchOwners();
+  };
+
+  const openEdit = (l: Listing) => {
+    setCrudEditing(l);
+    setCrudForm({
+      owner_id: (l as any).owner_id || '',
+      listing_type: (l as any).listing_type || 'rent',
+      property_type: (l as any).property_type || (l as any).type || 'house',
+      address: l.address || '',
+      city: l.city || 'Dumas',
+      state: l.state || 'TX',
+      zip_code: (l as any).zip_code || '',
+      bedrooms: String(l.bedrooms || 0),
+      bathrooms: String(l.bathrooms || 0),
+      square_feet: String(l.sqft || (l as any).square_feet || 0),
+      rent_amount: String((l as any).rent_amount || l.price || 0),
+      sale_price: String((l as any).sale_price || 0),
+      deposit_amount: String((l as any).deposit_amount || 0),
+      description: l.description || '',
+      commission_rate: String((l as any).commission_rate || 10),
+      status: l.status || 'pending',
+    });
+    setCrudErr('');
+    setCrudOpen(true);
+    if (owners.length === 0) fetchOwners();
+  };
+
+  const submitCrud = async () => {
+    setCrudErr('');
+    if (!crudForm.address.trim() || !crudForm.city.trim()) {
+      setCrudErr('Dirección y ciudad son requeridas'); return;
+    }
+    if (!crudEditing && !crudForm.owner_id) {
+      setCrudErr('Debes seleccionar un propietario'); return;
+    }
+    setCrudSaving(true);
+    try {
+      const body: any = {
+        owner_id: crudForm.owner_id || undefined,
+        listing_type: crudForm.listing_type,
+        property_type: crudForm.property_type,
+        address: crudForm.address.trim(),
+        city: crudForm.city.trim(),
+        state: crudForm.state.trim().toUpperCase(),
+        zip_code: crudForm.zip_code.trim(),
+        bedrooms: parseInt(crudForm.bedrooms) || 0,
+        bathrooms: parseFloat(crudForm.bathrooms) || 0,
+        square_feet: parseInt(crudForm.square_feet) || 0,
+        rent_amount: parseFloat(crudForm.rent_amount) || 0,
+        sale_price: parseFloat(crudForm.sale_price) || 0,
+        deposit_amount: parseFloat(crudForm.deposit_amount) || 0,
+        description: crudForm.description,
+        commission_rate: parseFloat(crudForm.commission_rate) || 10,
+        status: crudForm.status,
+      };
+      const url = crudEditing ? `/api/admin/marketplace-listings/${crudEditing.id}` : '/api/admin/marketplace-listings';
+      const method = crudEditing ? 'PATCH' : 'POST';
+      const res = await fetch(url, { method, headers: { ...headers(), 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+      const d = await res.json();
+      if (!res.ok) { setCrudErr(d.detail || 'Error guardando'); setCrudSaving(false); return; }
+      setCrudOpen(false);
+      fetchData();
+    } catch (e: any) {
+      setCrudErr(e?.message || 'Error de red');
+    }
+    setCrudSaving(false);
+  };
+
+  const removeListing = async (l: Listing) => {
+    if (!confirm(`¿Eliminar "${l.address}"?\n\nEsta acción es definitiva (soft-delete). Se notificará al propietario.`)) return;
+    try {
+      const res = await fetch(`/api/admin/marketplace-listings/${l.id}`, { method: 'DELETE', headers: headers() });
+      const d = await res.json();
+      if (!res.ok) { alert(d.detail || 'Error'); return; }
+      if (selectedListing?.id === l.id) setSelectedListing(null);
+      fetchData();
+    } catch (e: any) {
+      alert(e?.message || 'Error de red');
+    }
+  };
+
   const fetchData = useCallback(async () => {
     try {
       const [listRes, inqRes, statsRes] = await Promise.all([
@@ -112,7 +226,7 @@ export default function MarketplacePage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-3">
         <div className="flex items-center gap-3">
           <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-cyan-500/20 to-cyan-500/5 border border-cyan-500/20 flex items-center justify-center">
             <Store className="w-6 h-6 text-cyan-400" />
@@ -121,6 +235,15 @@ export default function MarketplacePage() {
             <h2 className="text-2xl font-bold text-white">Marketplace</h2>
             <p className="text-sm text-gray-500">Listados, consultas y clientes</p>
           </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <button onClick={openCreate}
+            className="px-4 py-2.5 bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-500/30 rounded-xl text-cyan-300 text-sm font-bold transition flex items-center gap-2">
+            <Plus className="w-4 h-4" /> Crear propiedad
+          </button>
+          <Link href="/admin/marketplace/comisiones" className="px-4 py-2.5 bg-gradient-to-r from-emerald-500/15 to-amber-500/10 text-emerald-300 border border-emerald-500/30 rounded-xl text-sm font-bold hover:from-emerald-500/25 hover:to-amber-500/20 transition flex items-center gap-2">
+            <Award className="w-4 h-4" /> Comisiones <ArrowRight className="w-4 h-4" />
+          </Link>
         </div>
       </div>
 
@@ -268,6 +391,20 @@ export default function MarketplacePage() {
                         >
                           <Eye className="w-3.5 h-3.5" /> Ver
                         </button>
+                        <button
+                          onClick={() => openEdit(listing)}
+                          title="Editar"
+                          className="flex items-center justify-center px-2.5 py-2 bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded-lg hover:bg-blue-500/20"
+                        >
+                          <Edit3 className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          onClick={() => removeListing(listing)}
+                          title="Eliminar"
+                          className="flex items-center justify-center px-2.5 py-2 bg-red-500/10 text-red-400 border border-red-500/20 rounded-lg hover:bg-red-500/20"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
                       </div>
                     </div>
                   </div>
@@ -399,6 +536,214 @@ export default function MarketplacePage() {
           )}
         </div>
       )}
+      {/* ═══════════ CRUD MODAL: Create/Edit Listing ═══════════ */}
+      {crudOpen && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setCrudOpen(false)}>
+          <div onClick={(e) => e.stopPropagation()} className="bg-gray-900 border border-white/10 rounded-2xl p-6 max-w-2xl w-full max-h-[92vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-bold text-white">{crudEditing ? 'Editar propiedad del marketplace' : 'Crear propiedad en marketplace'}</h3>
+              <button onClick={() => setCrudOpen(false)} className="p-1 rounded-lg hover:bg-white/5 text-gray-400"><X className="w-5 h-5" /></button>
+            </div>
+
+            <div className="space-y-3">
+              {/* Owner selector */}
+              <div>
+                <label className="block text-[11px] font-bold text-gray-400 mb-1">Propietario *</label>
+                <select value={crudForm.owner_id} onChange={(e) => setCrudForm({ ...crudForm, owner_id: e.target.value })}
+                  style={{ colorScheme: 'dark' }}
+                  className="w-full px-3 py-2 bg-gray-900 border border-white/[0.08] rounded-lg text-white text-sm focus:border-cyan-500 focus:outline-none">
+                  <option value="" style={{ backgroundColor: '#0f172a', color: '#fff' }}>— Seleccionar propietario —</option>
+                  {owners.map((o) => (
+                    <option key={o.id} value={o.id} style={{ backgroundColor: '#0f172a', color: '#fff' }}>
+                      {o.name} ({o.email})
+                    </option>
+                  ))}
+                </select>
+                {owners.length === 0 && (
+                  <p className="text-[10px] text-amber-400 mt-1">No hay propietarios todavía. Crea uno en /admin/propietarios primero.</p>
+                )}
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11px] font-bold text-gray-400 mb-1">Tipo de listado</label>
+                  <select value={crudForm.listing_type} onChange={(e) => setCrudForm({ ...crudForm, listing_type: e.target.value })}
+                    style={{ colorScheme: 'dark' }}
+                    className="w-full px-3 py-2 bg-gray-900 border border-white/[0.08] rounded-lg text-white text-sm">
+                    <option value="rent" style={{ backgroundColor: '#0f172a', color: '#fff' }}>Renta</option>
+                    <option value="sale" style={{ backgroundColor: '#0f172a', color: '#fff' }}>Venta</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold text-gray-400 mb-1">Tipo de propiedad</label>
+                  <select value={crudForm.property_type} onChange={(e) => setCrudForm({ ...crudForm, property_type: e.target.value })}
+                    style={{ colorScheme: 'dark' }}
+                    className="w-full px-3 py-2 bg-gray-900 border border-white/[0.08] rounded-lg text-white text-sm">
+                    <option value="house" style={{ backgroundColor: '#0f172a', color: '#fff' }}>Casa</option>
+                    <option value="apartment" style={{ backgroundColor: '#0f172a', color: '#fff' }}>Apto</option>
+                    <option value="condo" style={{ backgroundColor: '#0f172a', color: '#fff' }}>Condo</option>
+                    <option value="townhouse" style={{ backgroundColor: '#0f172a', color: '#fff' }}>Townhouse</option>
+                    <option value="duplex" style={{ backgroundColor: '#0f172a', color: '#fff' }}>Duplex</option>
+                  </select>
+                </div>
+              </div>
+
+              <CrudField label="Dirección *" value={crudForm.address} onChange={(v) => setCrudForm({ ...crudForm, address: v })} placeholder="123 Main St" />
+              <div className="grid grid-cols-3 gap-3">
+                <CrudField label="Ciudad *" value={crudForm.city} onChange={(v) => setCrudForm({ ...crudForm, city: v })} />
+                <CrudField label="Estado" value={crudForm.state} onChange={(v) => setCrudForm({ ...crudForm, state: v.toUpperCase().slice(0, 2) })} />
+                <CrudField label="ZIP" value={crudForm.zip_code} onChange={(v) => setCrudForm({ ...crudForm, zip_code: v })} />
+              </div>
+
+              <div className="grid grid-cols-3 gap-3">
+                <CrudField label="Habitaciones" type="number" value={crudForm.bedrooms} onChange={(v) => setCrudForm({ ...crudForm, bedrooms: v })} />
+                <CrudField label="Baños" type="number" value={crudForm.bathrooms} onChange={(v) => setCrudForm({ ...crudForm, bathrooms: v })} />
+                <CrudField label="Sqft" type="number" value={crudForm.square_feet} onChange={(v) => setCrudForm({ ...crudForm, square_feet: v })} />
+              </div>
+
+              <div className="grid grid-cols-3 gap-3">
+                {crudForm.listing_type === 'rent' ? (
+                  <>
+                    <CrudField label="Renta mensual ($)" type="number" value={crudForm.rent_amount} onChange={(v) => setCrudForm({ ...crudForm, rent_amount: v })} />
+                    <CrudField label="Depósito ($)" type="number" value={crudForm.deposit_amount} onChange={(v) => setCrudForm({ ...crudForm, deposit_amount: v })} />
+                    <CrudField label="Comisión (%)" type="number" value={crudForm.commission_rate} onChange={(v) => setCrudForm({ ...crudForm, commission_rate: v })} />
+                  </>
+                ) : (
+                  <>
+                    <CrudField label="Precio venta ($)" type="number" value={crudForm.sale_price} onChange={(v) => setCrudForm({ ...crudForm, sale_price: v })} />
+                    <div /><div />
+                  </>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-gray-400 mb-1">Descripción</label>
+                <textarea value={crudForm.description} onChange={(e) => setCrudForm({ ...crudForm, description: e.target.value })}
+                  rows={3} className="w-full px-3 py-2 bg-white/[0.03] border border-white/[0.08] rounded-lg text-white text-sm" />
+              </div>
+
+              {/* Photos manager — only when editing (need listing_id) */}
+              {crudEditing && (
+                <div>
+                  <label className="block text-[11px] font-bold text-gray-400 mb-2">Fotos ({crudEditing.photos?.length || 0}/10)</label>
+                  <div className="grid grid-cols-3 gap-2 mb-2">
+                    {(crudEditing.photos || []).map((photo, idx) => (
+                      <div key={idx} className="relative aspect-square rounded-lg overflow-hidden border border-white/10 bg-black/30 group">
+                        {/* eslint-disable-next-line */}
+                        <img src={photo} alt={`Foto ${idx + 1}`} className="w-full h-full object-cover" />
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            if (!confirm(`¿Eliminar foto ${idx + 1}?`)) return;
+                            try {
+                              const r = await fetch(`/api/admin/marketplace-listings/${crudEditing.id}/photos/${idx}`, { method: 'DELETE', headers: headers() });
+                              if (!r.ok) { alert('Error al eliminar foto'); return; }
+                              setCrudEditing({ ...crudEditing, photos: crudEditing.photos.filter((_, i) => i !== idx) });
+                            } catch (e: any) { alert(e?.message || 'Error de red'); }
+                          }}
+                          className="absolute top-1 right-1 bg-red-500 hover:bg-red-600 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition"
+                          title="Eliminar foto"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                        {idx === 0 && (
+                          <div className="absolute bottom-1 left-1 bg-cyan-500/80 text-white text-[9px] font-bold px-1.5 py-0.5 rounded">PORTADA</div>
+                        )}
+                      </div>
+                    ))}
+                    {(!crudEditing.photos || crudEditing.photos.length < 10) && (
+                      <label className="aspect-square rounded-lg border-2 border-dashed border-white/15 flex flex-col items-center justify-center cursor-pointer hover:border-cyan-500/50 hover:bg-cyan-500/5 transition text-gray-500 hover:text-cyan-400">
+                        <Plus className="w-6 h-6" />
+                        <span className="text-[10px] mt-1">Agregar</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          multiple
+                          className="hidden"
+                          onChange={async (e) => {
+                            const files = Array.from(e.target.files || []);
+                            if (files.length === 0) return;
+                            const photos: string[] = [];
+                            for (const f of files.slice(0, 10 - (crudEditing.photos?.length || 0))) {
+                              if (f.size > 5 * 1024 * 1024) { alert(`${f.name} es muy grande (max 5MB)`); continue; }
+                              const reader = new FileReader();
+                              const dataUrl = await new Promise<string>((resolve, reject) => {
+                                reader.onload = () => resolve(reader.result as string);
+                                reader.onerror = reject;
+                                reader.readAsDataURL(f);
+                              });
+                              photos.push(dataUrl);
+                            }
+                            if (photos.length === 0) return;
+                            try {
+                              const r = await fetch(`/api/admin/marketplace-listings/${crudEditing.id}/photos`, {
+                                method: 'POST',
+                                headers: { ...headers(), 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ photos }),
+                              });
+                              const d = await r.json();
+                              if (!r.ok) { alert(d.detail || 'Error subiendo fotos'); return; }
+                              setCrudEditing({ ...crudEditing, photos: [...(crudEditing.photos || []), ...photos] });
+                            } catch (err: any) { alert(err?.message || 'Error de red'); }
+                            (e.target as HTMLInputElement).value = '';
+                          }}
+                        />
+                      </label>
+                    )}
+                  </div>
+                  <p className="text-[10px] text-gray-500">Max 10 fotos · 5MB c/u · JPG, PNG, WebP · La primera es la portada</p>
+                </div>
+              )}
+
+              {!crudEditing && (
+                <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg text-amber-300 text-[11px]">
+                  💡 Las fotos se gestionan después de crear la propiedad. Crea primero la ficha y luego usa &quot;Editar&quot; para agregar fotos.
+                </div>
+              )}
+
+              <div>
+                <label className="block text-[11px] font-bold text-gray-400 mb-1">Estado</label>
+                <select value={crudForm.status} onChange={(e) => setCrudForm({ ...crudForm, status: e.target.value })}
+                  style={{ colorScheme: 'dark' }}
+                  className="w-full px-3 py-2 bg-gray-900 border border-white/[0.08] rounded-lg text-white text-sm">
+                  <option value="approved" style={{ backgroundColor: '#0f172a', color: '#fff' }}>✓ Aprobada</option>
+                  <option value="pending" style={{ backgroundColor: '#0f172a', color: '#fff' }}>⏰ Pendiente</option>
+                  <option value="rejected" style={{ backgroundColor: '#0f172a', color: '#fff' }}>✗ Rechazada</option>
+                </select>
+              </div>
+
+              {crudErr && (
+                <div className="flex items-center gap-2 p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-300 text-sm">
+                  <AlertCircle className="w-4 h-4 flex-shrink-0" /> {crudErr}
+                </div>
+              )}
+
+              <div className="flex gap-3 pt-2">
+                <button onClick={() => setCrudOpen(false)} disabled={crudSaving}
+                  className="flex-1 py-2.5 bg-white/5 border border-white/10 rounded-xl text-gray-300 text-sm font-bold hover:bg-white/10">
+                  Cancelar
+                </button>
+                <button onClick={submitCrud} disabled={crudSaving}
+                  className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-cyan-500 hover:bg-cyan-600 rounded-xl text-white text-sm font-bold disabled:opacity-50">
+                  {crudSaving ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <><Save className="w-4 h-4" /> {crudEditing ? 'Guardar cambios' : 'Crear propiedad'}</>}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+    </div>
+  );
+}
+
+function CrudField({ label, value, onChange, placeholder, type }: any) {
+  return (
+    <div>
+      <label className="block text-[11px] font-bold text-gray-400 mb-1">{label}</label>
+      <input type={type || 'text'} value={value} onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        className="w-full px-3 py-2 bg-white/[0.03] border border-white/[0.08] rounded-lg text-white text-sm focus:border-cyan-500 focus:outline-none" />
     </div>
   );
 }

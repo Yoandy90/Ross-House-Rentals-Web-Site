@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ross Tax - Póster Oficina</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        @page {
+            size: 24in 36in;
+            margin: 0;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: #333;
+            margin: 0;
+            padding: 30px;
+            display: flex;
+            justify-content: center;
+        }
+        
+        .poster {
+            width: 24in;
+            height: 36in;
+            background: linear-gradient(135deg, #6C1110 0%, #3D0808 50%, #1a0505 100%);
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 30px 80px rgba(0,0,0,0.6);
+        }
+        
+        /* Background Pattern */
+        .bg-pattern {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-image: 
+                radial-gradient(circle at 20% 80%, rgba(255,255,255,0.03) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(255,255,255,0.05) 0%, transparent 40%),
+                radial-gradient(circle at 50% 50%, rgba(255,255,255,0.02) 0%, transparent 60%);
+            pointer-events: none;
+        }
+        
+        /* Content Container */
+        .content {
+            position: relative;
+            z-index: 1;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            padding: 100px;
+        }
+        
+        /* Header */
+        .header {
+            text-align: center;
+            margin-bottom: 80px;
+        }
+        
+        .logo-box {
+            display: inline-block;
+            background: white;
+            padding: 40px 80px;
+            border-radius: 40px;
+            box-shadow: 
+                0 40px 100px rgba(0,0,0,0.4),
+                0 0 0 10px rgba(255,255,255,0.2);
+            margin-bottom: 50px;
+        }
+        
+        .logo-img {
+            width: 700px;
+            height: auto;
+        }
+        
+        .tagline {
+            color: white;
+            font-size: 56px;
+            font-weight: 700;
+            text-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        }
+        
+        .tagline span {
+            background: linear-gradient(90deg, #FFD700, #FFA500);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        /* Main Section */
+        .main-section {
+            flex: 1;
+            display: flex;
+            gap: 80px;
+            align-items: center;
+        }
+        
+        /* iPhone Section */
+        .phone-section {
+            flex-shrink: 0;
+        }
+        
+        .iphone {
+            width: 560px;
+            height: 1140px;
+            background: linear-gradient(145deg, #2a2a2a, #1a1a1a);
+            border-radius: 110px;
+            padding: 24px;
+            box-shadow: 
+                0 100px 200px rgba(0,0,0,0.5),
+                inset 0 0 0 6px #3a3a3a,
+                0 0 0 8px #000;
+            position: relative;
+        }
+        
+        .iphone::before {
+            content: '';
+            position: absolute;
+            top: 36px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 240px;
+            height: 60px;
+            background: #1a1a1a;
+            border-radius: 40px;
+            z-index: 10;
+        }
+        
+        .iphone-screen {
+            width: 100%;
+            height: 100%;
+            border-radius: 90px;
+            overflow: hidden;
+            background: #000;
+        }
+        
+        .iphone-screen img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            object-position: top;
+        }
+        
+        /* Features Section */
+        .features-section {
+            flex: 1;
+        }
+        
+        .features-title {
+            color: white;
+            font-size: 48px;
+            font-weight: 800;
+            margin-bottom: 50px;
+            text-transform: uppercase;
+            letter-spacing: 4px;
+        }
+        
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 30px;
+        }
+        
+        .feature-item {
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 32px;
+            padding: 40px;
+            border: 2px solid rgba(255,255,255,0.15);
+            display: flex;
+            align-items: center;
+            gap: 30px;
+        }
+        
+        .feature-icon {
+            width: 100px;
+            height: 100px;
+            border-radius: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 48px;
+            flex-shrink: 0;
+        }
+        
+        .f-purple { background: linear-gradient(135deg, #667eea, #764ba2); }
+        .f-green { background: linear-gradient(135deg, #10B981, #059669); }
+        .f-orange { background: linear-gradient(135deg, #F59E0B, #D97706); }
+        .f-blue { background: linear-gradient(135deg, #3B82F6, #1D4ED8); }
+        .f-pink { background: linear-gradient(135deg, #EC4899, #DB2777); }
+        .f-teal { background: linear-gradient(135deg, #14B8A6, #0D9488); }
+        .f-red { background: linear-gradient(135deg, #EF4444, #DC2626); }
+        .f-indigo { background: linear-gradient(135deg, #6366F1, #4F46E5); }
+        
+        .feature-text h4 {
+            color: white;
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 6px;
+        }
+        
+        .feature-text p {
+            color: rgba(255,255,255,0.7);
+            font-size: 22px;
+        }
+        
+        /* Bottom Section */
+        .bottom-section {
+            margin-top: 80px;
+            display: flex;
+            align-items: center;
+            gap: 80px;
+        }
+        
+        /* QR Box */
+        .qr-box {
+            background: white;
+            border-radius: 40px;
+            padding: 50px;
+            display: flex;
+            align-items: center;
+            gap: 50px;
+            box-shadow: 0 30px 80px rgba(0,0,0,0.3);
+            flex: 1;
+        }
+        
+        .qr-code {
+            width: 240px;
+            height: 240px;
+            border: 8px solid #6C1110;
+            border-radius: 30px;
+            padding: 10px;
+            flex-shrink: 0;
+        }
+        
+        .qr-code img {
+            width: 100%;
+            height: 100%;
+        }
+        
+        .qr-info h3 {
+            color: #6C1110;
+            font-size: 44px;
+            font-weight: 800;
+            margin-bottom: 16px;
+        }
+        
+        .qr-info p {
+            color: #555;
+            font-size: 28px;
+            margin-bottom: 24px;
+        }
+        
+        .qr-info strong {
+            color: #6C1110;
+        }
+        
+        .store-badges {
+            display: flex;
+            gap: 20px;
+        }
+        
+        .badge {
+            background: #1a1a2e;
+            color: white;
+            padding: 16px 30px;
+            border-radius: 16px;
+            font-size: 24px;
+            font-weight: 600;
+        }
+        
+        /* Contact Box */
+        .contact-box {
+            text-align: center;
+        }
+        
+        .whatsapp-btn {
+            background: linear-gradient(135deg, #25D366, #128C7E);
+            color: white;
+            padding: 36px 70px;
+            border-radius: 100px;
+            font-size: 40px;
+            font-weight: 800;
+            display: inline-block;
+            margin-bottom: 30px;
+            box-shadow: 0 20px 60px rgba(37, 211, 102, 0.4);
+        }
+        
+        .contact-details {
+            color: white;
+            font-size: 28px;
+        }
+        
+        .contact-details p {
+            margin: 10px 0;
+            opacity: 0.9;
+        }
+        
+        .website {
+            color: #FFD700;
+            font-size: 36px;
+            font-weight: 700;
+            margin-top: 20px;
+        }
+        
+        /* Print */
+        @media print {
+            body {
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+                padding: 0;
+                background: white;
+            }
+            .poster { box-shadow: none; }
+            .controls-bar { display: none !important; }
+        }
+        
+        .download-btn {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: linear-gradient(135deg, #FFD700, #FFA500);
+            color: #000;
+            padding: 18px 35px;
+            border: none;
+            border-radius: 50px;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: 0 10px 30px rgba(255, 215, 0, 0.5);
+            z-index: 9999;
+        }
+        
+        .download-btn:hover {
+            transform: scale(1.05);
+        }
+        
+        /* Barra de controles fija */
+        .controls-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(0,0,0,0.95);
+            padding: 20px 30px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+            z-index: 9999;
+            border-top: 3px solid #FFD700;
+        }
+        
+        .controls-bar button {
+            background: linear-gradient(135deg, #FFD700, #FFA500);
+            color: #000;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 50px;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        
+        .controls-bar button:hover {
+            transform: scale(1.05);
+        }
+        
+        .controls-bar .size-info {
+            color: white;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="poster">
+        <div class="bg-pattern"></div>
+        
+        <div class="content">
+            <!-- Header -->
+            <div class="header">
+                <div class="logo-box">
+                    <img src="https://customer-assets.emergentagent.com/job_8d569fa8-5d2b-4b57-9414-5dd34f14dcd2/artifacts/tt4pw0zw_JPEG.jpg" alt="Ross Tax Logo" class="logo-img">
+                </div>
+                <div class="tagline">📱 Tu App de Impuestos <span>Todo-en-Uno</span></div>
+            </div>
+            
+            <!-- Main Section -->
+            <div class="main-section">
+                <!-- iPhone -->
+                <div class="phone-section">
+                    <div class="iphone">
+                        <div class="iphone-screen">
+                            <img src="https://customer-assets.emergentagent.com/job_8d569fa8-5d2b-4b57-9414-5dd34f14dcd2/artifacts/mtd97jn3_IMG_4224.png" alt="Dashboard">
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Features -->
+                <div class="features-section">
+                    <div class="features-title">✨ Funciones Principales</div>
+                    <div class="features-grid">
+                        <div class="feature-item">
+                            <div class="feature-icon f-purple">💬</div>
+                            <div class="feature-text">
+                                <h4>Asistente IA 24/7</h4>
+                                <p>Resuelve tus dudas al instante</p>
+                            </div>
+                        </div>
+                        <div class="feature-item">
+                            <div class="feature-icon f-red">📄</div>
+                            <div class="feature-text">
+                                <h4>Declaración 2025</h4>
+                                <p>Prepara tus impuestos fácil</p>
+                            </div>
+                        </div>
+                        <div class="feature-item">
+                            <div class="feature-icon f-green">💰</div>
+                            <div class="feature-text">
+                                <h4>Préstamos Rápidos</h4>
+                                <p>Financiamiento en minutos</p>
+                            </div>
+                        </div>
+                        <div class="feature-item">
+                            <div class="feature-icon f-pink">🤝</div>
+                            <div class="feature-text">
+                                <h4>Gana $25 por Referido</h4>
+                                <p>Invita amigos y gana</p>
+                            </div>
+                        </div>
+                        <div class="feature-item">
+                            <div class="feature-icon f-blue">📅</div>
+                            <div class="feature-text">
+                                <h4>Agenda Citas</h4>
+                                <p>Reserva en segundos</p>
+                            </div>
+                        </div>
+                        <div class="feature-item">
+                            <div class="feature-icon f-teal">📁</div>
+                            <div class="feature-text">
+                                <h4>Documentos Seguros</h4>
+                                <p>Almacenamiento encriptado</p>
+                            </div>
+                        </div>
+                        <div class="feature-item">
+                            <div class="feature-icon f-orange">🧾</div>
+                            <div class="feature-text">
+                                <h4>Facturas Digitales</h4>
+                                <p>Paga desde tu teléfono</p>
+                            </div>
+                        </div>
+                        <div class="feature-item">
+                            <div class="feature-icon f-indigo">🎓</div>
+                            <div class="feature-text">
+                                <h4>Educación Fiscal</h4>
+                                <p>Aprende gratis</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Bottom Section -->
+            <div class="bottom-section">
+                <div class="qr-box">
+                    <div class="qr-code">
+                        <img src="https://api.qrserver.com/v1/create-qr-code/?size=500x500&data=https://apps.rosstaxpreparation.com&color=6C1110" alt="QR Code">
+                    </div>
+                    <div class="qr-info">
+                        <h3>📲 ¡Descarga GRATIS!</h3>
+                        <p>Escanea el código QR o visita:<br><strong>apps.rosstaxpreparation.com</strong></p>
+                        <div class="store-badges">
+                            <div class="badge">🍎 App Store</div>
+                            <div class="badge">▶️ Google Play</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="contact-box">
+                    <div class="whatsapp-btn">📱 (806) 934-2018</div>
+                    <div class="contact-details">
+                        <p>📍 305 Bruce Ave, Dumas TX 79029</p>
+                        <div class="website">🌐 www.rosstaxpreparation.com</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Barra de controles fija en la parte inferior -->
+    <div class="controls-bar">
+        <span class="size-info">📐 Tamaño: 24" × 36" (60.96 × 91.44 cm)</span>
+        <button onclick="window.print()">🖨️ Guardar como PDF</button>
+        <button onclick="window.scrollTo({top: 0, behavior: 'smooth'})">⬆️ Ir al Inicio</button>
+        <button onclick="window.scrollTo({top: document.body.scrollHeight, behavior: 'smooth'})">⬇️ Ir al Final</button>
+    </div>
+</body>
+</html>

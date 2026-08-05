@@ -1,0 +1,4 @@
+name,email,phone,ssn_last_four,date_of_birth,marital_status,address_street,address_city,address_state,address_zip,num_dependents,preferred_contact_method,kyc_completed,kyc_verified,priority_status
+Juan Pérez,juan.perez@ejemplo.com,555-0100,1234,1985-03-15,married,123 Main St,Miami,FL,33101,2,email,true,true,false
+María García,maria.garcia@ejemplo.com,555-0101,5678,1990-07-22,single,456 Oak Ave,Tampa,FL,33602,0,phone,true,false,false
+Carlos López,carlos.lopez@ejemplo.com,555-0102,9012,1978-11-30,married,789 Pine Rd,Orlando,FL,32801,3,email,false,false,true

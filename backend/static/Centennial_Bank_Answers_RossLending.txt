@@ -1,0 +1,478 @@
+================================================================================
+  CENTENNIAL BANK — FORMULARIO DE DUE DILIGENCE COMPLETO
+  Ross Lending Solutions LLC
+  Preparado: Mayo 11, 2026
+================================================================================
+
+INSTRUCCIONES: Usa este documento como referencia para llenar el formulario 
+físico del banco. Cada respuesta corresponde al número de pregunta del formulario.
+
+================================================================================
+PARTE 1: LOAN/FINANCE COMPANY QUESTIONNAIRE (Páginas 1-3)
+================================================================================
+
+Full Legal Name:           Ross Lending Solutions LLC
+Trade Name or DBA:         Ross Lending
+Tax ID Number:             [TU EIN — Escríbelo aquí antes de ir al banco]
+Website:                   www.rosslending.com
+Business Type:             ☑ LLC
+
+─── Pregunta 1 ───
+¿La entidad está registrada y regulada?
+→ ☑ YES — Seleccionar: "Other" y escribir:
+  "Office of Consumer Credit Commissioner (OCCC) — State of Texas"
+  "Aplicación en proceso para Regulated Lending License, Chapter 342 Subchapter E"
+  CRD or SEC#: N/A
+  Registered Firm Name: Ross Lending Solutions LLC
+
+─── Pregunta 2 ───
+¿En qué estados opera la compañía?
+→ Texas
+
+─── Pregunta 3 ───
+¿Cuántas ubicaciones tiene la compañía?
+→ 1
+
+─── Pregunta 4 ───
+¿La compañía está afiliada con una tribu nativa americana?
+→ ☑ No
+
+─── Pregunta 5 ───
+Describa su mercado y base de clientes (marcar):
+→ ☑ Local county residents
+→ ☑ Local statewide residents
+
+─── Pregunta 6 ───
+Describa el mercado objetivo y grupos de clientes:
+→ "Ross Lending Solutions serves working families and individuals in the 
+   Texas Panhandle region (Moore County, Dumas, TX area). Our primary target 
+   market is local residents who need access to small-dollar installment loans 
+   for personal, family, or household purposes. We focus on responsible lending 
+   with full compliance under Texas Chapter 342 (OCCC Regulated Lending)."
+
+─── Pregunta 7 ───
+¿Qué tipos de productos y servicios ofrece?
+→ "Regulated installment loans under Texas Finance Code Chapter 342, 
+   Subchapter E. Personal loans ranging from $100 to $10,000 with fixed 
+   interest rates and scheduled monthly payments. All loans comply with 
+   OCCC rate caps and consumer protection requirements."
+
+─── Pregunta 8 ───
+¿Cómo anuncia o mercadea sus productos?
+→ "Word of mouth referrals, local community presence, company website 
+   (www.rosslending.com), and mobile application (Ross Lending App available 
+   on iOS App Store). No mass marketing to non-local areas."
+
+═══════════════════════════════════════════════════════════════════════════
+ANTI-MONEY LAUNDERING QUESTIONNAIRE (Preguntas 9-22)
+═══════════════════════════════════════════════════════════════════════════
+
+─── Pregunta 9 ───
+¿Tiene un individuo designado responsable del programa AML?
+→ ☑ YES
+  (Yoandy Ross, Managing Member / AML Compliance Officer)
+
+─── Pregunta 10 ───
+¿Conduce due diligence para identificar y verificar clientes?
+→ ☑ YES
+  (Verificación de identidad mediante ID con foto, SSN, y verificación 
+   de empleo/ingresos antes de aprobar cualquier préstamo)
+
+─── Pregunta 11 ───
+¿Revisa la fuente de riqueza y fondos del cliente?
+→ ☑ YES
+  (Verificación de empleo e ingresos como parte del proceso de solicitud)
+
+─── Pregunta 12 ───
+¿Recopila información sobre las actividades comerciales del cliente?
+→ ☑ YES
+  (Información de empleo, empleador, e ingresos mensuales recopilados 
+   en cada solicitud de préstamo)
+
+─── Pregunta 13 ───
+¿Tiene políticas/procedimientos AML para prevención y reporte?
+→ ☑ YES
+  (Política AML escrita implementada. Procedimientos para identificar 
+   y reportar actividad sospechosa conforme a BSA/FinCEN)
+
+─── Pregunta 14 ───
+¿Reporta transacciones a las autoridades según la ley aplicable?
+→ ☑ YES
+  (CTRs para transacciones en efectivo >$10,000. Monitoreo de 
+   transacciones estructuradas. SARs cuando sea necesario)
+
+─── Pregunta 15 ───
+¿Retiene registros según la ley aplicable?
+→ ☑ YES
+  (Todos los registros de préstamos, pagos, identificación de clientes 
+   y transacciones se retienen por un mínimo de 5 años)
+
+─── Pregunta 16 ───
+¿Proporciona capacitación AML continua a empleados?
+→ ☑ YES
+  (Capacitación AML/BSA anual para todos los empleados)
+
+─── Pregunta 17 ───
+¿Asegura que no hay prácticas para evadir sanciones de EE.UU.?
+→ ☑ YES
+
+─── Pregunta 18 ───
+¿Asegura que no hay prácticas para evadir detección OFAC?
+→ ☑ YES
+
+─── Pregunta 19 ───
+¿Opera screening de transacciones contra listas de sanciones y PEPs?
+→ ☑ YES
+  (Screening OFAC/SDN en el onboarding de cada cliente nuevo)
+
+─── Pregunta 20 ───
+¿Presta a clientes de alto riesgo (MSBs, Casas de Cambio, PEPs)?
+→ ☑ No
+  MSBs: 0
+  Casas de Cambios: 0
+  PEPs: 0
+
+─── Pregunta 21 ───
+¿Mantiene procedimientos EDD para clientes de alto riesgo?
+→ ☑ YES
+  (Política de Enhanced Due Diligence implementada para cualquier 
+   cliente que presente indicadores de mayor riesgo)
+
+─── Pregunta 22 — Digital Currencies ───
+Describa la política de la compañía respecto a monedas digitales:
+→ "Ross Lending Solutions LLC does not accept, process, or facilitate 
+   any transactions involving digital currencies, virtual currencies, 
+   or cryptocurrency. All loan disbursements and payments are conducted 
+   exclusively through traditional banking channels (ACH, check, or 
+   cash at our physical location). Our policy strictly prohibits the 
+   use of digital currencies in any lending activity."
+
+─── Explicación de respuestas "No" ───
+→ "N/A — All questions answered Yes except #20 (we do not lend to 
+   MSBs, Casas de Cambio, or PEPs)."
+
+─── Firma (Página 3) ───
+Print Name:    Yoandy Ross
+Title:         Managing Member / CEO
+Signature:     [FIRMAR AQUÍ]
+Date:          ___/___/2026
+
+Consent to Receive Certification Electronically: ☑ Yes
+Email: yoandyross@gmail.com
+
+
+================================================================================
+PARTE 2: AML, CFT & SANCTIONS PROGRAM QUESTIONNAIRE (Páginas 4-11)
+================================================================================
+
+═══ ENTITY AND OWNERSHIP (Página 4) ═══
+
+Full Legal Name:     Ross Lending Solutions LLC
+Trade Name or DBA:   Ross Lending
+TIN:                 [TU EIN]
+Business Type:       ☑ LLC
+
+1. Foreign branches: N/A — No foreign branches
+
+2. Full Legal (Registered) Address:
+   305 Bruce Ave, Dumas, TX 79029
+
+3. Full Primary Business Address: Same as above
+
+4. Date of Entity incorporation/establishment:
+   [FECHA DE FORMACIÓN DE TU LLC — Revisa tu Articles of Organization]
+
+5. Type of ownership:
+   Publicly Traded: ☐ No
+   Member Owned/Mutual: ☐ No
+   Government or State Owned: ☐ No
+   ☑ Privately Owned: YES
+   → Shareholder/Beneficial Owner with 10%+:
+     Name: Yoandy Ross
+     Ownership: 100%
+
+6. Bearer shares: 0% (N/A — LLC, no bearer shares)
+
+7. Offshore Banking License: ☐ No
+
+8. Primary financial regulator:
+   → "Office of Consumer Credit Commissioner (OCCC), State of Texas"
+
+═══ Página 5 ═══
+
+9. Legal Entity Identifier (LEI): N/A (not required for small LLC)
+
+10. Ultimate parent: N/A (no parent company — independently owned)
+
+11. Jurisdiction of ultimate parent: N/A
+
+12. Business areas applicable:
+   → ☐ Art Dealer — No
+   → ☐ Broker/Dealer — No
+   → ☐ Commercial Banking — No
+   → ☐ Casino — No
+   → ☐ Investment Banking — No
+   → ☐ Money Services Business — No
+   → ☐ Private Banking — No
+   → ☐ Retail Banking — No
+   → ☐ Securities Services — No
+   → ☑ Other: "Regulated Consumer Lending (Texas Chapter 342)"
+
+13. Non-resident customers (10%+)?: ☐ No
+
+14. Number of employees: 1-5
+    Total Assets: Under $1M
+
+15. Products and services offered:
+   → Correspondent Banking: No
+   → Private Banking: No
+   → Trade Finance: No
+   → Payable Through Accounts: No
+   → Stored Value Instruments: No
+   → Cross Border Bulk Cash Delivery: No
+   → Domestic Bulk Cash Delivery: No
+   → International Cash Letter: No
+   → Remote Deposit Capture: No
+   → Virtual/Digital Currencies: No
+   → Low Price Securities: No
+   → Hold Mail: No
+   → Cross Border Remittances: No
+   → Service to walk-in customers: No
+   → Sponsoring Private ATMs: No
+   → Other high risk products: No
+
+═══ AML, CFT & SANCTIONS PROGRAM (Página 6) ═══
+
+16. Minimum AML/CTF/Sanctions standards:
+   → Appointed Officer: ☑ Yes (Yoandy Ross)
+   → Cash Reporting: ☑ Yes
+   → CDD: ☑ Yes
+   → EDD: ☑ Yes
+   → Beneficial Ownership: ☑ Yes
+   → Independent Testing: ☑ Yes
+   → Periodic Review: ☑ Yes
+   → Policies and Procedures: ☑ Yes
+   → Risk Assessment: ☑ Yes
+   → Sanctions: ☑ Yes
+   → PEP Screening: ☑ Yes
+   → Adverse Information Screening: ☑ Yes
+   → Suspicious Activity Reporting: ☑ Yes
+   → Training and Education: ☑ Yes
+   → Transaction Monitoring: ☑ Yes
+
+17. Full-time AML employees: 1
+
+18. AML policy approved annually by Board/Senior Management?: ☑ Yes
+
+═══ Página 7 ═══
+
+19. Board receives regular AML reporting?: ☑ Yes
+
+20. Use third parties for AML?: ☐ No
+
+21. Documented policies to prevent/detect/report:
+   → Money laundering: ☑ Yes
+   → Terrorist financing: ☑ Yes
+   → Sanctions violations: ☑ Yes
+
+22. Policies updated at least annually?: ☑ Yes
+
+23. Policies gapped against:
+   → US Standards: ☑ Yes
+   → EU Standards: ☐ No
+   → Record of results retained: ☑ Yes
+
+24. Policies and procedures that:
+   → Prohibit anonymous/fictitious accounts: ☑ Yes
+   → Prohibit unlicensed banks/NBFIs: ☑ Yes
+   → Prohibit dealing with entities serving unlicensed banks: ☑ Yes
+   → Prohibit shell bank accounts: ☑ Yes
+   → Prohibit dealing with entities serving shell banks: ☑ Yes
+   → Prohibit Section 311 designated entities: ☑ Yes
+
+═══ Página 8 ═══
+
+   → Prohibit unlicensed remittance agents: ☑ Yes
+   → Assess PEP risks: ☑ Yes
+   → Define escalation processes: ☑ Yes
+   → Define process for terminating relationships: ☑ Yes
+   → Specify suspicious activity escalation: ☑ Yes
+   → Outline screening processes (sanctions, PEPs, negative media): ☑ Yes
+   → Outline internal "watchlist" processes: ☑ Yes
+
+25. Risk tolerance statement defined?: ☑ Yes
+
+26. Record retention procedures?: ☑ Yes
+    Retention period: 5 years
+
+═══ CUSTOMER DUE DILIGENCE (CDD) ═══
+
+27. Verify customer identity?: ☑ Yes
+
+28. Policies set out when CDD must be completed?: ☑ Yes
+    (At onboarding — before loan approval)
+
+29. CDD information gathered:
+   → Ownership structure: ☑ Yes
+   → Customer identification: ☑ Yes
+   → Expected activity: ☑ Yes
+   → Nature of business/employment: ☑ Yes
+   → Product usage: ☑ Yes
+
+═══ Página 9 ═══
+
+   → Purpose and nature of relationship: ☑ Yes
+   → Source of funds: ☑ Yes
+   → Source of wealth: ☑ Yes
+
+30. Identification:
+   → Ultimate beneficial ownership: ☑ Yes
+   → Beneficial owners verified: ☑ Yes
+   → Authorized signatories: ☑ Yes
+   → Key controllers: ☑ Yes
+   → Other relevant parties: ☑ Yes
+
+31. Minimum threshold for beneficial ownership: 25%
+
+32. Customers receive risk classification?: ☑ Yes
+
+33. Risk classification factors:
+   → Product Usage: ☑ Yes
+   → Geography: ☑ Yes
+   → Business Type/Industry: ☑ Yes
+   → Legal Entity type: ☑ Yes
+   → Adverse Information: ☑ Yes
+
+34. Risk-based approach for adverse media screening?: ☑ Yes
+   → Onboarding: ☑ Yes
+   → KYC renewal: ☑ Yes
+   → Trigger event: ☑ Yes
+
+35. Method for adverse media screening:
+   → "Manual review using OFAC SDN list, Google searches, and loan 
+      application verification process."
+
+36. Risk-based approach for PEP screening?: ☑ Yes
+   → Onboarding: ☑ Yes
+   → KYC renewal: ☑ Yes
+   → Trigger event: ☑ Yes
+
+═══ Página 10 ═══
+
+37. Method for PEP screening:
+   → "OFAC SDN list screening at onboarding. Manual verification of 
+      all borrower identities against government lists."
+
+38. Process for PEP match review and escalation?: ☑ Yes
+
+39. Process to review and update customer info:
+   → KYC renewal: ☑ Yes
+   → Trigger event: ☑ Yes
+
+40. Maintain and report metrics on due diligence reviews?: ☑ Yes
+
+41. Categories subject to EDD/Restricted/Prohibited:
+   → Non-account customers: Prohibited
+   → Non-resident customers: EDD
+   → Shell banks: Prohibited
+   → MVTS/MSB customers: Prohibited
+   → PEPs: EDD
+   → PEP Related: EDD
+   → PEP Close Associate: EDD
+   → Correspondent Banks: Prohibited
+   → Arms/defense/military: Prohibited
+   → Atomic power: Prohibited
+   → Extractive industries: N/A
+   → Precious metals/stones: Prohibited
+   → Unregulated charities: Prohibited
+   → Regulated charities: EDD
+   → Red light/Adult entertainment: Prohibited
+   → Non-Government Organizations: EDD
+   → Virtual currencies: Prohibited
+   → Marijuana: Prohibited
+   → Embassies/Consulates: EDD
+   → Gambling: Prohibited
+
+═══ Página 11 ═══
+
+   → Payment Service Provider: Prohibited
+
+42. Restriction details:
+   → "Ross Lending Solutions only provides consumer installment loans 
+      to individual borrowers for personal, family, or household purposes 
+      under Texas Finance Code Chapter 342. We do not provide commercial 
+      loans or serve any of the high-risk categories listed above."
+
+43. Additional control/quality review on EDD clients?: ☑ Yes
+
+Additional clarification:
+   → "Ross Lending Solutions LLC is a small, community-based consumer 
+      lender serving the Texas Panhandle region. Our business model is 
+      straightforward: regulated installment loans to local residents. 
+      We do not engage in any high-risk banking activities, international 
+      transactions, or digital currency operations. All lending activities 
+      are supervised by the Texas OCCC."
+
+─── Firma (Página 11) ───
+Print Name:    Yoandy Ross
+Title:         Managing Member / CEO
+Signature:     [FIRMAR AQUÍ]
+Date:          ___/___/2026
+
+Consent to Receive Electronically: ☑ Yes
+Email: yoandyross@gmail.com
+
+
+================================================================================
+PARTE 3: CERTIFICATION OF BENEFICIAL OWNER(S) (Páginas 12-13)
+================================================================================
+
+a. Name and Title of Natural Person Opening Account:
+   → Yoandy Ross, Managing Member
+
+b. Name, Address and Type of Legal Entity:
+   → Ross Lending Solutions LLC
+     305 Bruce Ave
+     Dumas, TX 79029
+     Type: Limited Liability Company (LLC)
+
+c. Excluded/Exempt from Beneficial Ownership:
+   → N/A (no aplica — es una LLC, no está exenta)
+
+d. Individuals owning 25% or more equity:
+
+   Owner #1:
+   Name:                  Yoandy Ross
+   Ownership Percentage:  100%
+   Date of Birth:         [TU FECHA DE NACIMIENTO]
+   Address:               [TU DIRECCIÓN RESIDENCIAL]
+   SSN:                   [TU NÚMERO DE SEGURO SOCIAL]
+
+e. Individual with significant management responsibility:
+
+   Name:                  Yoandy Ross
+   Title:                 Managing Member / CEO
+   Date of Birth:         [TU FECHA DE NACIMIENTO]
+   Address:               [TU DIRECCIÓN RESIDENCIAL]
+   SSN:                   [TU NÚMERO DE SEGURO SOCIAL]
+
+─── Certificación Final ───
+"I, Yoandy Ross, hereby certify, to the best of my knowledge, that 
+the information provided above is complete and correct."
+
+Signature: [FIRMAR AQUÍ]
+Date:      ___/___/2026
+
+
+================================================================================
+DATOS QUE DEBES COMPLETAR TÚ ANTES DE IR AL BANCO:
+================================================================================
+
+⬜ Tax ID Number (EIN) de Ross Lending Solutions LLC
+⬜ Fecha de formación de la LLC (Articles of Organization)
+⬜ Tu fecha de nacimiento
+⬜ Tu dirección residencial
+⬜ Tu número de Seguro Social (SSN)
+⬜ Firma en las 3 secciones (Pág 3, Pág 11, Pág 12)
+
+================================================================================

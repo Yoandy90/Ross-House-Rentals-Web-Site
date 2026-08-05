@@ -154,3 +154,15 @@ node_modules/@next/swc-linux-arm64-musl/next-swc.linux-arm64-musl.node
 backend/firebase_config.json
 firebase_config.json
 **/firebase_config.json
+.env
+.env.*
+credentials.json
+*.key
+.credentials
+
+# Never commit test credentials
+memory/test_credentials.md
+
+# Never commit credentials
+.git-credentials
+frontend/google-play-service-account.json

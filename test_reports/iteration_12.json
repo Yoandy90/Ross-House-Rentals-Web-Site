@@ -1,0 +1,56 @@
+{
+  "summary": "Iter_12 backend-only verification of the new Tenant Waitlist module (rental/tenant_leads_router.py) deployed at https://ross-house-backend-production.up.railway.app. Created /app/ross-house-backend/tests/test_tenant_waitlist.py with 18 pytest cases covering the full PUBLIC + ADMIN surface (create/dedup/validation, check, list/filter/stats, PATCH status with invalid-status guard, settings GET/PUT toggle persistence, CSV export, per-lead notify with both channel flags, delete, and unauthenticated-access rejection). 17/18 PASS. ONE REAL BACKEND BUG FOUND: GET /api/admin/tenant-leads/export/csv returns HTTP 500 — root cause is unsafe f-string formatting on a nullable field (monthly_income, defaults to None in the Pydantic model and gets persisted as None). Front-end was NOT tested per user instructions (Next.js code not yet pushed to Vercel; testing agent was told to focus on backend). Local supervised backend at /app/backend/ remains broken (KeyError: MONGO_URL) as documented in the review request — not in scope.",
+  "backend_issues": {
+    "critical": [
+      {
+        "endpoint": "GET /api/admin/tenant-leads/export/csv",
+        "issue": "HTTP 500 Internal Server Error. RCA: In tenant_leads_router.py line ~577 the CSV row builder formats `lead.get('monthly_income', 0)` with f-string `f\"${...:,.0f}\"`. The Pydantic model declares `monthly_income: Optional[float] = None`, so when a lead has no income provided, the stored value is literally `None` (not absent). `dict.get('monthly_income', 0)` returns `None` (key present), and `f\"${None:,.0f}\"` raises `TypeError: unsupported format string passed to NoneType.__format__`. Same latent risk also exists for `max_budget` (line 572) and any other nullable numeric column. Reproduced cleanly against Railway prod after creating a QA lead with no monthly_income.",
+        "priority": "HIGH"
+      }
+    ],
+    "minor": [
+      {
+        "endpoint": "POST /api/admin/tenant-leads/{id}/notify",
+        "issue": "Returned 200 with email_sent=false, sms_sent=false in test env (no SendGrid/Twilio creds bound) — endpoint behaviour is correct (boolean response, no crash), but no negative path test exists for what happens if the lead's email is malformed or Twilio rate-limits. Consider explicit logging of provider error codes."
+      }
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [],
+    "react_native_issues": []
+  },
+  "test_report_links": [
+    "/app/ross-house-backend/tests/test_tenant_waitlist.py",
+    "/app/test_reports/pytest/iter12_tenant_waitlist.xml"
+  ],
+  "action_items": [
+    "FIX CRITICAL: In /app/ross-house-backend/rental/tenant_leads_router.py admin_export_csv(), guard nullable numeric fields before formatting. Suggested patch — replace `f\"${lead.get('monthly_income', 0):,.0f}\"` with `f\"${(lead.get('monthly_income') or 0):,.0f}\"` (and the same for `max_budget` on the previous line). Even better, write a small helper `_money(v)` that returns 'N/A' when value is None.",
+    "Add a regression unit test that calls admin_export_csv() with a lead whose monthly_income=None and asserts 200 + content-type text/csv.",
+    "After fix is deployed on Railway, re-run /app/ross-house-backend/tests/test_tenant_waitlist.py — should be 18/18.",
+    "Frontend (Next.js /interesados, /interesados/en, WaitlistBanner, /admin/interesados): not deployed yet — user must press 'Save to GitHub' first. Once deployed, re-trigger this testing agent with focus on frontend.",
+    "Optional defense-in-depth: in CSV row builder, also CSV-escape values that contain literal double quotes (`replace('\"', '\"\"')`) — currently only newlines in admin_notes are sanitized."
+  ],
+  "critical_code_review_comments": [
+    "tenant_leads_router.py is 609 lines — within the 700-line guideline but approaching it. Two responsibilities (CRUD + notifications) are well separated by helpers, no immediate need to split.",
+    "Email validation uses a hand-rolled regex via @validator + the field is typed `str` instead of `EmailStr`. The dependency on `pydantic.EmailStr` is imported but unused. Recommend switching `email: str` → `email: EmailStr` for stricter validation (and align with Pydantic v2 behaviour).",
+    "Default dedup logic on POST /public/tenant-leads always updates the existing record's name/phone/etc. from the new payload but preserves the original `created_at`, `status`, `admin_notes`. This means a returning user can change e.g. their phone — good. But it also means a spammer can mutate a real lead's data by posting with the same email. Consider adding a basic rate-limit or anti-spam check (e.g., reCAPTCHA), or skip overwriting if existing.status != 'new'.",
+    "_send_welcome / _notify_admin_new_lead are awaited inline inside the public POST handler. If SendGrid is slow, the user's form submit will block on it. Consider FastAPI BackgroundTasks or asyncio.create_task() for fire-and-forget delivery.",
+    "auth_admin() in shared.py logs no audit trail — recommended to log admin user + endpoint on every admin call for compliance.",
+    "VALID_STATUSES is defined as a module-level list; the Pydantic TenantLeadUpdate model does not use a Literal/Enum to validate status at parse time — the validation is done manually inside admin_update_lead. Tighter to use `status: Optional[Literal['new','contacted',...]]`.",
+    "Route /admin/tenant-leads/{lead_id} (line 379) is declared BEFORE /admin/tenant-leads/match/{property_id} (line 545), /admin/tenant-leads/export/csv (line 558), and /admin/tenant-leads/stats (line 361) is ABOVE. FastAPI honours declaration order: stats works, but `/match/{property_id}` could be matched by `/{lead_id}` first if the {lead_id} pattern were registered before. Currently safe because stats and match have unique sub-paths or are above {lead_id}, but the {lead_id}/notify endpoint at line 422 is BELOW {lead_id} — fine. However, `/admin/tenant-leads/notify-property` (line 457) is BELOW `/{lead_id}` — FastAPI would try to match `notify-property` as a lead_id. Recommend reordering: declare all literal/static sub-paths (stats, match/{...}, export/csv, notify-property) BEFORE the catch-all `/{lead_id}` route to avoid future surprises."
+  ],
+  "updated_files": [
+    "/app/ross-house-backend/tests/test_tenant_waitlist.py (NEW — 18 pytest cases, ~250 lines)"
+  ],
+  "success_rate": {
+    "backend": "94.4% (17/18 pytest passed against Railway prod). The 1 failure is a real product bug (CSV export 500), not a flaky test.",
+    "frontend": "not tested per review_request instructions (Next.js not yet deployed to Vercel)"
+  },
+  "seed_data_creation": "One test lead created per pytest run with unique email `qa.lead.20260629+{timestamp}@example.com`. It is deleted at the end of the suite by test_admin_delete_lead, so the production DB stays clean. The lead also persists briefly in the lead_settings collection — none added; the test_admin_update_settings_toggle_email reverts email_enabled back to True after the persistence check.",
+  "retest_needed": true,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "After the main agent patches the CSV nullable-formatting bug in tenant_leads_router.py and the user redeploys to Railway, re-run `pytest /app/ross-house-backend/tests/test_tenant_waitlist.py -v` — expected 18/18 PASS. For frontend coverage (visit /interesados, /interesados/en, the WaitlistBanner on /, and /admin/interesados kanban), wait until the user presses 'Save to GitHub' so Vercel picks up the Next.js changes, then test against https://www.rosshouserentals.com/. Admin login flow for the panel uses POST /api/public/marketplace-login → use the returned `token` field as `Authorization: Bearer <jwt>` (NOT cookies, despite the review_request wording). The frontend likely stores it in localStorage as `marketplace_token` — verify by inspecting /app/app/admin/layout.tsx.",
+  "rca_of_issue": "BUG: GET /api/admin/tenant-leads/export/csv returns HTTP 500.\n\nReproduction:\n1. POST /api/public/tenant-leads with payload {name, email, phone, bedrooms_wanted, max_budget, language_pref} — omit `monthly_income` (it is Optional in TenantLeadCreate).\n2. POST /api/public/marketplace-login with admin creds → grab `token`.\n3. GET /api/admin/tenant-leads/export/csv with `Authorization: Bearer <token>` → HTTP 500 Internal Server Error.\n\nRoot cause (line 577 of /app/ross-house-backend/rental/tenant_leads_router.py):\n    rows.append([..., f\"${lead.get('monthly_income', 0):,.0f}\", ...])\nWhen the lead document has `monthly_income: None` (which is the default the Pydantic model writes), `dict.get('monthly_income', 0)` returns None (because the key IS present, just with a None value — `.get(key, default)` only returns the default when the key is ABSENT). Then `f\"${None:,.0f}\"` raises `TypeError: unsupported format string passed to NoneType.__format__`. The exception bubbles up to FastAPI which returns 500.\n\nThe identical pattern exists on the previous line for `max_budget` — currently safe because max_budget is required (no None possible from the API path), but a manual DB edit or future schema change could trigger the same crash.\n\nMitigation (one-line patch):\n    # Before\n    f\"${lead.get('monthly_income', 0):,.0f}\"\n    # After\n    f\"${(lead.get('monthly_income') or 0):,.0f}\"\n\nThe `or 0` idiom collapses both `None` and missing-key cases to 0. Apply the same pattern to `max_budget` for defense in depth. Add a unit test that calls the endpoint after inserting a lead with monthly_income=None to prevent regression."
+}

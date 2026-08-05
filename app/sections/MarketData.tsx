@@ -4,14 +4,15 @@ import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { TrendingUp, DollarSign, Home, BarChart3, Percent, Activity } from 'lucide-react'
 
-const API_URL = 'https://app-nueva-production.up.railway.app/api'
-
 export default function MarketData() {
   const [data, setData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    fetch(`${API_URL}/admin/market-data/city/TX/Dumas`)
+    // Relative URL — Vercel proxies /api/* to the real Railway backend.
+    // The market-data endpoint is under /admin/* by convention but doesn't
+    // require auth (public market metrics).
+    fetch(`/api/admin/market-data/city/TX/Dumas`)
       .then(r => r.json())
       .then(d => { setData(d.market_data); setLoading(false) })
       .catch(() => setLoading(false))

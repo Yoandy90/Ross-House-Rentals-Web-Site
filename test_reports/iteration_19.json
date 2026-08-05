@@ -1,0 +1,31 @@
+{
+  "summary": "Frontend-only verification of the homepage 'Apply / Get Notified' waitlist fix on https://www.rosshouserentals.com/#apply. All 9 test criteria PASS. The compiled bundle at /_next/static/chunks/app/page-82a3ebeb527536a4.js now contains: fetch(\"/api/public/tenant-leads\", {method:\"POST\", ...}) with source:'home_apply_section' — the RELATIVE URL requested by the fix. The old endpoint '/public/rental-application' is completely gone. The old hardcoded railway URL 'app-nueva-production.up.railway.app' still appears in the same bundle BUT ONLY for an unrelated market-data widget (/admin/market-data/city/TX/Dumas), NOT for the Apply form — verified by inspecting surrounding code context. Turnstile widget renders as a real Cloudflare interactive checkbox on production; submit button correctly stays disabled until a token is obtained. Client-side validation shows the expected friendly errors for empty name, phone <10 digits, invalid email, and missing captcha. Language toggle (EN/ES) correctly swaps the Apply headline between 'Looking for a home to rent?' and '¿Buscas casa en renta?'. The /interesados full waitlist page loads with 8 inputs/3 selects, submit disabled without captcha, no regressions and no red-screen errors. Full end-to-end DB write could not be automated because production Turnstile requires human interaction, but all measurable acceptance criteria have been verified.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [],
+    "react_native_issues": []
+  },
+  "test_report_links": [
+    "/tmp/apply_section.png",
+    "/tmp/interesados.png"
+  ],
+  "action_items": [
+    "No action required for the Apply fix — the deployed bundle uses the correct relative endpoint /api/public/tenant-leads with source='home_apply_section' and captcha_token in payload.",
+    "OPTIONAL cleanup (unrelated to this fix): the market-data widget on the homepage still calls the hardcoded https://app-nueva-production.up.railway.app/api/admin/market-data/city/TX/Dumas directly. Consider moving that call to a relative /api/... path for consistency (currently visible as 'Failed to fetch' + CORS 401 warnings in browser console). This is NOT a regression from the current fix."
+  ],
+  "critical_code_review_comments": [
+    "/app/app/sections/Apply.tsx correctly reads captchaToken and disables submit until token is received.",
+    "TurnstileWidget uses TEST_SITE_KEY fallback ('1x00000000000000000000AA') if NEXT_PUBLIC_TURNSTILE_SITE_KEY is unset. Verified in prod the real key is being loaded (real interactive challenge appears).",
+    "Submit handler resets the captcha (captchaKey++ + setCaptchaToken(null)) on backend failure — good practice since Turnstile tokens are single-use.",
+    "Client-side validation covers name, phone digit count, email format, captcha — all confirmed working with correct EN/ES strings."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "N/A (frontend-only)", "frontend": "100%"},
+  "seed_data_creation": "None. No DB writes were made from automation.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "The Apply section fix is verified in production. The bundle string search confirmed: fetch('/api/public/tenant-leads') present, '/public/rental-application' absent. The remaining hits for 'app-nueva-production.up.railway.app' in the same page chunk belong to an unrelated market-data widget, not the Apply form.",
+  "rca_of_issue": "Original bug: Apply.tsx used a hardcoded absolute URL 'https://app-nueva-production.up.railway.app/api/public/rental-application' which did not exist (backend has /api/public/tenant-leads only). Post-fix verification: minified bundle shows fetch('/api/public/tenant-leads', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({...source:'home_apply_section', captcha_token: C})}). Fix is complete and deployed."
+}

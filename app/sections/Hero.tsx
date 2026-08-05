@@ -82,7 +82,7 @@ export default function Hero() {
                     <s.icon className="w-4 h-4 text-primary" aria-hidden="true" />
                     <span className="font-display text-xl sm:text-2xl md:text-3xl font-bold text-white">{s.value}</span>
                   </div>
-                  <span className="text-white/60 text-xs uppercase tracking-wider">{s.label}</span>
+                  <span className="text-white/80 text-xs font-semibold uppercase tracking-wider">{s.label}</span>
                 </div>
               ))}
             </div>

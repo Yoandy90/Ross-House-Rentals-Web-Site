@@ -1,0 +1,41 @@
+{
+  "summary": "Backend-only verification of Xcel Green Button Connect refactor (4 critical fixes from GBC Vendor Startup Guide). Created /app/ross-house-backend/tests/test_xcel_greenbutton_fixes.py with 9 pytest cases — ALL PASS. Verified: (1) module imports cleanly, (2) router exposes exactly 19 routes including new GET /admin/xcel/read-service-status, (3) _get_client_credentials_token uses BasicAuth + grant_type=client_credentials + scope=FB=34_35 and CACHES on second call (only 1 httpx instance created), (4) xcel_sync_connection POSTs (not GETs) to /Batch/Subscription/{sub_id} and treats HTTP 202 as success returning mode='asynchronous' + Location header, (5) parse_espi_feed + _ingest_espi_xml correctly parse IntervalReadings (Wh→kWh) and UsageSummary (cost/100000) and persist to xcel_usage_daily + xcel_usage_summaries (verified upsert calls + last_sync update on xcel_connections), (6) xcel_notify extracts <resources> URL from Atom XML, obtains client_credentials token, downloads with Bearer auth, resolves property_id via subscription_id lookup, and ingests via _ingest_espi_xml. Frontend regression check: Expo web at localhost:3000 still bundles and renders the Ross House Rentals welcome screen on mobile viewport (390x844) — no red screen, no console errors (only deprecation warnings unrelated to this change). NOTE: legacy /app/backend/server.py is broken (KeyError: MONGO_URL) but per main-agent instructions that is unrelated and must NOT be started.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [],
+    "react_native_issues": [
+      {"component": "expo (mismatched versions)", "issue": "Expo doctor warns about version drift: expo@54.0.34 vs ~54.0.35, expo-router@6.0.23 vs ~6.0.24, react-native-svg@15.15.5 vs 15.12.1, react-native-worklets@0.5.2 vs 0.5.1, expo-device, expo-document-picker, expo-file-system, expo-font, expo-image-picker, expo-local-authentication, expo-secure-store, expo-updates. Run `npx expo install --check` to align. Pre-existing — not introduced by this change."},
+      {"component": "RN deprecated style props", "issue": "Console warns 'shadow*' and 'textShadow*' style props are deprecated (use boxShadow / textShadow). Also props.pointerEvents deprecated (use style.pointerEvents). Pre-existing — not part of the Xcel refactor."}
+    ]
+  },
+  "test_report_links": [
+    "/app/ross-house-backend/tests/test_xcel_greenbutton_fixes.py",
+    "/app/test_reports/pytest/iter8_xcel_greenbutton.xml"
+  ],
+  "action_items": [
+    "(Optional) Align Expo SDK package versions via `npx expo install --check` — unrelated to Xcel refactor but flagged by expo-doctor.",
+    "When real Xcel credentials arrive, run an end-to-end test against sandbox: call GET /api/admin/xcel/read-service-status (expect 200 from Xcel), then POST /api/admin/xcel/connections/{id}/sync (expect 202 + Location), then simulate Xcel POSTing the BatchList XML to /api/greenbutton/notify and verify xcel_usage_daily fills up.",
+    "Consider persisting the _CLIENT_TOKEN_CACHE to Mongo so it survives backend restarts on Railway (currently in-process only — fine for now, but multiple workers will each fetch their own token)."
+  ],
+  "critical_code_review_comments": [
+    "All 4 GBC spec fixes correctly implemented and match the Vendor Startup Guide: POST async Batch, Notification webhook ingests <resources>, client_credentials with scope=FB=34_35, new ReadServiceStatus admin endpoint.",
+    "_get_client_credentials_token cache is in-process-only — acceptable, just be aware on multi-worker deployments.",
+    "Notification handler gracefully degrades: if XML parse fails, falls back to regex sweep for Batch URLs. Good defensive coding.",
+    "_ingest_espi_xml is correctly shared between sync_connection (inline 200 path) and the notify webhook — DRY upheld.",
+    "xcel_energy_router.py is 1421 lines — exceeds the 700-line guideline. Consider splitting into modules: oauth.py, ingest.py, demo.py, llm_tips.py. Not blocking."
+  ],
+  "updated_files": [
+    "/app/ross-house-backend/tests/test_xcel_greenbutton_fixes.py (NEW — 9 pytest cases, all pass)"
+  ],
+  "success_rate": {"backend": "100% (9/9 unit tests pass)", "frontend": "100% (regression — Expo web bundles + renders welcome screen)"},
+  "seed_data_creation": "None — all tests use mocked DB (FakeDB) and mocked httpx.AsyncClient. No real Mongo or Xcel calls.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Reuse /app/ross-house-backend/tests/test_xcel_greenbutton_fixes.py as a regression suite for any future Xcel Green Button changes. The FakeDB + _FakeAsyncClient pattern is generic and can be extended for the remaining endpoints (oauth callback, refresh token, tenant_xcel_usage, saving_tips). The legacy /app/backend is broken (MONGO_URL missing) — do not try to start it; the real backend lives at /app/ross-house-backend and is deployed to Railway, not run locally in this sandbox.",
+  "rca_of_issue": "N/A — this iteration verifies fixes already applied by main agent. All 4 critical GBC compliance bugs have been correctly addressed: (a) Batch now POST + 202=success, (b) notification webhook now parses <resources> and downloads the XML, (c) client_credentials flow added with FB=34_35 scope and in-memory cache, (d) GET /admin/xcel/read-service-status diagnostic endpoint added."
+}

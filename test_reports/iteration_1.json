@@ -1,0 +1,40 @@
+{
+  "summary": "Backend-only testing of PUT /api/admin/rental-contracts/{contract_id} (late_fee_amount sync to pending invoices). 10/10 pytest cases PASSED. Verified: (1) late_fee_amount persisted; (2) legacy alias `late_fee` correctly mapped to late_fee_amount; (3) on late_fee change, pending rental_payments with late_fee>0 are recalculated (late_fee + total_due updated, late_fee_synced_from_contract=true) and response.synced_pending_invoices reflects count; (4) pending invoices with late_fee==0 are NOT touched; (5) when late_fee_amount is unchanged, no sync runs; (6) other editable fields (rent_amount, payment_due_day, late_fee_grace_days) still persist; (7) 404 returned for unknown contract_id. Note: the supervisor-managed backend at port 8001 is the ross-tax-api (/app/backend), NOT ross-house-backend — I started /app/ross-house-backend on port 8011 (uvicorn) to run the tests against the actual contracts_router.py code.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "PUT /api/admin/rental-contracts/{contract_id}", "issue": "When late_fee sync writes to an invoice, total_paid logic uses old total_due to decide if 'fully paid' (line 703). For a pending invoice this is irrelevant (status='pending'), but if the same code path is ever reused for partially-paid invoices it may set total_paid=new_total even though tenant hasn't actually paid the new fee — review if business logic ever extends this sync to partially-paid invoices."},
+      {"endpoint": "PUT /api/admin/rental-contracts/{contract_id}", "issue": "old_late_fee read from contract.get('late_fee_amount') but legacy contracts may store the value under 'late_fee'. Two existing docs in DB could have late_fee stored only as 'late_fee'; consider falling back: float(contract.get('late_fee_amount') or contract.get('late_fee') or 0)."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [],
+    "react_native_issues": []
+  },
+  "test_report_links": [
+    "/app/ross-house-backend/tests/test_rental_contract_late_fee_sync.py",
+    "/app/test_reports/pytest/pytest_results.xml"
+  ],
+  "action_items": [
+    "(optional) Add fallback `contract.get('late_fee_amount') or contract.get('late_fee') or 0` when computing old_late_fee, to correctly detect changes on legacy contracts that only have the `late_fee` field.",
+    "(optional) Reconsider the total_paid recalculation in the sync block (line 703) — it currently assumes fully-paid if total_paid >= old total_due; for status='pending' invoices this is fine, but if filter ever broadens this could overstate payments."
+  ],
+  "critical_code_review_comments": [
+    "PUT endpoint correctly performs sync only when |new - old| > 0.001 (good guard against float jitter).",
+    "Sync filter `status='pending' AND late_fee > 0` correctly excludes not-yet-late invoices — matches expected behavior.",
+    "Response now exposes `synced_pending_invoices` count and an updated success message — good for admin UX.",
+    "Error handling: sync block wrapped in try/except so a sync failure does NOT roll back the contract update (logs and continues).",
+    "File size: contracts_router.py is 2532 lines — should be split into smaller modules (e.g., addendums, checklist, signatures, recurring) in a follow-up refactor."
+  ],
+  "updated_files": [
+    "/app/ross-house-backend/tests/test_rental_contract_late_fee_sync.py (new test file, 10 tests)"
+  ],
+  "success_rate": {"backend": "100%", "frontend": "N/A (not requested)"},
+  "seed_data_creation": "Tests insert one TEST contract per test (with _test_marker='test_rental_contract_late_fee_sync') plus 1-2 pending rental_payments. All are deleted in pytest fixture teardown. Verified 0 residual docs in Mongo after the run.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "ross-house-backend is NOT run by supervisor. To test it locally: `cd /app/ross-house-backend && nohup /root/.venv/bin/uvicorn server:app --host 0.0.0.0 --port 8011 > /tmp/rh_backend.log 2>&1 &` then use http://localhost:8011. Mongo creds in /app/ross-house-backend/.env. Admin login: yoandyross@gmail.com / admin123 via POST /api/public/marketplace-login.",
+  "rca_of_issue": "Original bug: changing contract.late_fee_amount didn't update existing pending invoices. Fix in /app/ross-house-backend/rental/contracts_router.py lines 685-717 — after the contract update, iterate rental_payments where status='pending' AND late_fee>0 and write {late_fee: new, total_due: amount+new, late_fee_synced_from_contract: true}. Response includes synced_pending_invoices count. Verified end-to-end via 10 pytest cases that the fix works as designed: latest-applied late fees on pending invoices now match the contract; invoices not yet flagged late (late_fee=0) are intentionally left for the cron to handle."
+}

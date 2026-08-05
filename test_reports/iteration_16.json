@@ -1,0 +1,37 @@
+{
+  "summary": "Backend-only verification against Railway (https://ross-house-backend-production.up.railway.app) of NEW ZIP-based prioritization in /api/admin/service-providers/match-for-maintenance/{id} plus full regression. All 60/60 tests passed: 18/18 tenant_waitlist, 23/23 service_providers, 19/19 maintenance_dispatch (16 prior + 3 new ZIP tests). NEW Test 1 (A[79029] > C[no-area] > B[79045] for property in 79029): PASS — property_zip extracted as '79029' and providers sorted in correct order with matches_zip values True/None/False respectively. NEW Test 2 (address without ZIP): PASS — property_zip=null, providers still returned, sort works without error, matches_zip is None for all. NEW Test 3 (matches_zip presence): PASS — field present on every provider with value in {True, False, None}. No regressions introduced by the additive property_zip field or matches_zip field. Local supervisor backend remains broken on MONGO_URL KeyError (pre-existing, ignored per task).",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [],
+    "react_native_issues": []
+  },
+  "test_report_links": [
+    "/app/ross-house-backend/tests/test_maintenance_dispatch.py",
+    "/app/test_reports/pytest/iter16_regression.xml",
+    "/app/test_reports/pytest/iter16_zip_tests.xml",
+    "/app/test_reports/pytest/iter16_full.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "service_providers_router.py:649-655 — matches_zip is set to None both when provider has no service_areas (serves everywhere, correct) AND when prop_zip is null but provider does have areas (line 655). This conflates two semantically different cases; consider using False for the latter to keep null reserved for 'no area filter / serves all'. Current tests accept both None and False for the no-zip case.",
+    "service_providers_router.py:621 — regex \\b\\d{5}\\b will match any 5-digit substring (e.g. street number '12345 Main St' or unit '#79029'). Consider anchoring to ', TX 79029' or end-of-string patterns for stricter US-ZIP extraction. Low risk today; document the assumption.",
+    "service_providers_router.py:646 — initial Mongo sort is (is_featured DESC, rating DESC) but is then overridden by Python in-memory zip sort. Within each zip-tier the featured/rating order is preserved (Python sort is stable), so behavior is correct — worth a code comment to make intent explicit for future maintainers."
+  ],
+  "updated_files": [
+    "/app/ross-house-backend/tests/test_maintenance_dispatch.py (APPENDED — TestZipBasedPrioritization with 3 new cases + zip_providers fixture; +151 lines)"
+  ],
+  "success_rate": {
+    "backend": "100% (60/60)",
+    "frontend": "N/A (skipped per request)"
+  },
+  "seed_data_creation": "Three plumber providers (A=79029, B=79045, C=no-area) created via POST /api/public/service-providers and activated via PATCH /api/admin/service-providers/{id}. service_areas patched directly via Mongo Atlas to guarantee the exact values (public endpoint may not accept that field). Maintenance requests seeded with TEST_marker=true and string UUID _id. All seed data cleaned up via class-scoped fixtures and per-test finally blocks.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "ZIP-prioritization is fully covered by /app/ross-house-backend/tests/test_maintenance_dispatch.py::TestZipBasedPrioritization. property_zip is nested inside the maintenance_request envelope (not top-level). matches_zip semantics on the wire: True = provider lists this exact ZIP; False = provider has areas but this ZIP is not among them; None = provider has no area filter OR prop_zip is null. Sort key: True (0) < None (1) < False (2), stable, preserving featured/rating order within each tier. To extend, patch service_providers.service_areas directly via Mongo since the public registration POST does not surface that field.",
+  "rca_of_issue": "N/A — feature works as specified; no bugs found."
+}

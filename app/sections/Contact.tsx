@@ -15,7 +15,7 @@ export default function Contact() {
         <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="text-center mb-16">
           <span className="text-primary font-semibold text-sm uppercase tracking-widest">{t.contact.badge}</span>
           <h2 className="font-display text-4xl md:text-5xl font-bold mt-3 mb-4">{t.contact.title}</h2>
-          <p className="text-gray-400 text-lg max-w-2xl mx-auto">{t.contact.subtitle}</p>
+          <p className="text-slate-200 text-lg max-w-2xl mx-auto">{t.contact.subtitle}</p>
         </motion.div>
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
           {[
@@ -27,9 +27,9 @@ export default function Contact() {
             <motion.div key={i} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.1 }}
               className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-6 text-center hover:bg-white/10 transition-all">
               <item.icon className="w-6 h-6 text-primary mx-auto mb-3" />
-              <p className="text-xs text-gray-400 uppercase tracking-wider mb-1">{item.label}</p>
+              <p className="text-xs text-slate-200 uppercase tracking-wider mb-1">{item.label}</p>
               {item.href ? (
-                <a href={item.href} className="text-white font-medium hover:text-primary transition-colors text-sm" target={item.href.startsWith('http') ? '_blank' : undefined}>{item.value}</a>
+                <a href={item.href} className="text-white font-medium hover:text-primary transition-colors text-sm" target={item.href.startsWith('http') ? '_blank' : undefined} rel={item.href.startsWith('http') ? 'noreferrer' : undefined}>{item.value}</a>
               ) : (
                 <p className="text-white font-medium text-sm">{item.value}</p>
               )}
@@ -41,7 +41,7 @@ export default function Contact() {
             <a href="tel:+18069342018" className="bg-primary hover:bg-primary-dark text-white px-8 py-4 rounded-2xl font-bold text-lg transition-all shadow-xl flex items-center justify-center gap-3">
               <Phone className="w-5 h-5" /> {t.contact.cta}
             </a>
-            <a href="https://wa.me/18069342018" target="_blank" className="bg-green-600 hover:bg-green-700 text-white px-8 py-4 rounded-2xl font-bold text-lg transition-all shadow-xl flex items-center justify-center gap-3">
+            <a href="https://wa.me/18069342018" target="_blank" rel="noreferrer" className="bg-green-600 hover:bg-green-700 text-white px-8 py-4 rounded-2xl font-bold text-lg transition-all shadow-xl flex items-center justify-center gap-3">
               {t.contact.whatsapp}
             </a>
           </div>

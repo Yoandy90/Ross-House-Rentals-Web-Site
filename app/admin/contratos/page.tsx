@@ -6,8 +6,8 @@ import { useAdminAuth } from '../layout';
 import {
   FileText, Plus, Search, Calendar, DollarSign, Home, Users,
   Edit3, Trash2, CheckCircle2, Clock, AlertTriangle, X, Save,
-  RefreshCw, Download, ChevronDown, ChevronUp, FileSignature,
-  Mail, Send, Eye, Printer, Building, User, Phone, CreditCard,
+  RefreshCw, Download, ChevronDown, ChevronUp, FileSignature, Mail,
+  Send, Eye, Printer, Building, User, Phone, CreditCard,
   PenTool, Tablet, RotateCcw,
 } from 'lucide-react';
 
@@ -108,6 +108,23 @@ export default function ContratosPage() {
   const downloadPdf = async (id: string) => {
     const res = await fetch(`/api/admin/rental-contracts/${id}/pdf`, { headers: headers() });
     if (res.ok) { const data = await res.json(); if (data.pdf_base64) { const link = document.createElement('a'); link.href = `data:application/pdf;base64,${data.pdf_base64}`; link.download = `contrato_${id}.pdf`; link.click(); }}
+  };
+
+  const emailPdf = async (id: string, tenantName: string) => {
+    if (!confirm(`¿Enviar el PDF del contrato por email a ${tenantName} y a tu cuenta de administración?`)) return;
+    try {
+      const res = await fetch(`/api/admin/rental-contracts/${id}/email-pdf`, {
+        method: 'POST', headers: headers(),
+      });
+      if (res.ok) {
+        alert('✅ Email enviado (revisa también tu bandeja de spam)');
+      } else {
+        const e = await res.json().catch(() => ({}));
+        alert(`❌ ${e.detail || 'Error enviando email'}`);
+      }
+    } catch (e: any) {
+      alert(`❌ ${e.message || 'Error de red'}`);
+    }
   };
 
   const [sendingEmail, setSendingEmail] = useState<string | null>(null);
@@ -320,6 +337,7 @@ export default function ContratosPage() {
                     </div>
                     <div className="flex flex-wrap gap-2">
                       <button onClick={() => downloadPdf(c._id)} className="flex items-center gap-1.5 text-xs px-3 py-1.5 bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded-lg hover:bg-blue-500/20 transition"><Download className="w-3 h-3" /> PDF</button>
+                      <button onClick={() => emailPdf(c._id, c.tenant_name || 'inquilino')} className="flex items-center gap-1.5 text-xs px-3 py-1.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-lg hover:bg-emerald-500/20 transition"><Mail className="w-3 h-3" /> Email PDF</button>
                       <button 
                         onClick={() => sendContractEmail(c._id, getTenantEmail(c.tenant_id))} 
                         disabled={sendingEmail === c._id}

@@ -1,0 +1,49 @@
+{
+  "summary": "READ-ONLY end-to-end verification against Railway PROD backend + Expo web preview at localhost:3000 (mobile viewport 390x844). Verified BUG FIX 1 (admin-contract-detail.tsx now reads token from secure storage via getToken()): admin login (yoandyross@gmail.com / admin123 via /api/public/marketplace-login, no 2FA) → token persisted → navigated to /admin-contract-detail?id=6a719b7e34f736a274cddac4 → screen fully loaded contract data for '121 Oak ave' (tenant Yandisleydis Ross Sanchez, $1,100 rent, $0 deposit, $50 late fee, 2026-08-01→2027-07-31, status Pendiente) with NO 'No hay token de autenticación' error, NO infinite spinner, 0 console errors, 0 pageerrors. /admin-contracts list also renders the same contract. Verified BUG FIX 2 (GET /api/signatures/pending) via direct curl to Railway with tenant Bearer token → HTTP 200, returns 1 pending doc {id: 6a719b7e34f736a274cddac4, title: 'Contrato - 121 Oak ave', pending_count: 1}. Verified tenant regression: logged in as yosbelgarrido26@gmail.com / sRUUSvEB4O in Expo web → home tab renders (shows 'Sin contrato activo' banner because contract is pending_signatures not active — expected business logic), /contracts renders the '121 Oak ave' contract with 'Pendiente firmas' badge, /signing-center renders 'Contrato - 121 Oak ave' as 1 pendiente / 0 completado. Verified React.memo refactor regression: /(tabs)/properties renders both listings (812 NE 2nd + 121 Oak ave) cleanly — no syntax/runtime break from the arrow→named-function-expression conversion. SignaturePad import on admin-contract-detail resolves cleanly (screen mounted without error; modal not opened to avoid mutating prod). NO mutating actions performed on Railway production.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [],
+    "react_native_issues": [
+      {
+        "component": "Web-only style warnings (react-native-web)",
+        "issue": "Pre-existing benign warnings surfaced in web preview only: '\"shadow*\" style props are deprecated. Use \"boxShadow\"' and 'props.pointerEvents is deprecated. Use style.pointerEvents'. Already tracked since iteration_9/iteration_21 — not caused by the two bug fixes under test. Non-blocking."
+      },
+      {
+        "component": "Expo package version drift",
+        "issue": "Expo doctor reports several packages out of expected range for expo@54.0.34 (expo-updates 29.0.17 vs 29.0.19, react-native-svg 15.15.5 vs 15.12.1, react-native-worklets 0.5.2 vs 0.5.1, @react-native-async-storage/async-storage 3.0.2 vs 2.2.0, expo-file-system 19.0.22 vs 19.0.23, expo-router 6.0.23 vs 6.0.24, expo-secure-store 55.0.13 vs 15.0.8, expo-image-picker 55.0.20 vs 17.0.11, and others). Non-blocking — app boots and both critical flows work. Reference: /var/log/supervisor/expo.err.log."
+      }
+    ]
+  },
+  "test_report_links": [
+    "/tmp/after_login.png",
+    "/tmp/admin_contract_detail.png",
+    "/tmp/admin_contracts_list.png",
+    "/tmp/tenant_home.png",
+    "/tmp/tenant_contracts.png",
+    "/tmp/properties_tab.png"
+  ],
+  "action_items": [
+    "None blocking. (Optional) Address pre-existing shadow* / pointerEvents / transform-origin RN-Web deprecation warnings from iteration_21.",
+    "(Optional) Sync Expo-managed package versions to the ranges expected by expo@54.0.34 to silence expo-doctor warnings."
+  ],
+  "critical_code_review_comments": [
+    "BUG FIX 1 implementation in /app/rosslending-app/app/admin-contract-detail.tsx is correct: token is initialized as `undefined` (tri-state), getToken() is awaited in a mount effect, and fetchContract guards against `token === undefined` before rendering the 'No hay token' error — this eliminates the previous race where AuthContext.user was set but the local token state was still null.",
+    "One minor inconsistency: line 481 references `contract.late_fee_amount ?? contract.late_fee` but the Contract interface (lines 68-91) only declares `late_fee: number`. Works because it's a runtime `??` on an untyped extra field, but consider updating the interface to include `late_fee_amount?: number` for TS correctness.",
+    "AuthContext.tsx does not export the token itself — consuming screens must call getToken() directly. This is fine, but consider adding `token` to the context to avoid duplicating the useEffect+getToken() pattern in every authenticated screen."
+  ],
+  "updated_files": [],
+  "success_rate": {
+    "backend": "100% (3/3 endpoints verified: admin marketplace-login 200, admin GET /api/admin/rental-contracts/{id} 200, tenant GET /api/signatures/pending 200 with 1 pending)",
+    "frontend": "100% (admin-contract-detail loads, admin-contracts list loads, tenant home/contracts/signing-center render, properties tab renders — 0 pageerrors, 0 red screens)"
+  },
+  "seed_data_creation": "None. Strictly read-only session against Railway production — no signing, no payments, no mutations.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Expo web preview is at http://localhost:3000 (mobile viewport 390x844). Backend is Railway PROD (https://ross-house-backend-production.up.railway.app) — READ-ONLY, do not mutate. Admin mobile login (no 2FA): yoandyross@gmail.com / admin123 via /api/public/marketplace-login. Tenant login: yosbelgarrido26@gmail.com / sRUUSvEB4O. Known pending contract id: 6a719b7e34f736a274cddac4 (121 Oak ave, tenant Yandisleydis Ross Sanchez, $1,100/mo, status pending_signatures). Direct URL shortcuts: /admin-contract-detail?id={id}, /admin-contracts, /(tabs)/properties, /contracts (tenant), /signing-center (tenant). Login flow: onboarding → 'Omitir' → 'Iniciar con Email' → fill placeholder='Email' + input[type=password] → 'Iniciar Sesión'. Token stored at localStorage['ross_rental_token'] on web. Pre-existing benign console noise: shadow*/pointerEvents deprecation warnings + occasional 400/404 asset probes — ignore.",
+  "rca_of_issue": "N/A — verification pass. Both fixes work end-to-end: (1) admin-contract-detail now correctly waits for the token from SecureStore/localStorage before fetching, so the screen loads instead of erroring with 'No hay token de autenticación'; (2) GET /api/signatures/pending returns 200 for the tenant with the 121 Oak ave contract."
+}

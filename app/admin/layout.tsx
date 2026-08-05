@@ -3,11 +3,16 @@
 import React, { useState, useEffect, createContext, useContext } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import Cookies from 'js-cookie';
+import AdminLoginScreen from '../components/admin/AdminLoginScreen';
+import { AppSidebarWidget } from '../components/AppPromoBanner';
+import ThemeToggle from '../components/ThemeToggle';
 import {
   LayoutDashboard, Home, Users, FileText, CreditCard, Wrench, CalendarDays,
   Settings, LogOut, ChevronLeft, ChevronRight, Menu, X,
   DollarSign, Building2, TrendingUp, Briefcase, Store, UserCog,
-  FileBarChart, MessageSquare, ClipboardCheck,
+  FileBarChart, MessageSquare, ClipboardCheck, Zap, ShieldAlert, ScanLine,
+  Wallet, Repeat, Vault, ClipboardList, Heart, Brain, Globe, Smartphone, Share2, Mail,
+  Search, ChevronDown,
 } from 'lucide-react';
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -18,13 +23,16 @@ interface AdminAuthContextType {
   token: string;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<{ ok: boolean; error?: string }>;
+  loginWithToken: (token: string, user: any) => void;
   logout: () => void;
   headers: () => Record<string, string>;
 }
 
 const AdminAuthContext = createContext<AdminAuthContextType>({
   user: null, token: '', isLoading: true,
-  login: async () => ({ ok: false }), logout: () => {},
+  login: async () => ({ ok: false }),
+  loginWithToken: () => {},
+  logout: () => {},
   headers: () => ({}),
 });
 
@@ -38,23 +46,38 @@ const NAV_GROUPS = [
     label: null,
     items: [
       { href: '/admin', Icon: LayoutDashboard, label: 'Dashboard', desc: 'Vista general', color: 'blue' },
+      { href: '/admin/ai-brain', Icon: Brain, label: 'AI Brain', desc: 'Tu copiloto inteligente ⭐', color: 'violet' },
+      { href: '/admin/ai-brain/insights', Icon: Brain, label: 'Business Insights', desc: 'Análisis IA', color: 'fuchsia' },
+      { href: '/admin/lease-renewals', Icon: Repeat, label: 'Renovaciones', desc: 'IA · propuestas leases', color: 'amber' },
+      { href: '/admin/analytics', Icon: Globe, label: 'Visitantes', desc: 'Tráfico en vivo + Geo 🔴', color: 'emerald' },
+      { href: '/admin/app-adoption', Icon: Smartphone, label: 'App Adoption', desc: '¿Quién descargó la app? 📱', color: 'indigo' },
     ],
   },
   {
     label: 'PROPIEDADES',
     items: [
       { href: '/admin/propiedades', Icon: Home, label: 'Propiedades', desc: 'Inventario', color: 'cyan' },
+      { href: '/admin/aplicaciones', Icon: ClipboardList, label: 'Aplicaciones', desc: 'Prospectos web', color: 'blue' },
+      { href: '/admin/interesados', Icon: Heart, label: 'Lista de Espera', desc: 'Inquilinos interesados', color: 'pink' },
+      { href: '/admin/pm-waitlist', Icon: Building2, label: 'PM Waitlist', desc: 'Propietarios interesados 🚧', color: 'indigo' },
+      { href: '/admin/proveedores', Icon: Wrench, label: 'Proveedores', desc: 'Plomeros, electricistas...', color: 'amber' },
       { href: '/admin/inquilinos', Icon: Users, label: 'Inquilinos', desc: 'Base de datos', color: 'violet' },
       { href: '/admin/contratos', Icon: FileText, label: 'Contratos', desc: 'Alquileres', color: 'emerald' },
       { href: '/admin/marketplace', Icon: Store, label: 'Marketplace', desc: 'Listados & Consultas', color: 'cyan' },
       { href: '/admin/mantenimiento', Icon: Wrench, label: 'Mantenimiento', desc: 'Solicitudes', color: 'amber' },
       { href: '/admin/inspecciones', Icon: ClipboardCheck, label: 'Inspecciones', desc: 'Move-in/Move-out', color: 'lime' },
+      { href: '/admin/energia', Icon: Zap, label: 'Energía', desc: 'Consumo Xcel', color: 'yellow' },
+      { href: '/admin/facturas-ocr', Icon: ScanLine, label: 'Facturas OCR', desc: 'Water/Gas con IA', color: 'cyan' },
+      { href: '/admin/alineacion-utilities', Icon: ShieldAlert, label: 'Alineación', desc: 'Título ↔ Servicios', color: 'rose' },
     ],
   },
   {
     label: 'FINANZAS',
     items: [
       { href: '/admin/pagos', Icon: CreditCard, label: 'Pagos', desc: 'Cobros & Rentas', color: 'amber' },
+      { href: '/admin/metodos-pago', Icon: Wallet, label: 'Métodos Pago', desc: 'Stripe, Zelle, etc.', color: 'green' },
+      { href: '/admin/autopagos', Icon: Repeat, label: 'Autopagos', desc: 'Cobros automáticos', color: 'red' },
+      { href: '/admin/baul', Icon: Vault, label: 'Baúl Seguro', desc: 'Tarjetas + Bancos PIN', color: 'amber' },
       { href: '/admin/gastos', Icon: DollarSign, label: 'Gastos', desc: 'Mantenimiento', color: 'red' },
       { href: '/admin/rendimiento', Icon: TrendingUp, label: 'Rendimiento', desc: 'ROI & Analytics', color: 'indigo' },
       { href: '/admin/inversiones', Icon: Briefcase, label: 'Inversiones', desc: 'Comprar/Reparar/Vender', color: 'orange' },
@@ -64,9 +87,25 @@ const NAV_GROUPS = [
     ],
   },
   {
+    label: 'SYNDICATION',
+    items: [
+      { href: '/admin/syndication', Icon: Briefcase, label: 'Deals', desc: 'Capital raise & LP cap table', color: 'emerald' },
+      { href: '/admin/inversionistas', Icon: Users, label: 'Inversionistas', desc: 'Portafolio LPs cross-deal', color: 'violet' },
+    ],
+  },
+  {
+    label: 'MARKETING',
+    items: [
+      { href: '/admin/marketing', Icon: Mail, label: 'Newsletter', desc: 'Suscriptores & campañas 📬', color: 'pink' },
+      { href: '/admin/marketing/social-poster', Icon: Share2, label: 'Social Poster', desc: 'AI · FB groups · leads 📣', color: 'blue' },
+    ],
+  },
+  {
     label: 'SISTEMA',
     items: [
       { href: '/admin/mensajes', Icon: MessageSquare, label: 'Mensajes', desc: 'SMS & Email', color: 'pink' },
+      { href: '/admin/buzon', Icon: Mail, label: 'Buzón Email', desc: 'Recibir & enviar correos 📬', color: 'pink' },
+      { href: '/admin/seguridad', Icon: ShieldAlert, label: 'Seguridad', desc: '2FA & Dispositivos', color: 'green' },
       { href: '/admin/configuracion', Icon: Settings, label: 'Configuración', desc: 'Ajustes', color: 'slate' },
     ],
   },
@@ -89,6 +128,10 @@ const COLOR_MAP: Record<string, { bg: string; text: string; border: string; glow
   sky:     { bg: 'bg-sky-500/10', text: 'text-sky-400', border: 'border-sky-500/30', glow: 'shadow-[0_0_12px_rgba(14,165,233,0.15)]', icon: 'bg-gradient-to-br from-sky-500/30 to-sky-600/20', gradient: 'from-sky-400 to-sky-500' },
   pink:    { bg: 'bg-pink-500/10', text: 'text-pink-400', border: 'border-pink-500/30', glow: 'shadow-[0_0_12px_rgba(236,72,153,0.15)]', icon: 'bg-gradient-to-br from-pink-500/30 to-pink-600/20', gradient: 'from-pink-400 to-pink-500' },
   lime:    { bg: 'bg-lime-500/10', text: 'text-lime-400', border: 'border-lime-500/30', glow: 'shadow-[0_0_12px_rgba(132,204,22,0.15)]', icon: 'bg-gradient-to-br from-lime-500/30 to-lime-600/20', gradient: 'from-lime-400 to-lime-500' },
+  rose:    { bg: 'bg-rose-500/10', text: 'text-rose-400', border: 'border-rose-500/30', glow: 'shadow-[0_0_12px_rgba(244,63,94,0.15)]', icon: 'bg-gradient-to-br from-rose-500/30 to-rose-600/20', gradient: 'from-rose-400 to-rose-500' },
+  yellow:  { bg: 'bg-yellow-500/10', text: 'text-yellow-400', border: 'border-yellow-500/30', glow: 'shadow-[0_0_12px_rgba(234,179,8,0.15)]', icon: 'bg-gradient-to-br from-yellow-500/30 to-yellow-600/20', gradient: 'from-yellow-400 to-yellow-500' },
+  fuchsia: { bg: 'bg-fuchsia-500/10', text: 'text-fuchsia-400', border: 'border-fuchsia-500/30', glow: 'shadow-[0_0_12px_rgba(217,70,239,0.15)]', icon: 'bg-gradient-to-br from-fuchsia-500/30 to-fuchsia-600/20', gradient: 'from-fuchsia-400 to-fuchsia-500' },
+  green:   { bg: 'bg-green-500/10', text: 'text-green-400', border: 'border-green-500/30', glow: 'shadow-[0_0_12px_rgba(34,197,94,0.15)]', icon: 'bg-gradient-to-br from-green-500/30 to-green-600/20', gradient: 'from-green-400 to-green-500' },
 };
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -100,8 +143,27 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [isLoading, setIsLoading] = useState(true);
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [navQuery, setNavQuery] = useState('');
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
   const pathname = usePathname();
   const router = useRouter();
+
+  // Restore open groups from localStorage + always open the active route's group
+  useEffect(() => {
+    let saved: Record<string, boolean> = {};
+    try { saved = JSON.parse(localStorage.getItem('rhr_nav_groups') || '{}'); } catch { /* noop */ }
+    const activeGroup = NAV_GROUPS.find(g => g.items.some(i => i.href === pathname))?.label;
+    if (activeGroup) saved[activeGroup] = true;
+    setOpenGroups(saved);
+  }, [pathname]);
+
+  const toggleGroup = (label: string) => {
+    setOpenGroups(prev => {
+      const next = { ...prev, [label]: !prev[label] };
+      try { localStorage.setItem('rhr_nav_groups', JSON.stringify(next)); } catch { /* noop */ }
+      return next;
+    });
+  };
 
   useEffect(() => {
     const saved = Cookies.get('rhr_admin_token');
@@ -142,13 +204,20 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     router.push('/admin');
   };
 
+  const loginWithToken = (newToken: string, newUser: any) => {
+    setToken(newToken);
+    setUser(newUser);
+    Cookies.set('rhr_admin_token', newToken, { expires: 7 });
+    Cookies.set('rhr_admin_user', JSON.stringify(newUser), { expires: 7 });
+  };
+
   const headers = () => ({ Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' });
 
   // ─── LOGIN SCREEN ──────────────────────────────────────────────────────────
   if (!isLoading && !token) {
     return (
-      <AdminAuthContext.Provider value={{ user, token, isLoading, login, logout, headers }}>
-        <LoginScreen login={login} />
+      <AdminAuthContext.Provider value={{ user, token, isLoading, login, loginWithToken, logout, headers }}>
+        <AdminLoginScreen onSuccess={loginWithToken} />
       </AdminAuthContext.Provider>
     );
   }
@@ -162,82 +231,151 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   }
 
   const activeItem = NAV_ITEMS.find(i => i.href === pathname);
-  const activeColor = activeItem ? COLOR_MAP[activeItem.color] : COLOR_MAP.blue;
+  const activeColor = activeItem ? (COLOR_MAP[activeItem.color] || COLOR_MAP.blue) : COLOR_MAP.blue;
 
   return (
-    <AdminAuthContext.Provider value={{ user, token, isLoading, login, logout, headers }}>
-      <div className="flex min-h-screen bg-[#060910]">
+    <AdminAuthContext.Provider value={{ user, token, isLoading, login, loginWithToken, logout, headers }}>
+      <div className="dark flex min-h-screen bg-[#060910]">
         {/* Mobile overlay */}
         {mobileOpen && <div className="fixed inset-0 bg-black/50 z-40 lg:hidden" onClick={() => setMobileOpen(false)} />}
 
         {/* Sidebar */}
-        <aside className={`fixed lg:relative z-50 h-screen flex flex-col bg-[#080d18]/95 backdrop-blur-xl border-r border-white/[0.06] transition-all duration-300 ${collapsed ? 'w-[72px]' : 'w-[220px]'} ${mobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
+        <aside className={`fixed lg:relative z-50 h-screen flex flex-col bg-white/95 dark:bg-[#080d18]/95 backdrop-blur-xl border-r border-slate-200 dark:border-white/[0.06] transition-all duration-300 ${collapsed ? 'w-[72px]' : 'w-[236px]'} ${mobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
           {/* Logo */}
-          <div className="flex items-center gap-3 px-4 h-16 border-b border-white/[0.06] flex-shrink-0">
+          <div className="flex items-center gap-3 px-4 h-16 border-b border-slate-200 dark:border-white/[0.06] flex-shrink-0">
             <div className="w-9 h-9 bg-gradient-to-br from-blue-500 to-blue-400 rounded-xl flex items-center justify-center shadow-[0_0_20px_rgba(59,130,246,0.3)] ring-1 ring-blue-400/20 flex-shrink-0">
               <Building2 className="w-4.5 h-4.5 text-white" />
             </div>
             {!collapsed && (
               <div className="overflow-hidden">
-                <div className="font-bold text-sm text-white tracking-wide whitespace-nowrap">ROSS HOUSE</div>
-                <div className="text-[9px] text-blue-400/70 tracking-[0.2em] font-medium">RENTALS</div>
+                <div className="font-bold text-sm text-slate-900 dark:text-white tracking-wide whitespace-nowrap">ROSS HOUSE</div>
+                <div className="text-[9px] text-blue-600 dark:text-blue-400/70 tracking-[0.2em] font-medium">RENTALS</div>
               </div>
             )}
           </div>
 
-          {/* Nav */}
-          <nav className="flex-1 overflow-y-auto py-3 px-2">
-            {NAV_GROUPS.map((group, gi) => (
-              <div key={gi} className="mb-2">
-                {group.label && !collapsed && (
-                  <div className="px-3 py-2 text-[10px] font-bold text-gray-500/80 tracking-[0.2em]">{group.label}</div>
+          {/* Buscador rápido del menú */}
+          {!collapsed && (
+            <div className="px-3 pt-3">
+              <div className="relative">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 dark:text-gray-600" />
+                <input
+                  type="text"
+                  value={navQuery}
+                  onChange={e => setNavQuery(e.target.value)}
+                  placeholder="Buscar en el menú..."
+                  className="w-full pl-8 pr-7 py-2 rounded-xl bg-slate-100 dark:bg-white/[0.04] border border-slate-200 dark:border-white/[0.06] text-xs text-slate-800 dark:text-gray-200 placeholder:text-slate-400 dark:placeholder:text-gray-600 focus:outline-none focus:border-blue-400 dark:focus:border-blue-500/50"
+                />
+                {navQuery && (
+                  <button onClick={() => setNavQuery('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 dark:text-gray-600 hover:text-slate-600">
+                    <X className="w-3.5 h-3.5" />
+                  </button>
                 )}
-                {group.label && collapsed && <div className="h-px bg-white/[0.04] mx-2 my-2" />}
-                {group.items.map(item => {
+              </div>
+            </div>
+          )}
+
+          {/* Nav */}
+          <nav className="flex-1 overflow-y-auto py-2 px-2">
+            {navQuery.trim() && !collapsed ? (
+              /* ── Resultados de búsqueda (lista plana) ── */
+              (() => {
+                const q = navQuery.trim().toLowerCase();
+                const results = NAV_ITEMS.filter(i => i.label.toLowerCase().includes(q) || i.desc.toLowerCase().includes(q));
+                if (results.length === 0) return <div className="px-3 py-4 text-xs text-slate-400 dark:text-gray-600 text-center">Sin resultados</div>;
+                return results.map(item => {
                   const isActive = pathname === item.href;
-                  const c = COLOR_MAP[item.color];
+                  const c = COLOR_MAP[item.color] || COLOR_MAP.blue;
                   return (
-                    <a key={item.href} href={item.href} onClick={() => setMobileOpen(false)}
-                      className={`flex items-center gap-3 px-3 py-2 rounded-xl mb-0.5 transition-all duration-200 group relative
-                        ${isActive ? `${c.bg} ${c.border} border ${c.glow}` : 'hover:bg-white/[0.03] border border-transparent'}`}>
-                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 transition-all
-                        ${isActive ? c.icon : 'bg-white/[0.03] group-hover:bg-white/[0.05]'}`}>
-                        <item.Icon className={`w-4 h-4 ${isActive ? c.text : 'text-gray-500 group-hover:text-gray-400'}`} />
-                      </div>
-                      {!collapsed && (
-                        <div className="overflow-hidden">
-                          <div className={`text-sm font-semibold truncate ${isActive ? c.text : 'text-gray-300 group-hover:text-white'}`}>{item.label}</div>
-                          <div className="text-[10px] text-gray-600 truncate">{item.desc}</div>
-                        </div>
-                      )}
-                      {isActive && (
-                        <div className={`absolute right-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-l-full bg-gradient-to-b ${c.gradient}`} />
-                      )}
+                    <a key={item.href} href={item.href} onClick={() => setMobileOpen(false)} title={item.desc}
+                      className={`flex items-center gap-2.5 px-3 py-2 rounded-lg mb-0.5 transition-colors
+                        ${isActive ? `${c.bg} ${c.text} border ${c.border}` : 'text-slate-600 dark:text-gray-400 hover:bg-slate-100 dark:hover:bg-white/[0.04] hover:text-slate-900 dark:hover:text-white border border-transparent'}`}>
+                      <item.Icon className={`w-4 h-4 flex-shrink-0 ${isActive ? c.text : ''}`} />
+                      <span className="text-[13px] font-medium truncate">{item.label}</span>
                     </a>
                   );
-                })}
-              </div>
-            ))}
+                });
+              })()
+            ) : (
+              NAV_GROUPS.map((group, gi) => {
+                const hasActive = group.items.some(i => i.href === pathname);
+                const isOpen = !group.label || openGroups[group.label] || false;
+                return (
+                  <div key={gi} className="mb-1">
+                    {group.label && !collapsed && (
+                      <button
+                        onClick={() => toggleGroup(group.label!)}
+                        className={`w-full flex items-center justify-between px-3 py-2 rounded-lg transition-colors group/hdr
+                          ${hasActive && !isOpen ? 'bg-slate-100 dark:bg-white/[0.03]' : 'hover:bg-slate-100 dark:hover:bg-white/[0.03]'}`}
+                      >
+                        <span className={`text-[10px] font-bold tracking-[0.18em] ${hasActive ? 'text-slate-700 dark:text-gray-300' : 'text-slate-500 dark:text-gray-500'}`}>
+                          {group.label}
+                        </span>
+                        <span className="flex items-center gap-1.5">
+                          <span className="text-[9px] px-1.5 py-px rounded-full bg-slate-200 dark:bg-white/[0.06] text-slate-500 dark:text-gray-500 font-bold">{group.items.length}</span>
+                          <ChevronDown className={`w-3.5 h-3.5 text-slate-400 dark:text-gray-600 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
+                        </span>
+                      </button>
+                    )}
+                    {group.label && collapsed && <div className="h-px bg-slate-200 dark:bg-white/[0.04] mx-2 my-2" />}
+                    {(isOpen || collapsed) && group.items.map(item => {
+                      const isActive = pathname === item.href;
+                      const c = COLOR_MAP[item.color] || COLOR_MAP.blue;
+                      return (
+                        <a key={item.href} href={item.href} onClick={() => setMobileOpen(false)} title={item.desc}
+                          className={`flex items-center gap-2.5 rounded-lg mb-0.5 transition-colors relative
+                            ${collapsed ? 'justify-center px-0 py-2.5' : 'px-3 py-2 ml-1'}
+                            ${isActive ? `${c.bg} border ${c.border} ${c.glow}` : 'hover:bg-slate-100 dark:hover:bg-white/[0.04] border border-transparent'}`}>
+                          <item.Icon className={`w-4 h-4 flex-shrink-0 ${isActive ? c.text : 'text-slate-500 dark:text-gray-500'}`} />
+                          {!collapsed && (
+                            <span className={`text-[13px] font-medium truncate ${isActive ? c.text : 'text-slate-600 dark:text-gray-400'}`}>{item.label}</span>
+                          )}
+                          {isActive && !collapsed && (
+                            <div className={`absolute right-1.5 top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-gradient-to-b ${c.gradient}`} />
+                          )}
+                        </a>
+                      );
+                    })}
+                  </div>
+                );
+              })
+            )}
           </nav>
 
+          {/* App promo widget (compartir con inquilinos vía QR) */}
+          <AppSidebarWidget collapsed={collapsed} />
+
+          {/* Theme toggle */}
+          {!collapsed && (
+            <div className="px-3 pb-2">
+              <div className="text-[9px] uppercase font-bold tracking-widest text-gray-500 mb-1.5 px-1">Tema</div>
+              <ThemeToggle variant="sidebar" />
+            </div>
+          )}
+          {collapsed && (
+            <div className="px-2 pb-2 flex justify-center">
+              <ThemeToggle variant="icon-only" />
+            </div>
+          )}
+
           {/* User bar */}
-          <div className="border-t border-white/[0.06] p-3 flex-shrink-0">
+          <div className="border-t border-slate-200 dark:border-white/[0.06] p-3 flex-shrink-0">
             {!collapsed ? (
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 bg-gradient-to-br from-blue-500/30 to-blue-600/20 rounded-full flex items-center justify-center text-blue-400 text-xs font-bold flex-shrink-0">
+                <div className="w-8 h-8 bg-gradient-to-br from-blue-500/30 to-blue-600/20 rounded-full flex items-center justify-center text-blue-600 dark:text-blue-400 text-xs font-bold flex-shrink-0">
                   {user?.name?.[0] || 'A'}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="text-xs font-medium text-gray-300 truncate">{user?.email || 'Admin'}</div>
+                  <div className="text-xs font-medium text-slate-700 dark:text-gray-300 truncate">{user?.email || 'Admin'}</div>
                 </div>
               </div>
             ) : null}
             <div className={`flex items-center ${collapsed ? 'justify-center' : 'mt-2 justify-between'}`}>
-              <button onClick={() => setCollapsed(!collapsed)} className="text-gray-500 hover:text-gray-300 p-1.5 rounded-lg hover:bg-white/[0.04] transition">
+              <button onClick={() => setCollapsed(!collapsed)} className="text-slate-500 dark:text-gray-500 hover:text-slate-900 dark:hover:text-gray-300 p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-white/[0.04] transition">
                 {collapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
               </button>
               {!collapsed && (
-                <button onClick={logout} className="flex items-center gap-1.5 text-[11px] text-gray-500 hover:text-red-400 transition p-1.5 rounded-lg hover:bg-red-500/5">
+                <button onClick={logout} className="flex items-center gap-1.5 text-[11px] text-slate-500 dark:text-gray-500 hover:text-red-500 dark:hover:text-red-400 transition p-1.5 rounded-lg hover:bg-red-500/5">
                   <LogOut className="w-3.5 h-3.5" /> Cerrar Sesión
                 </button>
               )}
@@ -248,20 +386,20 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         {/* Main content */}
         <div className={`flex-1 flex flex-col min-w-0 transition-all duration-300`}>
           {/* Top bar */}
-          <header className="h-14 flex items-center justify-between px-4 sm:px-6 border-b border-white/[0.06] bg-[#080d18]/50 backdrop-blur-md flex-shrink-0 sticky top-0 z-30">
+          <header className="h-14 flex items-center justify-between px-4 sm:px-6 border-b border-slate-200 dark:border-white/[0.06] bg-white/80 dark:bg-[#080d18]/50 backdrop-blur-md flex-shrink-0 sticky top-0 z-30">
             <div className="flex items-center gap-3">
-              <button onClick={() => setMobileOpen(true)} className="lg:hidden p-1.5 rounded-lg hover:bg-white/[0.04]">
-                <Menu className="w-5 h-5 text-gray-400" />
+              <button onClick={() => setMobileOpen(true)} className="lg:hidden p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-white/[0.04]">
+                <Menu className="w-5 h-5 text-slate-500 dark:text-gray-400" />
               </button>
-              <h1 className="text-base font-bold text-white">{activeItem?.label || 'Admin'}</h1>
-              <span className="text-[10px] text-gray-600 hidden sm:block">Ross House Rentals • Dumas TX</span>
+              <h1 className="text-base font-bold text-slate-900 dark:text-white">{activeItem?.label || 'Admin'}</h1>
+              <span className="text-[10px] text-slate-500 dark:text-gray-600 hidden sm:block">{activeItem?.desc || 'Ross House Rentals • Dumas TX'}</span>
             </div>
-            <div className="flex items-center gap-3 text-xs text-gray-500">
+            <div className="flex items-center gap-3 text-xs text-slate-500 dark:text-gray-500">
               <span className="hidden sm:block">
                 {new Date().toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}
               </span>
               <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              <span className="text-emerald-400 text-[10px] font-bold">Online</span>
+              <span className="text-emerald-600 dark:text-emerald-400 text-[10px] font-bold">Online</span>
             </div>
           </header>
 
@@ -274,56 +412,5 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// LOGIN COMPONENT
+// LOGIN COMPONENT — moved to /components/admin/AdminLoginScreen.tsx (2FA flow)
 // ═══════════════════════════════════════════════════════════════════════════════
-function LoginScreen({ login }: { login: (e: string, p: string) => Promise<{ ok: boolean; error?: string }> }) {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true); setError('');
-    const result = await login(email, password);
-    if (!result.ok) setError(result.error || 'Error');
-    setLoading(false);
-  };
-
-  return (
-    <div className="min-h-screen bg-[#060910] flex items-center justify-center p-4 relative overflow-hidden">
-      <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-blue-500/[0.04] rounded-full blur-[120px]" />
-      <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-cyan-500/[0.03] rounded-full blur-[120px]" />
-
-      <div className="w-full max-w-sm relative z-10">
-        <div className="text-center mb-8">
-          <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-blue-400 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-[0_0_30px_rgba(59,130,246,0.3)]">
-            <Building2 className="w-8 h-8 text-white" />
-          </div>
-          <h1 className="text-xl font-bold text-white">Admin Panel</h1>
-          <p className="text-sm text-gray-500">Ross House Rentals</p>
-        </div>
-
-        <form onSubmit={handleSubmit} className="bg-white/[0.03] backdrop-blur-xl rounded-2xl border border-white/[0.08] p-6">
-          {error && <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-3 mb-4 text-red-400 text-sm text-center">{error}</div>}
-          <div className="mb-4">
-            <label className="block text-xs font-bold text-gray-400 mb-2 uppercase tracking-wider">Email</label>
-            <input type="email" value={email} onChange={e => setEmail(e.target.value)}
-              className="w-full px-4 py-3 bg-[#0a1020]/60 border border-white/[0.08] rounded-xl text-white text-sm focus:border-blue-500 focus:outline-none"
-              placeholder="admin@rosshouserentals.com" required />
-          </div>
-          <div className="mb-6">
-            <label className="block text-xs font-bold text-gray-400 mb-2 uppercase tracking-wider">Contraseña</label>
-            <input type="password" value={password} onChange={e => setPassword(e.target.value)}
-              className="w-full px-4 py-3 bg-[#0a1020]/60 border border-white/[0.08] rounded-xl text-white text-sm focus:border-blue-500 focus:outline-none"
-              placeholder="••••••••" required />
-          </div>
-          <button type="submit" disabled={loading}
-            className="w-full bg-gradient-to-r from-blue-600 to-blue-500 text-white py-3 rounded-xl font-bold hover:opacity-90 transition disabled:opacity-50 shadow-[0_0_20px_rgba(59,130,246,0.3)]">
-            {loading ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin mx-auto" /> : 'Acceder'}
-          </button>
-        </form>
-      </div>
-    </div>
-  );
-}

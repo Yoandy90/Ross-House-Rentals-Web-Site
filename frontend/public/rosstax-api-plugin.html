@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RossTax API Plugin - Download & Installation</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+        
+        .content {
+            padding: 40px;
+        }
+        
+        .download-section {
+            background: #f8f9fa;
+            padding: 30px;
+            border-radius: 10px;
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        
+        .download-btn {
+            display: inline-block;
+            padding: 15px 40px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            text-decoration: none;
+            border-radius: 50px;
+            font-size: 1.2em;
+            font-weight: bold;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        
+        .download-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
+        }
+        
+        .info-box {
+            background: #e8f4f8;
+            border-left: 4px solid #3498db;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+        
+        .warning-box {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+        
+        .success-box {
+            background: #d4edda;
+            border-left: 4px solid #28a745;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+        
+        .steps {
+            counter-reset: step;
+        }
+        
+        .step {
+            position: relative;
+            padding-left: 60px;
+            margin-bottom: 30px;
+        }
+        
+        .step::before {
+            counter-increment: step;
+            content: counter(step);
+            position: absolute;
+            left: 0;
+            top: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 1.2em;
+        }
+        
+        .step h3 {
+            margin-bottom: 10px;
+            color: #667eea;
+        }
+        
+        code {
+            background: #f4f4f4;
+            padding: 2px 8px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            color: #e83e8c;
+        }
+        
+        pre {
+            background: #2d2d2d;
+            color: #f8f8f2;
+            padding: 20px;
+            border-radius: 5px;
+            overflow-x: auto;
+            margin: 15px 0;
+        }
+        
+        pre code {
+            background: none;
+            color: inherit;
+            padding: 0;
+        }
+        
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin: 30px 0;
+        }
+        
+        .feature {
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            text-align: center;
+        }
+        
+        .feature-icon {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        
+        .endpoints {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        
+        .endpoint {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            margin: 5px 0;
+            background: white;
+            border-radius: 5px;
+        }
+        
+        .method {
+            padding: 5px 10px;
+            border-radius: 3px;
+            font-weight: bold;
+            margin-right: 15px;
+            min-width: 60px;
+            text-align: center;
+        }
+        
+        .get { background: #61affe; color: white; }
+        .post { background: #49cc90; color: white; }
+        .put { background: #fca130; color: white; }
+        .delete { background: #f93e3e; color: white; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 RossTax API Plugin</h1>
+            <p>Complete API & Admin Panel for Rise CRM Integration</p>
+            <p style="font-size: 0.9em; margin-top: 10px;">Version 2.0.0 - Enterprise Edition | November 2025</p>
+        </div>
+        
+        <div class="content">
+            <div class="download-section">
+                <h2 style="margin-bottom: 20px;">Download Plugin</h2>
+                <a href="./RossTaxAPI.zip" class="download-btn" download>
+                    ⬇️ Download RossTaxAPI.zip (24 KB) - v2.0.0
+                </a>
+                <p style="margin-top: 15px; color: #666;">
+                    <strong>Enterprise Edition</strong> | Compatible with Rise CRM 3.9.0 and above
+                </p>
+                <div style="margin-top: 20px;">
+                    <a href="./install_rosstax_api.sql" class="download-btn" download style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%); font-size: 1em; padding: 10px 30px;">
+                        📄 Download SQL Installation Script
+                    </a>
+                </div>
+            </div>
+            
+            <div class="success-box">
+                <strong>✅ What's NEW in v2.0 Enterprise Edition:</strong>
+                <ul style="margin-top: 10px; margin-left: 20px;">
+                    <li><strong>🎛️ Admin Panel</strong> - Manage everything from Rise CRM interface</li>
+                    <li><strong>📊 Sync Dashboard</strong> - Real-time statistics and monitoring</li>
+                    <li><strong>🔑 Token Manager</strong> - Create and manage API tokens from UI</li>
+                    <li><strong>🔗 Webhooks</strong> - Bidirectional sync with Ross Tax app</li>
+                    <li><strong>📈 Analytics</strong> - Track sync activity and API usage</li>
+                    <li>Token-based authentication system</li>
+                    <li>Full CRUD operations for Clients, Projects, Tasks, and Tickets</li>
+                    <li>CORS support for external applications</li>
+                    <li>Activity logging and monitoring</li>
+                    <li>RESTful API design</li>
+                </ul>
+            </div>
+            
+            <h2 style="margin-top: 40px;">📦 Features</h2>
+            <div class="features">
+                <div class="feature">
+                    <div class="feature-icon">🔐</div>
+                    <h3>Secure Auth</h3>
+                    <p>JWT-style token authentication</p>
+                </div>
+                <div class="feature">
+                    <div class="feature-icon">👥</div>
+                    <h3>Client Management</h3>
+                    <p>Full CRUD for clients</p>
+                </div>
+                <div class="feature">
+                    <div class="feature-icon">📁</div>
+                    <h3>Project Tracking</h3>
+                    <p>Manage projects & tasks</p>
+                </div>
+                <div class="feature">
+                    <div class="feature-icon">🎫</div>
+                    <h3>Ticket System</h3>
+                    <p>Support ticket operations</p>
+                </div>
+            </div>
+            
+            <h2 style="margin-top: 40px;">📋 Installation Steps</h2>
+            <div class="steps">
+                <div class="step">
+                    <h3>Upload Plugin to Rise CRM</h3>
+                    <p>Go to <strong>Settings → Plugins → Install plugin</strong> and upload the downloaded ZIP file.</p>
+                </div>
+                
+                <div class="step">
+                    <h3>Activate the Plugin</h3>
+                    <p>Find "RossTax API" in the plugins list and click <strong>Activate</strong>. The plugin will automatically create the necessary database tables.</p>
+                </div>
+                
+                <div class="step">
+                    <h3>Configure API Token</h3>
+                    <p>Insert your existing API token into the database:</p>
+                    <pre><code>INSERT INTO rise_rosstax_api_tokens 
+(user_id, token, name, created_at, is_active) 
+VALUES 
+(1, 'YOUR_TOKEN_HERE', 'Ross Tax App', NOW(), 1);</code></pre>
+                    <p style="margin-top: 10px;">Replace <code>YOUR_TOKEN_HERE</code> with your Rise CRM API token.</p>
+                </div>
+                
+                <div class="step">
+                    <h3>Test the Connection</h3>
+                    <p>Verify the API is working:</p>
+                    <pre><code>curl https://admin.rosstaxpreparation.com/index.php/rosstax_api/test</code></pre>
+                </div>
+            </div>
+            
+            <div class="info-box">
+                <strong>ℹ️ Important:</strong> All API requests must include the <code>authtoken</code> header with your API token.
+            </div>
+            
+            <h2 style="margin-top: 40px;">🔌 API Endpoints</h2>
+            <div class="endpoints">
+                <h3 style="margin-bottom: 15px;">Clients</h3>
+                <div class="endpoint">
+                    <span class="method get">GET</span>
+                    <code>/index.php/rosstax_api/clients</code>
+                </div>
+                <div class="endpoint">
+                    <span class="method get">GET</span>
+                    <code>/index.php/rosstax_api/clients/{id}</code>
+                </div>
+                <div class="endpoint">
+                    <span class="method post">POST</span>
+                    <code>/index.php/rosstax_api/clients</code>
+                </div>
+                <div class="endpoint">
+                    <span class="method put">PUT</span>
+                    <code>/index.php/rosstax_api/clients/{id}</code>
+                </div>
+                <div class="endpoint">
+                    <span class="method delete">DELETE</span>
+                    <code>/index.php/rosstax_api/clients/{id}</code>
+                </div>
+                
+                <h3 style="margin: 25px 0 15px;">Projects (Appointments)</h3>
+                <div class="endpoint">
+                    <span class="method post">POST</span>
+                    <code>/index.php/rosstax_api/projects</code>
+                    <span style="margin-left: 10px; color: #666;">- Create appointment/project</span>
+                </div>
+                <div class="endpoint">
+                    <span class="method get">GET</span>
+                    <code>/index.php/rosstax_api/projects</code>
+                    <span style="margin-left: 10px; color: #666;">- List all projects</span>
+                </div>
+                
+                <h3 style="margin: 25px 0 15px;">Tasks (Documents)</h3>
+                <div class="endpoint">
+                    <span class="method post">POST</span>
+                    <code>/index.php/rosstax_api/tasks</code>
+                    <span style="margin-left: 10px; color: #666;">- Create document task</span>
+                </div>
+                <div class="endpoint">
+                    <span class="method get">GET</span>
+                    <code>/index.php/rosstax_api/tasks</code>
+                    <span style="margin-left: 10px; color: #666;">- List all tasks</span>
+                </div>
+                
+                <h3 style="margin: 25px 0 15px;">Tickets (Service Requests)</h3>
+                <div class="endpoint">
+                    <span class="method post">POST</span>
+                    <code>/index.php/rosstax_api/tickets</code>
+                    <span style="margin-left: 10px; color: #666;">- Create service request ticket</span>
+                </div>
+                <div class="endpoint">
+                    <span class="method get">GET</span>
+                    <code>/index.php/rosstax_api/tickets</code>
+                    <span style="margin-left: 10px; color: #666;">- List all tickets</span>
+                </div>
+            </div>
+            
+            <h2 style="margin-top: 40px;">💻 Example Usage</h2>
+            <p>Create a new client:</p>
+            <pre><code>curl -X POST https://admin.rosstaxpreparation.com/index.php/rosstax_api/clients \
+  -H "authtoken: YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "company_name": "John Doe",
+    "phone": "+1234567890",
+    "address": "123 Main St",
+    "city": "Austin",
+    "state": "TX",
+    "zip": "78701"
+  }'</code></pre>
+            
+            <div class="warning-box">
+                <strong>⚠️ Troubleshooting 403 Errors:</strong>
+                <p style="margin-top: 10px;">If you receive 403 Forbidden errors, this is likely a server firewall issue (not the plugin). Contact your hosting provider (SiteGround) to whitelist your IP address for API access.</p>
+            </div>
+            
+            <h2 style="margin-top: 40px;">📞 Support</h2>
+            <p>For questions or issues:</p>
+            <ul style="margin-left: 20px; margin-top: 10px;">
+                <li>Email: <a href="mailto:yoandyross@rosstaxpreparation.com">yoandyross@rosstaxpreparation.com</a></li>
+                <li>Plugin Version: 1.0.0</li>
+                <li>Last Updated: November 6, 2025</li>
+            </ul>
+            
+            <div class="success-box" style="margin-top: 30px;">
+                <strong>🎉 Ready to integrate?</strong>
+                <p style="margin-top: 10px;">Download the plugin above and follow the installation steps. Your Ross Tax app will be connected to Rise CRM in minutes!</p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

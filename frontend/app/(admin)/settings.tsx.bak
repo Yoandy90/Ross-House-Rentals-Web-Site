@@ -1,0 +1,412 @@
+import React, { useState, useEffect } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  TextInput,
+  Alert,
+  ActivityIndicator,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
+import { Colors } from '../../constants/colors';
+import api from '../../services/api';
+
+interface APIConfig {
+  // Company Information
+  company_name?: string;
+  company_phone?: string;
+  company_address?: string;
+  company_email?: string;
+  // Communication APIs
+  twilio_account_sid?: string;
+  twilio_auth_token?: string;
+  twilio_phone_number?: string;
+  sendgrid_api_key?: string;
+  sendgrid_from_email?: string;
+  sendgrid_from_name?: string;
+  // Google Calendar Integration
+  google_calendar_client_id?: string;
+  google_calendar_client_secret?: string;
+  google_calendar_email?: string;
+  // Social Login APIs
+  google_client_id?: string;
+  google_client_secret?: string;
+  facebook_app_id?: string;
+  facebook_app_secret?: string;
+  // Payment APIs
+  stripe_api_key?: string;
+  stripe_publishable_key?: string;
+  stripe_webhook_secret?: string;
+}
+
+export default function APISettings() {
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [showPasswords, setShowPasswords] = useState<{ [key: string]: boolean }>({});
+  const [config, setConfig] = useState<APIConfig>({});
+
+  useEffect(() => {
+    loadConfig();
+  }, []);
+
+  const loadConfig = async () => {
+    setLoading(true);
+    try {
+      const response = await api.get('/admin/api-config');
+      setConfig(response.data);
+    } catch (error) {
+      console.error('Error loading config:', error);
+      Alert.alert('Error', 'No se pudo cargar la configuración');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const saveConfig = async () => {
+    setSaving(true);
+    try {
+      await api.post('/admin/api-config', config);
+      Alert.alert('Éxito', 'Configuración guardada correctamente');
+      // Reload config to get masked values and updated state
+      await loadConfig();
+    } catch (error) {
+      console.error('Error saving config:', error);
+      Alert.alert('Error', 'No se pudo guardar la configuración');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const togglePasswordVisibility = (field: string) => {
+    setShowPasswords(prev => ({ ...prev, [field]: !prev[field] }));
+  };
+
+  const updateField = (field: keyof APIConfig, value: string) => {
+    setConfig(prev => ({ ...prev, [field]: value }));
+  };
+
+  const renderConfigField = (
+    label: string,
+    field: keyof APIConfig,
+    placeholder: string,
+    isSecret: boolean = false
+  ) => (
+    <View style={styles.fieldContainer}>
+      <Text style={styles.fieldLabel}>{label}</Text>
+      <View style={styles.inputWrapper}>
+        <TextInput
+          style={styles.input}
+          value={config[field] || ''}
+          onChangeText={(value) => updateField(field, value)}
+          placeholder={placeholder}
+          placeholderTextColor="#999"
+          secureTextEntry={isSecret && !showPasswords[field]}
+          autoCapitalize="none"
+          autoCorrect={false}
+        />
+        {isSecret && (
+          <TouchableOpacity
+            style={styles.eyeIcon}
+            onPress={() => togglePasswordVisibility(field)}
+          >
+            <Ionicons
+              name={showPasswords[field] ? 'eye-off-outline' : 'eye-outline'}
+              size={22}
+              color={Colors.textGray}
+            />
+          </TouchableOpacity>
+        )}
+      </View>
+    </View>
+  );
+
+  const renderSection = (title: string, icon: string, children: React.ReactNode) => (
+    <View style={styles.section}>
+      <View style={styles.sectionHeader}>
+        <Ionicons name={icon as any} size={24} color={Colors.primary} />
+        <Text style={styles.sectionTitle}>{title}</Text>
+      </View>
+      <View style={styles.sectionContent}>{children}</View>
+    </View>
+  );
+
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={Colors.primary} />
+          <Text style={styles.loadingText}>Cargando configuración...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  return (
+    <SafeAreaView style={styles.container} edges={['bottom']}>
+      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+        <View style={styles.headerInfo}>
+          <Ionicons name="settings-outline" size={48} color={Colors.primary} />
+          <Text style={styles.headerTitle}>Configuración de APIs</Text>
+          <Text style={styles.headerSubtitle}>
+            Gestiona las credenciales y claves de servicios externos
+          </Text>
+        </View>
+
+        {/* Company Information */}
+        {renderSection('Información de la Compañía', 'business-outline', (
+          <>
+            {renderConfigField('Nombre de la Compañía', 'company_name', 'Ross Tax Preparation', false)}
+            {renderConfigField('Teléfono', 'company_phone', '806-934-2018', false)}
+            {renderConfigField('Dirección', 'company_address', '305 Bruce Ave, Dumas, TX 79029', false)}
+            {renderConfigField('Email de Contacto', 'company_email', 'info@rosstaxpreparation.com', false)}
+          </>
+        ))}
+
+        {/* Twilio Configuration */}
+        {renderSection('Twilio (SMS/Llamadas)', 'call-outline', (
+          <>
+            {renderConfigField('Account SID', 'twilio_account_sid', 'ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', false)}
+            {renderConfigField('Auth Token', 'twilio_auth_token', 'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', true)}
+            {renderConfigField('Número de Teléfono', 'twilio_phone_number', '+1234567890', false)}
+          </>
+        ))}
+
+        {/* SendGrid Configuration */}
+        {renderSection('SendGrid (Email)', 'mail-outline', (
+          <>
+            {renderConfigField('API Key', 'sendgrid_api_key', 'SG.xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', true)}
+            {renderConfigField('Email Remitente', 'sendgrid_from_email', 'noreply@rosstaxprep.com', false)}
+            {renderConfigField('Nombre Remitente', 'sendgrid_from_name', 'Ross Tax Preparation', false)}
+          </>
+        ))}
+
+        {/* Google Calendar Integration */}
+        {renderSection('Google Calendar', 'calendar-outline', (
+          <>
+            {renderConfigField('Client ID', 'google_calendar_client_id', '277240667300-xxx.apps.googleusercontent.com', false)}
+            {renderConfigField('Client Secret', 'google_calendar_client_secret', 'GOCSPX-xxxxxxxxxxxxxx', true)}
+            {renderConfigField('Email del Calendario', 'google_calendar_email', 'admin@rosstax.com', false)}
+            <View style={styles.note}>
+              <Ionicons name="information-circle" size={16} color={Colors.info} />
+              <Text style={styles.noteText}>
+                Las citas confirmadas se sincronizarán automáticamente con Google Calendar.
+                Agrega este Redirect URI en Google Cloud Console:{'\n'}
+                https://banking-filter-hub.preview.emergentagent.com/api/auth/google/callback
+              </Text>
+            </View>
+          </>
+        ))}
+
+        {/* Google OAuth */}
+        {renderSection('Google OAuth', 'logo-google', (
+          <>
+            {renderConfigField('Client ID', 'google_client_id', 'xxxxxx.apps.googleusercontent.com', false)}
+            {renderConfigField('Client Secret', 'google_client_secret', 'GOCSPX-xxxxxxxxxxxxxx', true)}
+          </>
+        ))}
+
+        {/* Facebook OAuth */}
+        {renderSection('Facebook Login', 'logo-facebook', (
+          <>
+            {renderConfigField('App ID', 'facebook_app_id', '1234567890123456', false)}
+            {renderConfigField('App Secret', 'facebook_app_secret', 'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', true)}
+          </>
+        ))}
+
+        {/* Stripe Configuration */}
+        {renderSection('Stripe (Pagos)', 'card-outline', (
+          <>
+            <View style={styles.stripeModeIndicator}>
+              <Ionicons 
+                name={config.stripe_api_key?.startsWith('sk_live_') ? 'warning' : 'information-circle'} 
+                size={20} 
+                color={config.stripe_api_key?.startsWith('sk_live_') ? '#FF9800' : '#4CAF50'} 
+              />
+              <Text style={[
+                styles.stripeModeText,
+                { color: config.stripe_api_key?.startsWith('sk_live_') ? '#FF9800' : '#4CAF50' }
+              ]}>
+                Modo: {config.stripe_api_key?.startsWith('sk_live_') ? '🔴 PRODUCCIÓN (LIVE)' : '🟢 PRUEBA (TEST)'}
+              </Text>
+            </View>
+            <Text style={styles.stripeHelp}>
+              💡 Para cambiar entre modo TEST y LIVE, actualiza las claves abajo con las correspondientes desde tu Dashboard de Stripe.
+            </Text>
+            {renderConfigField('Secret Key', 'stripe_api_key', 'sk_live_xxxx... o sk_test_xxxx...', true)}
+            {renderConfigField('Publishable Key', 'stripe_publishable_key', 'pk_live_xxxx... o pk_test_xxxx...', true)}
+            {renderConfigField('Webhook Secret', 'stripe_webhook_secret', 'whsec_xxxxxxxxxxxxxxxxxxxxxx', true)}
+          </>
+        ))}
+
+        <View style={styles.warningBox}>
+          <Ionicons name="warning-outline" size={24} color={Colors.warning} />
+          <Text style={styles.warningText}>
+            Las claves y credenciales se almacenan de forma segura. Nunca compartas estas credenciales.
+          </Text>
+        </View>
+
+        <TouchableOpacity
+          style={[styles.saveButton, saving && styles.saveButtonDisabled]}
+          onPress={saveConfig}
+          disabled={saving}
+        >
+          {saving ? (
+            <ActivityIndicator color={Colors.textWhite} />
+          ) : (
+            <>
+              <Ionicons name="save-outline" size={20} color={Colors.textWhite} />
+              <Text style={styles.saveButtonText}>Guardar Configuración</Text>
+            </>
+          )}
+        </TouchableOpacity>
+
+        <View style={styles.bottomSpacing} />
+      </ScrollView>
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: Colors.backgroundGray,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: Colors.textGray,
+  },
+  headerInfo: {
+    padding: 24,
+    backgroundColor: Colors.background,
+    alignItems: 'center',
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+  },
+  headerTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: Colors.text,
+    marginTop: 12,
+  },
+  headerSubtitle: {
+    fontSize: 14,
+    color: Colors.textGray,
+    marginTop: 8,
+    textAlign: 'center',
+  },
+  section: {
+    backgroundColor: Colors.background,
+    marginTop: 16,
+    paddingVertical: 16,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 24,
+    marginBottom: 16,
+    gap: 12,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: Colors.text,
+  },
+  sectionContent: {
+    paddingHorizontal: 24,
+  },
+  fieldContainer: {
+    marginBottom: 16,
+  },
+  fieldLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: Colors.text,
+    marginBottom: 8,
+  },
+  inputWrapper: {
+    position: 'relative',
+  },
+  input: {
+    height: 48,
+    backgroundColor: Colors.backgroundGray,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    paddingHorizontal: 16,
+    fontSize: 14,
+    color: Colors.text,
+  },
+  eyeIcon: {
+    position: 'absolute',
+    right: 16,
+    top: 13,
+  },
+  warningBox: {
+    flexDirection: 'row',
+    backgroundColor: Colors.warning + '15',
+    borderRadius: 12,
+    padding: 16,
+    marginHorizontal: 24,
+    marginTop: 24,
+    gap: 12,
+  },
+  warningText: {
+    flex: 1,
+    fontSize: 13,
+    color: Colors.warning,
+    lineHeight: 20,
+  },
+  stripeModeIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f5f5f5',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 12,
+    gap: 10,
+  },
+  stripeModeText: {
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  stripeHelp: {
+    fontSize: 12,
+    color: Colors.textGray,
+    marginBottom: 16,
+    lineHeight: 18,
+  },
+  saveButton: {
+    flexDirection: 'row',
+    backgroundColor: Colors.primary,
+    borderRadius: 12,
+    padding: 16,
+    marginHorizontal: 24,
+    marginTop: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  saveButtonDisabled: {
+    opacity: 0.6,
+  },
+  saveButtonText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: Colors.textWhite,
+  },
+  bottomSpacing: {
+    height: 32,
+  },
+});

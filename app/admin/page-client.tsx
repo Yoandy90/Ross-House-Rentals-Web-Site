@@ -41,10 +41,24 @@ export default function AdminDashboard() {
     const fetchStats = async () => {
       if (!token) return;
       try {
-        const res = await fetch('/api/admin/dashboard-stats', { headers: headers() });
+        // Call the REAL Ross House backend on Railway directly
+        const apiBase = process.env.NEXT_PUBLIC_RHR_API_URL || 'https://ross-house-backend-production.up.railway.app';
+        const res = await fetch(`${apiBase}/api/admin/rental-dashboard`, {
+          headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        });
         if (res.ok) {
-          const data = await res.json();
-          setStats(data);
+          const raw = await res.json();
+          const dash = raw?.dashboard || raw || {};
+          setStats({
+            totalProperties: dash.properties?.total ?? 0,
+            occupiedProperties: dash.properties?.rented ?? 0,
+            vacantProperties: dash.properties?.available ?? 0,
+            totalTenants: dash.tenants?.active ?? dash.tenants?.total ?? 0,
+            activeContracts: dash.contracts?.active ?? 0,
+            pendingPayments: dash.pending_payments ?? 0,
+            monthlyRevenue: dash.revenue?.monthly ?? 0,
+            maintenanceRequests: dash.maintenance_pending ?? 0,
+          });
         }
       } catch (e) {
         console.error('Error fetching stats:', e);
@@ -55,21 +69,32 @@ export default function AdminDashboard() {
     fetchStats();
   }, [token]);
 
-  // Fallback stats
+  // Real empty fallback (no fake numbers)
   const displayStats = stats || {
-    totalProperties: 2,
-    occupiedProperties: 2,
+    totalProperties: 0,
+    occupiedProperties: 0,
     vacantProperties: 0,
-    totalTenants: 3,
-    activeContracts: 2,
+    totalTenants: 0,
+    activeContracts: 0,
     pendingPayments: 0,
-    monthlyRevenue: 2300,
+    monthlyRevenue: 0,
     maintenanceRequests: 0,
   };
 
   const occupancyRate = displayStats.totalProperties > 0 
     ? Math.round((displayStats.occupiedProperties / displayStats.totalProperties) * 100) 
     : 0;
+
+  // Computed KPIs for the new alerts bar
+  const avgRentPerUnit = displayStats.occupiedProperties > 0
+    ? Math.round(displayStats.monthlyRevenue / displayStats.occupiedProperties)
+    : 0;
+  const delinquencyRate = displayStats.activeContracts > 0
+    ? Math.round((displayStats.pendingPayments / displayStats.activeContracts) * 100)
+    : 0;
+  const hasAlerts = displayStats.maintenanceRequests > 0
+    || displayStats.pendingPayments > 0
+    || displayStats.vacantProperties > 0;
 
   const statCards = [
     { 
@@ -123,6 +148,68 @@ export default function AdminDashboard() {
 
   return (
     <div className="space-y-6">
+      {/* ─── URGENT ALERTS BAR (NEW) ─── */}
+      {hasAlerts && (
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="rounded-2xl bg-gradient-to-r from-amber-500/10 via-red-500/5 to-transparent border border-amber-500/20 p-4"
+        >
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+              <span className="text-xs font-bold text-amber-400 uppercase tracking-wider">Atención requerida</span>
+            </div>
+            <div className="flex flex-wrap gap-4 text-sm">
+              {displayStats.maintenanceRequests > 0 && (
+                <a href="/admin/mantenimiento" className="flex items-center gap-1.5 text-white/90 hover:text-amber-300 transition">
+                  <span className="text-amber-400 font-bold">🔧 {displayStats.maintenanceRequests}</span>
+                  <span className="text-gray-400">tickets de mantenimiento</span>
+                </a>
+              )}
+              {displayStats.pendingPayments > 0 && (
+                <a href="/admin/pagos" className="flex items-center gap-1.5 text-white/90 hover:text-red-300 transition">
+                  <span className="text-red-400 font-bold">💰 {displayStats.pendingPayments}</span>
+                  <span className="text-gray-400">pagos atrasados ({delinquencyRate}%)</span>
+                </a>
+              )}
+              {displayStats.vacantProperties > 0 && (
+                <a href="/admin/propiedades" className="flex items-center gap-1.5 text-white/90 hover:text-amber-300 transition">
+                  <span className="text-amber-400 font-bold">🏠 {displayStats.vacantProperties}</span>
+                  <span className="text-gray-400">vacante{displayStats.vacantProperties === 1 ? '' : 's'}</span>
+                </a>
+              )}
+            </div>
+          </div>
+        </motion.div>
+      )}
+
+      {/* ─── COMPUTED KPIs ROW (NEW) ─── */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="rounded-xl bg-white/[0.03] border border-white/[0.06] p-3">
+          <div className="text-[10px] uppercase tracking-wider text-gray-500 font-bold mb-1">Ocupación</div>
+          <div className="flex items-baseline gap-2">
+            <span className="text-2xl font-bold text-emerald-400">{occupancyRate}%</span>
+            <span className="text-xs text-gray-500">{displayStats.occupiedProperties}/{displayStats.totalProperties}</span>
+          </div>
+        </div>
+        <div className="rounded-xl bg-white/[0.03] border border-white/[0.06] p-3">
+          <div className="text-[10px] uppercase tracking-wider text-gray-500 font-bold mb-1">Renta promedio/unidad</div>
+          <div className="text-2xl font-bold text-blue-400">${avgRentPerUnit.toLocaleString()}</div>
+        </div>
+        <div className="rounded-xl bg-white/[0.03] border border-white/[0.06] p-3">
+          <div className="text-[10px] uppercase tracking-wider text-gray-500 font-bold mb-1">Delinquency rate</div>
+          <div className="flex items-baseline gap-2">
+            <span className={`text-2xl font-bold ${delinquencyRate > 10 ? 'text-red-400' : 'text-emerald-400'}`}>{delinquencyRate}%</span>
+            <span className="text-xs text-gray-500">{displayStats.pendingPayments} atrasos</span>
+          </div>
+        </div>
+        <div className="rounded-xl bg-white/[0.03] border border-white/[0.06] p-3">
+          <div className="text-[10px] uppercase tracking-wider text-gray-500 font-bold mb-1">Revenue MTD</div>
+          <div className="text-2xl font-bold text-amber-400">${displayStats.monthlyRevenue.toLocaleString()}</div>
+        </div>
+      </div>
+
       {/* Welcome Banner */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}

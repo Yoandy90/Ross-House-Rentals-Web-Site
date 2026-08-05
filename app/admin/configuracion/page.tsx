@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useAdminAuth } from '../layout';
+import ProcesadoresPago from './ProcesadoresPago';
 import {
   Settings, Save, Building2, DollarSign, CreditCard, Mail,
   FileText, Eye, EyeOff, CheckCircle2, AlertTriangle, RefreshCw,
@@ -26,7 +27,7 @@ export default function ConfiguracionPage() {
   const [legalSaving, setLegalSaving] = useState(false);
   const [legalSaved, setLegalSaved] = useState(false);
   const [legalLang, setLegalLang] = useState<'es' | 'en'>('es');
-  const [legalDoc, setLegalDoc] = useState<'terms' | 'privacy'>('terms');
+  const [legalDoc, setLegalDoc] = useState<'terms' | 'privacy' | 'cookies' | 'account_deletion'>('terms');
 
   // Admin signature state
   const [adminSignature, setAdminSignature] = useState<string | null>(null);
@@ -255,6 +256,7 @@ export default function ConfiguracionPage() {
     { key: 'empresa', label: 'Empresa', icon: Building2, color: 'blue' },
     { key: 'firma', label: 'Firma Admin', icon: Pen, color: 'indigo' },
     { key: 'stripe', label: 'Stripe', icon: CreditCard, color: 'purple' },
+    { key: 'procesadores', label: 'Procesadores de Pago', icon: CreditCard, color: 'green' },
     { key: 'pagos', label: 'Pagos', icon: DollarSign, color: 'amber' },
     { key: 'contratos', label: 'Contratos', icon: FileText, color: 'emerald' },
     { key: 'notificaciones', label: 'Notificaciones', icon: Bell, color: 'rose' },
@@ -430,7 +432,7 @@ export default function ConfiguracionPage() {
                 <div className="p-3 bg-indigo-500/5 rounded-xl border border-indigo-500/10">
                   <p className="text-xs text-indigo-400/80">
                     <Shield className="w-3.5 h-3.5 inline mr-1" />
-                    La firma guardada se aplicará automáticamente como "Landlord Signature" en todos los contratos generados.
+                    La firma guardada se aplicará automáticamente como &ldquo;Landlord Signature&rdquo; en todos los contratos generados.
                   </p>
                 </div>
               </div>
@@ -554,6 +556,10 @@ export default function ConfiguracionPage() {
       )}
 
       {/* ═══════════ Tab: Pagos ═══════════ */}
+      {activeTab === 'procesadores' && (
+        <ProcesadoresPago headers={headers} />
+      )}
+
       {activeTab === 'pagos' && (
         <div className="grid lg:grid-cols-2 gap-4">
           <Card title="Configuración de Pagos" icon={DollarSign} color="amber">
@@ -745,34 +751,36 @@ export default function ConfiguracionPage() {
           ) : (
             <>
               {/* Document selector + Language toggle */}
-              <div className="flex items-center gap-3">
-                <div className="flex gap-1 bg-white/[0.02] rounded-xl p-1 border border-white/[0.06] flex-1">
-                  <button
-                    onClick={() => setLegalDoc('terms')}
-                    className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-all flex-1 justify-center ${
-                      legalDoc === 'terms'
-                        ? 'bg-cyan-500/15 text-cyan-400 border border-cyan-500/25'
-                        : 'text-gray-500 hover:text-gray-300 hover:bg-white/[0.03]'
-                    }`}
-                  >
-                    <FileText className="w-4 h-4" /> Términos y Condiciones
-                  </button>
-                  <button
-                    onClick={() => setLegalDoc('privacy')}
-                    className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-all flex-1 justify-center ${
-                      legalDoc === 'privacy'
-                        ? 'bg-cyan-500/15 text-cyan-400 border border-cyan-500/25'
-                        : 'text-gray-500 hover:text-gray-300 hover:bg-white/[0.03]'
-                    }`}
-                  >
-                    <Shield className="w-4 h-4" /> Política de Privacidad
-                  </button>
+              <div className="flex flex-col gap-3">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-1.5 bg-white/[0.02] rounded-xl p-1.5 border border-white/[0.06]">
+                  {[
+                    { id: 'terms', label: 'Términos y Condiciones', icon: FileText },
+                    { id: 'privacy', label: 'Política de Privacidad', icon: Shield },
+                    { id: 'cookies', label: 'Política de Cookies', icon: Globe },
+                    { id: 'account_deletion', label: 'FAQ: Eliminar Cuenta', icon: Trash2 },
+                  ].map(opt => {
+                    const Ic = opt.icon;
+                    const active = legalDoc === opt.id;
+                    return (
+                      <button
+                        key={opt.id}
+                        onClick={() => setLegalDoc(opt.id as any)}
+                        className={`flex items-center gap-2 px-3 py-2.5 rounded-lg text-xs font-medium transition-all justify-center text-center ${
+                          active
+                            ? 'bg-cyan-500/15 text-cyan-400 border border-cyan-500/25'
+                            : 'text-gray-500 hover:text-gray-300 hover:bg-white/[0.03] border border-transparent'
+                        }`}
+                      >
+                        <Ic className="w-3.5 h-3.5 flex-shrink-0" /> <span className="truncate">{opt.label}</span>
+                      </button>
+                    );
+                  })}
                 </div>
 
-                <div className="flex gap-1 bg-white/[0.02] rounded-xl p-1 border border-white/[0.06]">
+                <div className="flex gap-1 bg-white/[0.02] rounded-xl p-1 border border-white/[0.06] self-end">
                   <button
                     onClick={() => setLegalLang('es')}
-                    className={`flex items-center gap-1.5 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
+                    className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
                       legalLang === 'es'
                         ? 'bg-cyan-500/15 text-cyan-400 border border-cyan-500/25'
                         : 'text-gray-500 hover:text-gray-300 hover:bg-white/[0.03]'
@@ -782,7 +790,7 @@ export default function ConfiguracionPage() {
                   </button>
                   <button
                     onClick={() => setLegalLang('en')}
-                    className={`flex items-center gap-1.5 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
+                    className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
                       legalLang === 'en'
                         ? 'bg-cyan-500/15 text-cyan-400 border border-cyan-500/25'
                         : 'text-gray-500 hover:text-gray-300 hover:bg-white/[0.03]'
@@ -797,12 +805,25 @@ export default function ConfiguracionPage() {
               <div className="bg-white/[0.03] rounded-2xl border border-white/[0.06] p-5">
                 <div className="flex items-center justify-between mb-3">
                   <h4 className="text-sm font-bold text-white flex items-center gap-2">
-                    {legalDoc === 'terms' ? <FileText className="w-4 h-4 text-cyan-400" /> : <Shield className="w-4 h-4 text-cyan-400" />}
-                    {legalDoc === 'terms' ? 'Términos y Condiciones' : 'Política de Privacidad'} — {legalLang === 'es' ? 'Español' : 'English'}
+                    {legalDoc === 'terms' && <><FileText className="w-4 h-4 text-cyan-400" /> Términos y Condiciones</>}
+                    {legalDoc === 'privacy' && <><Shield className="w-4 h-4 text-cyan-400" /> Política de Privacidad</>}
+                    {legalDoc === 'cookies' && <><Globe className="w-4 h-4 text-cyan-400" /> Política de Cookies</>}
+                    {legalDoc === 'account_deletion' && <><Trash2 className="w-4 h-4 text-cyan-400" /> Eliminación de Cuenta</>}
+                    <span className="text-gray-500 ml-1">— {legalLang === 'es' ? 'Español' : 'English'}</span>
                   </h4>
-                  <span className="text-[10px] px-2.5 py-1 rounded-full font-bold bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
-                    Markdown
-                  </span>
+                  <a
+                    href={`/${
+                      legalDoc === 'terms' ? 'terms' :
+                      legalDoc === 'privacy' ? 'privacy-policy' :
+                      legalDoc === 'cookies' ? 'cookies' :
+                      'delete-account'
+                    }${legalLang === 'es' ? '/es' : ''}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[10px] px-2.5 py-1 rounded-full font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20 transition"
+                  >
+                    Ver página pública ↗
+                  </a>
                 </div>
 
                 <div className="mb-2 p-2.5 bg-cyan-500/5 rounded-xl border border-cyan-500/10">
@@ -816,7 +837,7 @@ export default function ConfiguracionPage() {
                   value={legalDocs[`${legalDoc}_${legalLang}`] || ''}
                   onChange={e => setLegalDocs({...legalDocs, [`${legalDoc}_${legalLang}`]: e.target.value})}
                   className="w-full h-[500px] px-4 py-3 bg-[#0a1020]/60 border border-white/[0.08] rounded-xl text-white text-sm font-mono leading-relaxed focus:border-cyan-500 focus:outline-none resize-none"
-                  placeholder={`Escribe aquí los ${legalDoc === 'terms' ? 'términos y condiciones' : 'política de privacidad'} en ${legalLang === 'es' ? 'español' : 'inglés'}...`}
+                  placeholder={`Escribe el contenido en ${legalLang === 'es' ? 'español' : 'inglés'}...`}
                 />
 
                 {legalDocs.updated_at && (

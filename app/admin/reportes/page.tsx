@@ -5,9 +5,13 @@ import { useAdminAuth } from '../layout';
 import {
   FileBarChart, Download, FileText, Users, Home, DollarSign,
   CreditCard, Calendar, Wrench, Filter, Printer, Table2,
+  Sparkles, TrendingUp, FileSpreadsheet, ChevronRight,
 } from 'lucide-react';
 
+const API_BASE = process.env.NEXT_PUBLIC_RHR_API_URL || 'https://ross-house-backend-production.up.railway.app';
+
 const fmt = (n: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 }).format(n);
+const fmtMoney2 = (n: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(n);
 
 type ReportType = 'revenue' | 'expenses' | 'tenants' | 'properties' | 'contracts' | 'maintenance';
 
@@ -26,6 +30,67 @@ export default function ReportesPage() {
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [columns, setColumns] = useState<string[]>([]);
+
+  // ─── Professional financial reports (Sprint 2) ──────────────────────
+  const [summary, setSummary] = useState<{
+    rent_roll?: { units: number; monthly_rent: number; annualized_rent: number; outstanding: number };
+    t12?: { income: number; expenses: number; noi: number; period_start: string; period_end: string };
+  }>({});
+  const [downloading, setDownloading] = useState<string | null>(null);
+  const [reportError, setReportError] = useState<string | null>(null);
+
+  const today = new Date().toISOString().slice(0, 10);
+  const [asOfDate, setAsOfDate] = useState(today);
+  const [t12EndDate, setT12EndDate] = useState(today);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const r = await fetch(`${API_BASE}/api/admin/reports/summary`, { headers: headers() });
+        if (!r.ok) return;
+        const d = await r.json();
+        if (!cancelled) {
+          setSummary({ rent_roll: d.rent_roll, t12: d.t12 });
+        }
+      } catch { /* silent */ }
+    })();
+    return () => { cancelled = true; };
+  }, [headers]);
+
+  const downloadReport = async (
+    kind: 'rent-roll' | 't12',
+    format: 'pdf' | 'xlsx',
+  ) => {
+    const key = `${kind}-${format}`;
+    setDownloading(key);
+    setReportError(null);
+    try {
+      const params = new URLSearchParams({ format });
+      if (kind === 'rent-roll') params.set('as_of', asOfDate);
+      if (kind === 't12') params.set('end_date', t12EndDate);
+      const url = `${API_BASE}/api/admin/reports/${kind}?${params.toString()}`;
+      const res = await fetch(url, { headers: headers() });
+      if (!res.ok) {
+        let msg = `Error ${res.status}`;
+        try { const j = await res.json(); msg = j?.detail || msg; } catch { /* ignore */ }
+        throw new Error(msg);
+      }
+      const blob = await res.blob();
+      const dlUrl = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = dlUrl;
+      const dateRef = kind === 'rent-roll' ? asOfDate : t12EndDate;
+      a.download = `${kind}_${dateRef}.${format}`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(dlUrl), 5000);
+    } catch (e: any) {
+      setReportError(e?.message || 'Error al generar el reporte');
+    }
+    setDownloading(null);
+  };
 
   const fetchReport = useCallback(async (type: ReportType) => {
     setLoading(true);
@@ -155,6 +220,149 @@ export default function ReportesPage() {
           </button>
         </div>
       </div>
+
+      {/* ─── Featured Financial Reports (Sprint 2) ─── */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+        {/* RENT ROLL CARD */}
+        <div className="relative overflow-hidden bg-gradient-to-br from-emerald-500/[0.06] via-white/[0.02] to-emerald-500/[0.02] rounded-2xl border border-emerald-500/20 p-5 backdrop-blur-sm">
+          <div className="absolute -top-6 -right-6 w-32 h-32 bg-emerald-500/[0.08] rounded-full blur-3xl pointer-events-none" />
+          <div className="relative flex items-start justify-between gap-3 mb-4">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center">
+                <Home className="w-5 h-5 text-emerald-400" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-white">Rent Roll</h3>
+                <p className="text-[11px] text-gray-500">Snapshot de unidades + rentas</p>
+              </div>
+            </div>
+            <span className="text-[9px] px-2 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 font-bold uppercase tracking-wider">
+              <Sparkles className="w-2.5 h-2.5 inline mr-0.5" /> Lender-ready
+            </span>
+          </div>
+
+          {summary.rent_roll && (
+            <div className="grid grid-cols-3 gap-2 mb-4 relative">
+              <div className="bg-white/[0.03] border border-white/[0.06] rounded-lg p-2.5">
+                <p className="text-[9px] text-gray-500 uppercase tracking-wider font-bold">Unidades</p>
+                <p className="text-lg font-bold text-white mt-0.5">{summary.rent_roll.units}</p>
+              </div>
+              <div className="bg-white/[0.03] border border-white/[0.06] rounded-lg p-2.5">
+                <p className="text-[9px] text-gray-500 uppercase tracking-wider font-bold">Renta Mensual</p>
+                <p className="text-lg font-bold text-emerald-400 mt-0.5">{fmt(summary.rent_roll.monthly_rent)}</p>
+              </div>
+              <div className="bg-white/[0.03] border border-white/[0.06] rounded-lg p-2.5">
+                <p className="text-[9px] text-gray-500 uppercase tracking-wider font-bold">GPR Anual</p>
+                <p className="text-lg font-bold text-emerald-400 mt-0.5">{fmt(summary.rent_roll.annualized_rent)}</p>
+              </div>
+            </div>
+          )}
+
+          <div className="flex items-center gap-2 flex-wrap relative">
+            <label className="text-[10px] text-gray-500 uppercase tracking-wider font-bold mr-1">Al día:</label>
+            <input
+              type="date"
+              value={asOfDate}
+              onChange={e => setAsOfDate(e.target.value)}
+              className="px-2 py-1.5 bg-[#0C1220]/60 border border-white/[0.08] rounded-lg text-xs text-white focus:border-emerald-500 focus:outline-none"
+            />
+            <div className="ml-auto flex gap-1.5">
+              <button
+                onClick={() => downloadReport('rent-roll', 'pdf')}
+                disabled={downloading === 'rent-roll-pdf'}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-red-500/10 border border-red-500/25 text-red-300 rounded-lg text-xs font-bold hover:bg-red-500/20 transition disabled:opacity-50"
+              >
+                {downloading === 'rent-roll-pdf'
+                  ? <div className="w-3 h-3 border-2 border-red-300/30 border-t-red-300 rounded-full animate-spin" />
+                  : <FileText className="w-3.5 h-3.5" />} PDF
+              </button>
+              <button
+                onClick={() => downloadReport('rent-roll', 'xlsx')}
+                disabled={downloading === 'rent-roll-xlsx'}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500/10 border border-emerald-500/25 text-emerald-300 rounded-lg text-xs font-bold hover:bg-emerald-500/20 transition disabled:opacity-50"
+              >
+                {downloading === 'rent-roll-xlsx'
+                  ? <div className="w-3 h-3 border-2 border-emerald-300/30 border-t-emerald-300 rounded-full animate-spin" />
+                  : <FileSpreadsheet className="w-3.5 h-3.5" />} Excel
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* T-12 CARD */}
+        <div className="relative overflow-hidden bg-gradient-to-br from-sky-500/[0.06] via-white/[0.02] to-sky-500/[0.02] rounded-2xl border border-sky-500/20 p-5 backdrop-blur-sm">
+          <div className="absolute -top-6 -right-6 w-32 h-32 bg-sky-500/[0.08] rounded-full blur-3xl pointer-events-none" />
+          <div className="relative flex items-start justify-between gap-3 mb-4">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-xl bg-sky-500/15 border border-sky-500/30 flex items-center justify-center">
+                <TrendingUp className="w-5 h-5 text-sky-400" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-white">T-12 (Trailing 12 Months)</h3>
+                <p className="text-[11px] text-gray-500">P&L mes a mes · NOI calculado</p>
+              </div>
+            </div>
+            <span className="text-[9px] px-2 py-0.5 rounded-full bg-sky-500/15 border border-sky-500/30 text-sky-300 font-bold uppercase tracking-wider">
+              <Sparkles className="w-2.5 h-2.5 inline mr-0.5" /> DSCR-ready
+            </span>
+          </div>
+
+          {summary.t12 && (
+            <div className="grid grid-cols-3 gap-2 mb-4 relative">
+              <div className="bg-white/[0.03] border border-white/[0.06] rounded-lg p-2.5">
+                <p className="text-[9px] text-gray-500 uppercase tracking-wider font-bold">Ingresos</p>
+                <p className="text-lg font-bold text-emerald-400 mt-0.5">{fmt(summary.t12.income)}</p>
+              </div>
+              <div className="bg-white/[0.03] border border-white/[0.06] rounded-lg p-2.5">
+                <p className="text-[9px] text-gray-500 uppercase tracking-wider font-bold">Gastos</p>
+                <p className="text-lg font-bold text-red-400 mt-0.5">{fmt(summary.t12.expenses)}</p>
+              </div>
+              <div className="bg-white/[0.03] border border-white/[0.06] rounded-lg p-2.5">
+                <p className="text-[9px] text-gray-500 uppercase tracking-wider font-bold">NOI</p>
+                <p className={`text-lg font-bold mt-0.5 ${(summary.t12.noi || 0) >= 0 ? 'text-sky-400' : 'text-red-400'}`}>
+                  {fmt(summary.t12.noi)}
+                </p>
+              </div>
+            </div>
+          )}
+
+          <div className="flex items-center gap-2 flex-wrap relative">
+            <label className="text-[10px] text-gray-500 uppercase tracking-wider font-bold mr-1">Final:</label>
+            <input
+              type="date"
+              value={t12EndDate}
+              onChange={e => setT12EndDate(e.target.value)}
+              className="px-2 py-1.5 bg-[#0C1220]/60 border border-white/[0.08] rounded-lg text-xs text-white focus:border-sky-500 focus:outline-none"
+            />
+            <div className="ml-auto flex gap-1.5">
+              <button
+                onClick={() => downloadReport('t12', 'pdf')}
+                disabled={downloading === 't12-pdf'}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-red-500/10 border border-red-500/25 text-red-300 rounded-lg text-xs font-bold hover:bg-red-500/20 transition disabled:opacity-50"
+              >
+                {downloading === 't12-pdf'
+                  ? <div className="w-3 h-3 border-2 border-red-300/30 border-t-red-300 rounded-full animate-spin" />
+                  : <FileText className="w-3.5 h-3.5" />} PDF
+              </button>
+              <button
+                onClick={() => downloadReport('t12', 'xlsx')}
+                disabled={downloading === 't12-xlsx'}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-sky-500/10 border border-sky-500/25 text-sky-300 rounded-lg text-xs font-bold hover:bg-sky-500/20 transition disabled:opacity-50"
+              >
+                {downloading === 't12-xlsx'
+                  ? <div className="w-3 h-3 border-2 border-sky-300/30 border-t-sky-300 rounded-full animate-spin" />
+                  : <FileSpreadsheet className="w-3.5 h-3.5" />} Excel
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {reportError && (
+        <div className="px-3 py-2.5 rounded-lg bg-red-500/10 border border-red-500/25 text-red-300 text-xs">
+          ❌ {reportError}
+        </div>
+      )}
 
       {/* Report selector */}
       <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-2">

@@ -1,0 +1,46 @@
+{
+  "summary": "Iteration 5 — Backend E2E of 4 NEW Investor Portal features on Railway prod: (1) OTP Forgot Password, (2) Waterfall Calculator, (3) Cap Table PDF Export, (4) Subscription Signature + Receipt. 34 pytest cases executed: 33 PASSED, 1 FAILED (97.1% pass rate). FEATURE 1 (OTP) ✅ all 5 anti-enumeration + error-path tests pass (nonexistent email returns 200+masked, real email returns 200 with 'o******t@rosshouse.com' mask, wrong code returns 400 'Código incorrecto', short password returns 400 with min-6-chars message, missing fields returns 400). FEATURE 2 (Waterfall) ✅ all 5 tests pass: happy path produces 4 tiers + non-empty per_lp_allocation; lp_total+gp_total = exit_value exactly (no rounding loss); negative/zero exit returns 400; no-auth returns 401; deal with no investments returns 400 'El deal no tiene capital LP'. FEATURE 3 (Cap Table PDF) ✅ all 3 tests pass: returns valid PDF (starts with %PDF magic bytes, 2KB+), Content-Type application/pdf, Content-Disposition attachment with filename; no-auth returns 401; non-existent deal returns 404. FEATURE 4 (Subscription Sign) ⚠️ 4 of 5 tests pass: investor sign-subscription returns 200 with ISO signed_at, idempotent call returns already_signed:true, cross-investor sign returns 403. FAILED test_25: admin PATCH documents_signed=true → documents_signed IS persisted, but `signed_at` is MISSING from the GET response payload. Root cause: `_serialize_investment` (syndication_router.py:133-151) never includes `signed_at` in the response dict, even though the PATCH endpoint correctly writes it to DB (line 592). Cosmetic but blocks the test spec requirement ('response must include documents_signed:true AND signed_at populated'). REGRESSION ✅ all 4 pass: admin login still works, investor login with bcrypt temp_password works, /api/investor/dashboard returns 200 with summary, /api/investor/deals returns 200 with deals list — confirms iteration_4 user['_id'] fix is deployed. BCRYPT MIGRATION ✅ verified: temp passwords from /admin/syndication/investors/{id}/reset-password authenticate via /investor/login successfully (bcrypt hash). CLEANUP ✅ all 4 deletes succeed (both deals + both investments).",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {
+        "endpoint": "GET /api/admin/syndication/deals/{deal_id} (and any endpoint that serializes investments via _serialize_investment)",
+        "issue": "`signed_at` field is NEVER returned in the investment JSON. The PATCH update_investment endpoint (syndication_router.py:592) correctly writes `signed_at` to MongoDB when documents_signed flips false→true, AND the investor /sign-subscription endpoint (line 1762) also writes it, BUT _serialize_investment (line 133-151) doesn't include it. Fix: add line `'signed_at': i.get('signed_at', '').isoformat() if i.get('signed_at') else '',` to _serialize_investment. Without this, the admin UI / investor portal cannot display when a subscription was signed even though the data exists in DB."
+      }
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [],
+    "react_native_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_investor_portal_features.py",
+    "/app/test_reports/pytest/iter5_investor_portal.xml"
+  ],
+  "action_items": [
+    "P1 (1-line fix, blocks subscription-signed visibility in UI): In /app/ross-house-backend/rental/syndication_router.py:_serialize_investment (around line 147 right after 'documents_signed'), add: `\"signed_at\": i.get(\"signed_at\", \"\").isoformat() if i.get(\"signed_at\") else \"\",`. Then redeploy to Railway and re-run pytest /app/backend/tests/test_investor_portal_features.py — expect 34/34 GREEN.",
+    "P3 (nice-to-have): Add a `signed_by_self` and `signature_ip` field to _serialize_investment too — they're persisted by /investor/sign-subscription (lines 1763-1764) but currently invisible to admin UI for audit purposes."
+  ],
+  "critical_code_review_comments": [
+    "syndication_router.py:133-151 — `_serialize_investment` omits `signed_at`, `signed_by_self`, and `signature_ip` even though all three are persisted. This is a contract gap between writes and reads.",
+    "syndication_router.py:1755 — `investment.get('signed_at', '').isoformat()` will crash if signed_at is a string (e.g., on a re-fetched serialized doc). Defensive guard ok here because it's a fresh DB read, but the same pattern would be safer using a helper.",
+    "syndication_router.py:1751 — `str(investment.get('investor_id')) != str(user['_id'])` for ownership check is correct, but consider extracting to a helper since same pattern repeats elsewhere.",
+    "syndication_router.py:1167-1173 — `_mask_email` is defined AFTER it's used (line 1072, 1130). Works due to Python lazy resolution but visually confusing; move it above the route handlers.",
+    "syndication_router.py:1151 — Attempts limit (5) is per-OTP-record, but is never reset on a new /forgot-password call (the upsert sets `attempts: 0`, OK). Verified — works correctly.",
+    "syndication_router.py:78 — bcrypt verification falls back to legacy SHA256 — good migration story. _hash_password (line 64-66) always emits bcrypt, so newly-set passwords are always bcrypt. Confirmed via test_27."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_investor_portal_features.py (new — 34 pytest cases covering all 4 new features + regression + cleanup; 33/34 pass on Railway prod, 1 fail = signed_at serialization gap)"
+  ],
+  "success_rate": {
+    "backend": "97.1% (33/34 passed). 100% on Features 1 (5/5 OTP error paths), 2 (5/5 waterfall), 3 (3/3 PDF). 80% on Feature 4 (4/5 sign-subscription — failing test exposes a serialization gap, not a functional bug). 100% regression (admin login, investor login w/ bcrypt, dashboard, deals).",
+    "frontend": "Not tested (backend-only per request)"
+  },
+  "seed_data_creation": "Created 2 deals ('Iter5 OTP Deal' with 2 investments, 'Iter5 Empty Deal' with 0 investments) and 2 investors (otp.test@rosshouse.com, otp.other@rosshouse.com). All 4 records DELETED in TestZCleanup. NOT cleaned: 2 auto-created app_users rows (otp.test@rosshouse.com, otp.other@rosshouse.com) and 1 investor_password_resets doc for otp.test@rosshouse.com — these will be reused on next run (reset-password issues fresh temp pw, forgot-password upserts a new OTP). Safe to re-run repeatedly.",
+  "retest_needed": true,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "After main agent applies the 1-line fix to _serialize_investment to include `signed_at`, redeploys to Railway, re-run `pytest /app/backend/tests/test_investor_portal_features.py -v` — expect 34/34 GREEN. The test creates and cleans up its own data every run. Note: test_22 (sign-subscription first time) IS idempotent across runs because the test only signs if not-already-signed; since cleanup deletes the investment each run, this is moot. Email side-effects (OTP via SendGrid, subscription receipt via SendGrid) cannot be intercepted — only verified that endpoints don't 500.",
+  "rca_of_issue": "Bug RCA — Missing signed_at in API response: The schema contract for an investment object is implicitly defined by `_serialize_investment` in /app/ross-house-backend/rental/syndication_router.py:133-151. When the new Subscription Signature feature was added, two code paths were updated to WRITE `signed_at` (line 592 in update_investment for admin PATCH, line 1762 in investor_sign_subscription) and the immediate POST response from /investor/sign-subscription manually returns `signed_at` (line 1775). However, the central `_serialize_investment` function — which is used by GET /admin/syndication/deals/{id}, GET /investor/dashboard, GET /investor/deals/{id}, and the admin PATCH response — was never updated to surface the field. Reproduction: (1) admin PATCH /api/admin/syndication/investments/{id} {documents_signed:true} → 200 OK, (2) admin GET /api/admin/syndication/deals/{deal_id} → investment object has `documents_signed:true` BUT no `signed_at` key, even though MongoDB has it. Impact: UI cannot display 'Signed on YYYY-MM-DD' for any subscription. Mitigation: add one line to _serialize_investment: `\"signed_at\": i.get(\"signed_at\", \"\").isoformat() if i.get(\"signed_at\") else \"\",`. While there also consider adding `signed_by_self` (bool) and `signature_ip` (string) for audit visibility."
+}
