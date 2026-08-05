@@ -213,6 +213,36 @@ export function AppSidebarWidget({ campaign = 'admin-share', collapsed = false }
   )
 }
 
+/* ─── VARIANT 4: Compact header button for ADMIN top bar ────────────────── */
+export function AppHeaderButton({ campaign = 'admin-share' }: { campaign?: string }) {
+  const [showQr, setShowQr] = useState(false)
+  const [copied, setCopied] = useState(false)
+  const shareUrl = withUtm(IOS_URL, campaign)
+  const qrSrc = `https://api.qrserver.com/v1/create-qr-code/?size=280x280&margin=0&data=${encodeURIComponent(shareUrl)}`
+
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(shareUrl)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 1800)
+    } catch { /* no-op */ }
+  }
+
+  return (
+    <>
+      <button
+        onClick={() => setShowQr(true)}
+        className="flex items-center gap-1.5 px-2.5 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-white/5 dark:hover:bg-white/10 border border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-200 transition-colors"
+        title="Compartir la app iOS con inquilinos (QR)"
+      >
+        <QrCode className="w-3.5 h-3.5 text-indigo-500 dark:text-indigo-300" />
+        <span className="hidden md:inline text-[11px] font-semibold">App QR</span>
+      </button>
+      {showQr && <QrModal onClose={() => setShowQr(false)} qrSrc={qrSrc} shareUrl={shareUrl} copy={copy} copied={copied} />}
+    </>
+  )
+}
+
 function QrModal({ onClose, qrSrc, shareUrl, copy, copied }: { onClose: () => void; qrSrc: string; shareUrl: string; copy: () => void; copied: boolean }) {
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm" onClick={onClose}>

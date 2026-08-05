@@ -4,7 +4,7 @@ import React, { useState, useEffect, createContext, useContext } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import Cookies from 'js-cookie';
 import AdminLoginScreen from '../components/admin/AdminLoginScreen';
-import { AppSidebarWidget } from '../components/AppPromoBanner';
+import { AppHeaderButton } from '../components/AppPromoBanner';
 import ThemeToggle from '../components/ThemeToggle';
 import {
   LayoutDashboard, Home, Users, FileText, CreditCard, Wrench, CalendarDays,
@@ -12,7 +12,7 @@ import {
   DollarSign, Building2, TrendingUp, Briefcase, Store, UserCog,
   FileBarChart, MessageSquare, ClipboardCheck, Zap, ShieldAlert, ScanLine,
   Wallet, Repeat, Vault, ClipboardList, Heart, Brain, Globe, Smartphone, Share2, Mail,
-  Search, ChevronDown,
+  Search, ChevronDown, Landmark,
 } from 'lucide-react';
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -79,6 +79,7 @@ const NAV_GROUPS = [
       { href: '/admin/autopagos', Icon: Repeat, label: 'Autopagos', desc: 'Cobros automáticos', color: 'red' },
       { href: '/admin/baul', Icon: Vault, label: 'Baúl Seguro', desc: 'Tarjetas + Bancos PIN', color: 'amber' },
       { href: '/admin/gastos', Icon: DollarSign, label: 'Gastos', desc: 'Mantenimiento', color: 'red' },
+      { href: '/admin/impuestos', Icon: Landmark, label: 'Impuestos', desc: 'Moore County · deuda real 🏛️', color: 'orange' },
       { href: '/admin/rendimiento', Icon: TrendingUp, label: 'Rendimiento', desc: 'ROI & Analytics', color: 'indigo' },
       { href: '/admin/inversiones', Icon: Briefcase, label: 'Inversiones', desc: 'Comprar/Reparar/Vender', color: 'orange' },
       { href: '/admin/propietarios', Icon: UserCog, label: 'Propietarios', desc: 'Gestión Owners', color: 'purple' },
@@ -342,22 +343,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             )}
           </nav>
 
-          {/* App promo widget (compartir con inquilinos vía QR) */}
-          <AppSidebarWidget collapsed={collapsed} />
-
-          {/* Theme toggle */}
-          {!collapsed && (
-            <div className="px-3 pb-2">
-              <div className="text-[9px] uppercase font-bold tracking-widest text-gray-500 mb-1.5 px-1">Tema</div>
-              <ThemeToggle variant="sidebar" />
-            </div>
-          )}
-          {collapsed && (
-            <div className="px-2 pb-2 flex justify-center">
-              <ThemeToggle variant="icon-only" />
-            </div>
-          )}
-
           {/* User bar */}
           <div className="border-t border-slate-200 dark:border-white/[0.06] p-3 flex-shrink-0">
             {!collapsed ? (
@@ -394,12 +379,16 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               <h1 className="text-base font-bold text-slate-900 dark:text-white">{activeItem?.label || 'Admin'}</h1>
               <span className="text-[10px] text-slate-500 dark:text-gray-600 hidden sm:block">{activeItem?.desc || 'Ross House Rentals • Dumas TX'}</span>
             </div>
-            <div className="flex items-center gap-3 text-xs text-slate-500 dark:text-gray-500">
-              <span className="hidden sm:block">
+            <div className="flex items-center gap-2 sm:gap-3 text-xs text-slate-500 dark:text-gray-500">
+              <span className="hidden lg:block">
                 {new Date().toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}
               </span>
-              <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              <span className="text-emerald-600 dark:text-emerald-400 text-[10px] font-bold">Online</span>
+              <AppHeaderButton />
+              <ThemeToggle variant="icon-only" />
+              <div className="flex items-center gap-1.5">
+                <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                <span className="text-emerald-600 dark:text-emerald-400 text-[10px] font-bold hidden sm:inline">Online</span>
+              </div>
             </div>
           </header>
 

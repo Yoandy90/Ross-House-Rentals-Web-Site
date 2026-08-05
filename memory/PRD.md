@@ -298,3 +298,53 @@ Ver /app/memory/test_credentials.md
 - Email de invitación enviado (SendGrid 202, BCC a Yoandy): credenciales, App Store link
   (id6775734340), web, 4 pasos (firmar, autopay, renters insurance, recibo).
 - Falta: Yoandy firma como admin (admin panel o app signing-center), hermana firma en app.
+
+## Sesión Jun 2026 (fork): Health check + Módulo Screening (Ago 5, 2026)
+- Lint frontend COMPLETO (rosslending-app + Next.js admin): todos los errores ESLint corregidos
+  (unescaped entities, display-name, empty blocks, target=_blank, directivas de reglas desconocidas).
+- test_credentials.md actualizado y verificado contra prod: admin móvil/API SIN 2FA vía
+  POST /api/public/marketplace-login (yoandyross@gmail.com/admin123); tenant 121 Oak
+  (yosbelgarrido26@gmail.com/sRUUSvEB4O). Panel web admin SÍ tiene 2FA (login-step1/2 + Turnstile).
+- testing_agent (iteration_22): verificados e2e los fixes de admin-contract-detail.tsx (token de
+  secure storage) y signatures_router (200 en /pending). Sin regresiones.
+- DEPLOYMENT HEALTH CHECK: el deployment_agent inspecciona /app/frontend + /app/backend que son
+  la app LEGACY "Ross Tax" (otro producto). USUARIO CONFIRMÓ: Ross Tax ya no se publica desde
+  este workspace — IGNORAR esos bloqueadores. Ross House se deploya: backend→Railway (git push
+  en /app/ross-house-backend), admin web→push a remote vercel-site (squash con git commit-tree
+  porque la historia intermedia contiene secretos y GitHub Push Protection la bloquea),
+  app móvil→rosslending-app (EAS).
+- SEGURIDAD: untracked .git-credentials (contiene ghp_ token — RECORDAR AL USUARIO ROTARLO),
+  frontend/google-play-service-account.json y memory/test_credentials.md; removidos fallbacks
+  hardcodeados de SendGrid API key en backend/send_locker_research.py y send_tax_api_emails.py.
+- NUEVO MÓDULO: Screening de crédito/antecedentes provider-agnostic en Aplicaciones.
+  Backend rental/screening_router.py (desplegado en Railway):
+    POST /api/admin/rental-applications/{id}/screening/request (SmartMove/BoomScreen/otro,
+      email brandeado al aplicante con enlace, auto new→reviewing)
+    PATCH .../screening (status: requested/in_progress/completed/cancelled; results: credit_score
+      300-850, income_verified, criminal/eviction_records clean|found, recommendation
+      approve/conditional/reject, notes)
+    POST/GET .../screening/report (PDF base64 ≤10MB en colección screening_reports)
+  Soporta esquema legacy {type:'waived', reason} → status 'waived' (Exonerado) con opción de
+  solicitar de todas formas. Serializado en GET rental-applications.
+  Frontend: app/components/admin/ScreeningPanel.tsx + badge en fila (page aplicaciones).
+  Tests: tests/test_screening_flow.py — 11/11 passing (app FastAPI mínima + Atlas, sin crons).
+  Verificado visualmente en Next dev local (cookie rhr_admin_token inyectada, tema claro OK).
+  Cuando el usuario obtenga API de SmartMove/Boom, sustituir el paso request por llamada real.
+- PENDIENTE del usuario: rotar token ghp_, vars de entorno prod (STRIPE_WEBHOOK_SECRET,
+  VAULT_ENCRYPTION_KEY), resultado visita Moore County; esperando a Obie (coinsurance) y
+  Joe Kuruvila (Jasmine). Sin respuestas aún al 5-Ago.
+
+## Moore County Tax Office — RESPUESTA RECIBIDA (Ago 5, 2026)
+- Chris A. Rivera (Tax Assessor Collector, 806-935-2175, crivera@moore-tx.com):
+  1) ✅ Cambio de dirección postal CONFIRMADO a 305 Bruce, Dumas TX 79029 (cuentas 13572 y 12973).
+  2) ❌ Waiver de P&I DENEGADO por la oficina: el bill 2025 se envió a Yoandy Ross en
+     2108 Bonfoy Ave, Colorado Springs CO 80909 conforme al warranty deed de junio 2025.
+     El deed a Ross House Rentals LLC (dirección Bruce) no se registró hasta el 8-Jul-2026,
+     por lo que NO califica como error de la oficina (Tax Code 33.011 no aplica).
+  3) Única vía restante: pedir a las TAXING UNITS con jurisdicción (Moore County, Dumas ISD,
+     City of Dumas, Moore County Hospital District, etc.) ser agregado a sus agendas y que
+     sus órganos de gobierno VOTEN el waiver.
+- Estado cuenta 13572: impuestos 2025 $4,736.38 sin pagar + penalidad ~$630 + attorney fees
+  ~$789. Interés sigue corriendo ~1%/mes mientras no se pague.
+- PENDIENTE: decisión del usuario — pagar ya (detiene intereses) y/o solicitar agenda a las
+  taxing units (pueden reembolsar P&I después si votan a favor, Tax Code 31.11).
