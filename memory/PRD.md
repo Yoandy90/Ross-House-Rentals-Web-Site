@@ -348,3 +348,21 @@ Ver /app/memory/test_credentials.md
   ~$789. Interés sigue corriendo ~1%/mes mientras no se pague.
 - PENDIENTE: decisión del usuario — pagar ya (detiene intereses) y/o solicitar agenda a las
   taxing units (pueden reembolsar P&I después si votan a favor, Tax Code 31.11).
+
+## Módulo Impuestos + Header Admin (Ago 5, 2026 - tarde)
+- NUEVO: rental/property_taxes_router.py — sync en vivo de deuda con Moore County via
+  GET esearch.co.moore.tx.us/Property/GetPropertyTaxDueModalResult?id={acct}&year={yr}
+  (sin captcha server-side). Endpoints: GET /api/admin/property-taxes,
+  POST /api/admin/property-taxes/sync. Cron diario property_tax_sync_loop en server.py.
+  Colección: property_tax_status. tax_reminder_cron ahora usa montos REALES sincronizados.
+  Tests: tests/test_property_taxes.py 4/4 passing (incluye sync en vivo).
+  Datos reales verificados: 13572 (121 Oak) VENCIDO $4,736.38 (base $3,316.80 + P&I $630.18
+  + abogado $789.40, año 2025); 12973 (812 NE 2nd) al día. Usuario pagará EN LÍNEA.
+- NUEVO: /admin/impuestos page (Next.js) con banner deuda total, cards por propiedad,
+  desglose por año, botones Pagar en línea / Ver en portal. Link en sidebar FINANZAS.
+- HEADER ADMIN REDISEÑADO (pedido del usuario): widget QR de la app y toggle de tema
+  MOVIDOS del fondo del sidebar al header superior (AppHeaderButton nuevo en
+  AppPromoBanner.tsx + ThemeToggle icon-only). Sidebar más limpio.
+- Deploys: backend Railway e917164; web Vercel 0c5c31a2a (squash).
+- PENDIENTE: usuario pagará $4,736.38 en línea (portal → carrito Certified Payments).
+  Ofrecidas más mejoras de UI del menú (esperando decisión).

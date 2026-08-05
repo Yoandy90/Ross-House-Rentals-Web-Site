@@ -150,6 +150,8 @@ export default function PropiedadesPage() {
       rent_amount: String(p.rent_amount || ''), deposit_amount: String(p.deposit_amount || ''),
       description: p.description || '', status: p.status || 'available',
       owner_id: p.owner_id || '',
+      tax_account_id: p.tax_account_id || '',
+      tax_annual_estimate: p.tax_annual_estimate ? String(p.tax_annual_estimate) : '',
       section8_accepted: !!p.section8_accepted,
       section8_pha: p.section8_pha || '',
       section8_pha_contact: p.section8_pha_contact || '',
@@ -163,7 +165,7 @@ export default function PropiedadesPage() {
   const handleSave = async () => {
     setSaving(true);
     try {
-      const body = { ...form, bedrooms: parseInt(form.bedrooms) || 3, bathrooms: parseInt(form.bathrooms) || 2, sqft: parseInt(form.sqft) || 0, rent_amount: parseFloat(form.rent_amount) || 0, deposit_amount: parseFloat(form.deposit_amount) || 0 };
+      const body = { ...form, bedrooms: parseInt(form.bedrooms) || 3, bathrooms: parseInt(form.bathrooms) || 2, sqft: parseInt(form.sqft) || 0, rent_amount: parseFloat(form.rent_amount) || 0, deposit_amount: parseFloat(form.deposit_amount) || 0, tax_annual_estimate: parseFloat(form.tax_annual_estimate) || 0 };
       const url = editing ? `/api/admin/properties/${editing._id}` : '/api/admin/properties';
       const method = editing ? 'PUT' : 'POST';
       const res = await fetch(url, { method, headers: headers(), body: JSON.stringify(body) });
@@ -437,6 +439,8 @@ export default function PropiedadesPage() {
             <Input label="Sq Ft" value={form.sqft} onChange={v => setForm({...form, sqft: v})} type="number" />
             <Input label="Renta Mensual ($)" value={form.rent_amount} onChange={v => setForm({...form, rent_amount: v})} type="number" required />
             <Input label="Depósito ($)" value={form.deposit_amount} onChange={v => setForm({...form, deposit_amount: v})} type="number" />
+            <Input label="Cuenta Impuestos (Moore County)" value={form.tax_account_id} onChange={v => setForm({...form, tax_account_id: v})} placeholder="ej. 13572" />
+            <Input label="Impuesto anual estimado ($)" value={form.tax_annual_estimate} onChange={v => setForm({...form, tax_annual_estimate: v})} type="number" placeholder="ej. 3317" />
             <div className="sm:col-span-2 lg:col-span-3">
               <label className="block text-xs font-bold text-gray-400 mb-1 uppercase tracking-wider">Descripción</label>
               <textarea value={form.description} onChange={e => setForm({...form, description: e.target.value})} className="w-full px-4 py-2.5 bg-[#0a1020]/60 border border-white/[0.08] rounded-xl text-white text-sm focus:border-cyan-500 focus:outline-none h-16 resize-none placeholder:text-gray-600" />

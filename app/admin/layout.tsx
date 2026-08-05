@@ -5,6 +5,9 @@ import { usePathname, useRouter } from 'next/navigation';
 import Cookies from 'js-cookie';
 import AdminLoginScreen from '../components/admin/AdminLoginScreen';
 import { AppHeaderButton } from '../components/AppPromoBanner';
+import NavBell, { type NavSummary } from '../components/admin/NavBell';
+import CommandPalette from '../components/admin/CommandPalette';
+import MobileBottomNav from '../components/admin/MobileBottomNav';
 import ThemeToggle from '../components/ThemeToggle';
 import {
   LayoutDashboard, Home, Users, FileText, CreditCard, Wrench, CalendarDays,
@@ -12,7 +15,7 @@ import {
   DollarSign, Building2, TrendingUp, Briefcase, Store, UserCog,
   FileBarChart, MessageSquare, ClipboardCheck, Zap, ShieldAlert, ScanLine,
   Wallet, Repeat, Vault, ClipboardList, Heart, Brain, Globe, Smartphone, Share2, Mail,
-  Search, ChevronDown, Landmark,
+  Search, ChevronDown, Landmark, Star,
 } from 'lucide-react';
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -146,8 +149,35 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [mobileOpen, setMobileOpen] = useState(false);
   const [navQuery, setNavQuery] = useState('');
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
+  const [summary, setSummary] = useState<NavSummary | null>(null);
+  const [favs, setFavs] = useState<string[]>([]);
+  const [paletteOpen, setPaletteOpen] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
+
+  // Favorites (pinned menu items) from localStorage
+  useEffect(() => {
+    try { setFavs(JSON.parse(localStorage.getItem('rhr_nav_favs') || '[]')); } catch { /* noop */ }
+  }, []);
+  const toggleFav = (href: string) => {
+    setFavs(prev => {
+      const next = prev.includes(href) ? prev.filter(h => h !== href) : [...prev, href];
+      try { localStorage.setItem('rhr_nav_favs', JSON.stringify(next)); } catch { /* noop */ }
+      return next;
+    });
+  };
+
+  // ⌘K / Ctrl+K opens the command palette
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        setPaletteOpen(o => !o);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
 
   // Restore open groups from localStorage + always open the active route's group
   useEffect(() => {
@@ -213,6 +243,33 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   };
 
   const headers = () => ({ Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' });
+
+  // Pending-counts summary for the bell + sidebar badges (refresh every 60s)
+  useEffect(() => {
+    if (!token) return;
+    let alive = true;
+    const load = async () => {
+      try {
+        const res = await fetch('/api/admin/nav-summary', { headers: { Authorization: `Bearer ${token}` } });
+        if (res.ok && alive) setSummary(await res.json());
+      } catch { /* noop */ }
+    };
+    load();
+    const iv = setInterval(load, 60000);
+    return () => { alive = false; clearInterval(iv); };
+  }, [token, pathname]);
+
+  const badgeFor = (href: string): number => {
+    if (!summary) return 0;
+    switch (href) {
+      case '/admin/aplicaciones': return summary.new_applications;
+      case '/admin/mantenimiento': return summary.open_maintenance;
+      case '/admin/contratos': return summary.pending_signatures;
+      case '/admin/pagos': return summary.late_payments;
+      case '/admin/impuestos': return summary.delinquent_taxes?.count || 0;
+      default: return 0;
+    }
+  };
 
   // ─── LOGIN SCREEN ──────────────────────────────────────────────────────────
   if (!isLoading && !token) {
@@ -298,7 +355,39 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 });
               })()
             ) : (
-              NAV_GROUPS.map((group, gi) => {
+              <>
+              {/* ── Favoritos (fijados por el admin) ── */}
+              {favs.length > 0 && !collapsed && (
+                <div className="mb-1">
+                  <div className="px-3 py-2 text-[10px] font-bold tracking-[0.18em] text-amber-500/90 flex items-center gap-1.5">
+                    <Star className="w-3 h-3 fill-amber-400 text-amber-400" /> FAVORITOS
+                  </div>
+                  {favs.map(href => {
+                    const item = NAV_ITEMS.find(i => i.href === href);
+                    if (!item) return null;
+                    const isActive = pathname === item.href;
+                    const c = COLOR_MAP[item.color] || COLOR_MAP.blue;
+                    const badge = badgeFor(item.href);
+                    return (
+                      <a key={`fav-${item.href}`} href={item.href} onClick={() => setMobileOpen(false)} title={item.desc}
+                        className={`group/item flex items-center gap-2.5 rounded-lg mb-0.5 px-3 py-2 ml-1 transition-colors relative
+                          ${isActive ? `${c.bg} border ${c.border} ${c.glow}` : 'hover:bg-slate-100 dark:hover:bg-white/[0.04] border border-transparent'}`}>
+                        <item.Icon className={`w-4 h-4 flex-shrink-0 ${isActive ? c.text : 'text-slate-500 dark:text-gray-500'}`} />
+                        <span className={`flex-1 text-[13px] font-medium truncate ${isActive ? c.text : 'text-slate-600 dark:text-gray-400'}`}>{item.label}</span>
+                        {badge > 0 && (
+                          <span className="min-w-[18px] h-[18px] px-1 rounded-full bg-red-500/15 text-red-500 dark:text-red-400 border border-red-500/25 text-[10px] font-bold flex items-center justify-center">{badge}</span>
+                        )}
+                        <button onClick={e => { e.preventDefault(); e.stopPropagation(); toggleFav(item.href); }} title="Quitar de favoritos"
+                          className="opacity-0 group-hover/item:opacity-100 transition p-0.5">
+                          <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
+                        </button>
+                      </a>
+                    );
+                  })}
+                  <div className="h-px bg-slate-200 dark:bg-white/[0.04] mx-2 my-2" />
+                </div>
+              )}
+              {NAV_GROUPS.map((group, gi) => {
                 const hasActive = group.items.some(i => i.href === pathname);
                 const isOpen = !group.label || openGroups[group.label] || false;
                 return (
@@ -322,16 +411,31 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                     {(isOpen || collapsed) && group.items.map(item => {
                       const isActive = pathname === item.href;
                       const c = COLOR_MAP[item.color] || COLOR_MAP.blue;
+                      const badge = badgeFor(item.href);
+                      const isFav = favs.includes(item.href);
                       return (
                         <a key={item.href} href={item.href} onClick={() => setMobileOpen(false)} title={item.desc}
-                          className={`flex items-center gap-2.5 rounded-lg mb-0.5 transition-colors relative
+                          className={`group/item flex items-center gap-2.5 rounded-lg mb-0.5 transition-colors relative
                             ${collapsed ? 'justify-center px-0 py-2.5' : 'px-3 py-2 ml-1'}
                             ${isActive ? `${c.bg} border ${c.border} ${c.glow}` : 'hover:bg-slate-100 dark:hover:bg-white/[0.04] border border-transparent'}`}>
                           <item.Icon className={`w-4 h-4 flex-shrink-0 ${isActive ? c.text : 'text-slate-500 dark:text-gray-500'}`} />
-                          {!collapsed && (
-                            <span className={`text-[13px] font-medium truncate ${isActive ? c.text : 'text-slate-600 dark:text-gray-400'}`}>{item.label}</span>
+                          {collapsed && badge > 0 && (
+                            <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-red-500" />
                           )}
-                          {isActive && !collapsed && (
+                          {!collapsed && (
+                            <>
+                              <span className={`flex-1 text-[13px] font-medium truncate ${isActive ? c.text : 'text-slate-600 dark:text-gray-400'}`}>{item.label}</span>
+                              {badge > 0 && (
+                                <span className="min-w-[18px] h-[18px] px-1 rounded-full bg-red-500/15 text-red-500 dark:text-red-400 border border-red-500/25 text-[10px] font-bold flex items-center justify-center">{badge}</span>
+                              )}
+                              <button onClick={e => { e.preventDefault(); e.stopPropagation(); toggleFav(item.href); }}
+                                title={isFav ? 'Quitar de favoritos' : 'Fijar en favoritos'}
+                                className={`transition p-0.5 ${isFav ? 'opacity-100' : 'opacity-0 group-hover/item:opacity-100'}`}>
+                                <Star className={`w-3 h-3 ${isFav ? 'fill-amber-400 text-amber-400' : 'text-slate-400 dark:text-gray-600'}`} />
+                              </button>
+                            </>
+                          )}
+                          {isActive && !collapsed && badge === 0 && (
                             <div className={`absolute right-1.5 top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-gradient-to-b ${c.gradient}`} />
                           )}
                         </a>
@@ -339,7 +443,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                     })}
                   </div>
                 );
-              })
+              })}
+              </>
             )}
           </nav>
 
@@ -380,21 +485,38 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               <span className="text-[10px] text-slate-500 dark:text-gray-600 hidden sm:block">{activeItem?.desc || 'Ross House Rentals • Dumas TX'}</span>
             </div>
             <div className="flex items-center gap-2 sm:gap-3 text-xs text-slate-500 dark:text-gray-500">
-              <span className="hidden lg:block">
-                {new Date().toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}
-              </span>
+              <button onClick={() => setPaletteOpen(true)} data-testid="open-palette-btn"
+                className="hidden sm:flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-white/5 dark:hover:bg-white/10 border border-slate-200 dark:border-white/10 text-slate-500 dark:text-gray-400 transition-colors"
+                title="Búsqueda global (Ctrl+K)">
+                <Search className="w-3.5 h-3.5" />
+                <span className="text-[11px]">Buscar...</span>
+                <kbd className="text-[9px] px-1.5 py-0.5 rounded bg-white dark:bg-white/[0.08] border border-slate-200 dark:border-white/10 font-bold">⌘K</kbd>
+              </button>
+              <button onClick={() => setPaletteOpen(true)}
+                className="sm:hidden p-2 rounded-lg bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-500 dark:text-gray-400"
+                title="Buscar">
+                <Search className="w-3.5 h-3.5" />
+              </button>
+              <NavBell summary={summary} />
               <AppHeaderButton />
               <ThemeToggle variant="icon-only" />
-              <div className="flex items-center gap-1.5">
+              <div className="hidden sm:flex items-center gap-1.5">
                 <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                <span className="text-emerald-600 dark:text-emerald-400 text-[10px] font-bold hidden sm:inline">Online</span>
+                <span className="text-emerald-600 dark:text-emerald-400 text-[10px] font-bold">Online</span>
               </div>
             </div>
           </header>
 
           {/* Content */}
-          <main className="flex-1 p-4 sm:p-6 overflow-auto">{children}</main>
+          <main className="flex-1 p-4 sm:p-6 pb-20 lg:pb-6 overflow-auto">{children}</main>
         </div>
+
+        {/* Búsqueda global ⌘K */}
+        <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)}
+          menuItems={NAV_ITEMS.map(i => ({ href: i.href, label: i.label, desc: i.desc }))} headers={headers} />
+
+        {/* Barra inferior en móvil */}
+        <MobileBottomNav pathname={pathname} onMenu={() => setMobileOpen(true)} badgeTotal={summary?.total || 0} />
       </div>
     </AdminAuthContext.Provider>
   );
