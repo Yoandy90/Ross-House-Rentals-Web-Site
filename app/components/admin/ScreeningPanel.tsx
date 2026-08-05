@@ -23,6 +23,7 @@ export type Screening = {
   requested_by: string;
   completed_at: string;
   email_sent: boolean;
+  reason?: string;          // only for waived
   results: ScreeningResults;
   report: { filename: string; size: number; uploaded_at: string } | null;
 };
@@ -38,6 +39,7 @@ const SCREENING_STATUS: Record<string, { label: string; cls: string; icon: any }
   in_progress: { label: 'En proceso',  cls: 'bg-amber-500/10 text-amber-400 border-amber-500/25',    icon: Clock },
   completed:   { label: 'Completado',  cls: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/25', icon: CheckCircle2 },
   cancelled:   { label: 'Cancelado',   cls: 'bg-gray-500/10 text-gray-400 border-gray-500/25',       icon: Ban },
+  waived:      { label: 'Exonerado',   cls: 'bg-purple-500/10 text-purple-400 border-purple-500/25', icon: ShieldCheck },
 };
 
 const REC_CONFIG: Record<string, { label: string; cls: string }> = {
@@ -56,6 +58,7 @@ export default function ScreeningPanel({ appId, screening, headers, onChanged, n
   notify: (msg: string, ok: boolean) => void;
 }) {
   const [busy, setBusy] = useState(false);
+  const [forceRequest, setForceRequest] = useState(false);
   // Request form
   const [provider, setProvider] = useState('smartmove');
   const [link, setLink] = useState('');
@@ -146,8 +149,33 @@ export default function ScreeningPanel({ appId, screening, headers, onChanged, n
     setBusy(false);
   };
 
+  const isWaived = screening?.status === 'waived';
+
+  // ─── Screening waived by landlord decision ───
+  if (isWaived && !forceRequest) {
+    return (
+      <div className="bg-white/[0.02] rounded-xl border border-white/[0.04] p-4 space-y-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          <div className="text-xs font-bold text-gray-400 flex items-center gap-1.5">
+            <ShieldCheck className="w-3.5 h-3.5" /> Screening de crédito y antecedentes
+          </div>
+          <span className="text-[10px] px-2.5 py-1 rounded-full font-bold border bg-purple-500/10 text-purple-400 border-purple-500/25">
+            Exonerado
+          </span>
+        </div>
+        {screening?.reason && (
+          <p className="text-xs text-gray-500 leading-relaxed">{screening.reason}</p>
+        )}
+        <button onClick={() => setForceRequest(true)}
+          className="text-xs px-3 py-1.5 rounded-lg font-medium transition border bg-white/[0.03] text-gray-400 border-white/[0.08] hover:text-white">
+          Solicitar screening de todas formas
+        </button>
+      </div>
+    );
+  }
+
   // ─── No screening yet: request form ───
-  if (!screening) {
+  if (!screening || isWaived) {
     return (
       <div className="bg-white/[0.02] rounded-xl border border-white/[0.04] p-4 space-y-3">
         <div className="text-xs font-bold text-gray-400 flex items-center gap-1.5">
@@ -213,7 +241,7 @@ export default function ScreeningPanel({ appId, screening, headers, onChanged, n
       {/* Status actions */}
       <div className="flex items-center gap-2 flex-wrap">
         <span className="text-[10px] text-gray-500 uppercase tracking-wider font-bold">Estado:</span>
-        {Object.entries(SCREENING_STATUS).filter(([k]) => k !== screening.status).map(([key, cfg]) => (
+        {Object.entries(SCREENING_STATUS).filter(([k]) => k !== screening.status && k !== 'waived').map(([key, cfg]) => (
           <button key={key} onClick={() => setStatus(key)} disabled={busy}
             className={`text-xs px-3 py-1.5 rounded-lg font-medium transition border hover:opacity-80 disabled:opacity-30 ${cfg.cls}`}>
             {cfg.label}

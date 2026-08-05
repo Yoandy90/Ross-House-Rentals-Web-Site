@@ -111,12 +111,15 @@ html[data-theme="light"] .placeholder-gray-400::placeholder { color: #94A3B8; }
 html[data-theme="light"] input.bg-white\/5,
 html[data-theme="light"] input.bg-white\/\[0\.02\],
 html[data-theme="light"] input.bg-white\/\[0\.03\],
+html[data-theme="light"] input.bg-\[\#0a1020\]\/60,
 html[data-theme="light"] textarea.bg-white\/5,
 html[data-theme="light"] textarea.bg-white\/\[0\.02\],
 html[data-theme="light"] textarea.bg-white\/\[0\.03\],
+html[data-theme="light"] textarea.bg-\[\#0a1020\]\/60,
 html[data-theme="light"] select.bg-white\/5,
 html[data-theme="light"] select.bg-white\/\[0\.02\],
-html[data-theme="light"] select.bg-white\/\[0\.03\] {
+html[data-theme="light"] select.bg-white\/\[0\.03\],
+html[data-theme="light"] select.bg-\[\#0a1020\]\/60 {
   background-color: #FFFFFF !important;
   border-color: #CBD5E1 !important;
   color: #0F172A !important;
