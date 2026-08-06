@@ -16,7 +16,9 @@ type PlaidItem = {
 type BankTx = {
   _id: string; transaction_id: string; name: string; amount: number;
   date: string; pending: boolean; category: string;
-  match: { status: string; type?: string; ref_desc?: string; days_delta?: number; manual?: boolean };
+  ai_category?: string; ai_category_label?: string;
+  match_suggestion?: { type: string; ref_desc: string; ref_amount: number; confidence: number; reason: string };
+  match: { status: string; type?: string; ref_desc?: string; days_delta?: number; manual?: boolean; ai_suggested?: boolean };
 };
 
 const fmt = (n: number) => `$${Math.abs(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
@@ -105,6 +107,27 @@ export default function BancoPage() {
     setBusy('');
   };
 
+  const aiAnalyze = async () => {
+    setBusy('ai');
+    try {
+      const res = await fetch('/api/admin/plaid/ai-analyze', { method: 'POST', headers: headers() });
+      const d = await res.json();
+      if (res.ok) notify(`IA: ${d.categorized} categorizadas · ${d.suggested} sugerencia(s) de match 🤖`);
+      else notify(d.detail || 'Error en análisis IA', false);
+    } catch { notify('Error de red', false); }
+    await load();
+    setBusy('');
+  };
+
+  const resolveSuggestion = async (tx: BankTx, action: 'accept' | 'reject') => {
+    const res = await fetch(`/api/admin/plaid/transactions/${tx.transaction_id}/suggestion`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json', ...headers() },
+      body: JSON.stringify({ action }),
+    });
+    notify(res.ok ? (action === 'accept' ? 'Match confirmado ✅' : 'Sugerencia descartada') : 'Error', res.ok);
+    load();
+  };
+
   const setStatus = async (tx: BankTx, status: string) => {
     await fetch(`/api/admin/plaid/transactions/${tx.transaction_id}/status`, {
       method: 'POST', headers: { 'Content-Type': 'application/json', ...headers() },
@@ -146,6 +169,10 @@ export default function BancoPage() {
           <button onClick={reconcile} disabled={busy === 'rec' || totalTx === 0}
             className="flex items-center gap-1.5 px-3 py-2 bg-violet-500/15 text-violet-300 border border-violet-500/30 rounded-xl text-xs font-bold hover:bg-violet-500/25 transition disabled:opacity-40">
             {busy === 'rec' ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />} Conciliar
+          </button>
+          <button onClick={aiAnalyze} disabled={busy === 'ai' || totalTx === 0}
+            className="flex items-center gap-1.5 px-3 py-2 bg-pink-500/15 text-pink-300 border border-pink-500/30 rounded-xl text-xs font-bold hover:bg-pink-500/25 transition disabled:opacity-40">
+            {busy === 'ai' ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />} Analizar con IA
           </button>
         </div>
       </div>
@@ -197,7 +224,8 @@ export default function BancoPage() {
       ) : (
         <div className="border border-white/[0.06] rounded-2xl overflow-hidden divide-y divide-white/[0.04]">
           {txs.map(tx => (
-            <div key={tx._id} className="flex flex-wrap items-center gap-3 px-4 py-2.5 hover:bg-white/[0.02]">
+            <div key={tx._id} className="px-4 py-2.5 hover:bg-white/[0.02]">
+              <div className="flex flex-wrap items-center gap-3">
               {tx.amount > 0
                 ? <ArrowUpRight className="w-4 h-4 text-red-400 shrink-0" />
                 : <ArrowDownLeft className="w-4 h-4 text-emerald-400 shrink-0" />}
@@ -206,6 +234,11 @@ export default function BancoPage() {
                 <div className="text-[10px] text-gray-500">{tx.date}{tx.category ? ` · ${tx.category.toLowerCase().replace(/_/g, ' ')}` : ''}</div>
               </div>
               <div className={`font-bold text-sm ${tx.amount > 0 ? 'text-red-400' : 'text-emerald-400'}`}>{tx.amount > 0 ? '-' : '+'}{fmt(tx.amount)}</div>
+              {tx.ai_category_label && (
+                <span className={`text-[10px] px-2 py-0.5 rounded-full border font-bold ${tx.ai_category === 'personal' ? 'bg-gray-500/15 text-gray-400 border-gray-500/30' : tx.ai_category?.includes('income') ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30' : 'bg-blue-500/15 text-blue-300 border-blue-500/30'}`}>
+                  🏷️ {tx.ai_category_label}
+                </span>
+              )}
               {tx.match?.status === 'matched' ? (
                 <span className="flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 font-bold" title={tx.match.ref_desc}>
                   <CheckCircle2 className="w-3 h-3" /> {tx.match.type}
@@ -220,6 +253,18 @@ export default function BancoPage() {
               )}
               {tx.match?.status === 'ignored' && (
                 <button onClick={() => setStatus(tx, 'unmatched')} className="text-[10px] text-gray-600 hover:text-gray-300 font-bold">Restaurar</button>
+              )}
+              </div>
+              {tx.match?.status === 'unmatched' && tx.match_suggestion && (
+                <div className="mt-2 ml-7 flex flex-wrap items-center gap-2 p-2.5 bg-violet-500/[0.07] border border-violet-500/25 rounded-xl">
+                  <Sparkles className="w-3.5 h-3.5 text-violet-300 shrink-0" />
+                  <div className="flex-1 min-w-[200px]">
+                    <span className="text-xs text-violet-200 font-bold">IA sugiere: {tx.match_suggestion.type}{tx.match_suggestion.ref_desc ? ` — ${tx.match_suggestion.ref_desc}` : ''} ({fmt(tx.match_suggestion.ref_amount)})</span>
+                    <span className="text-[10px] text-gray-400 block">{tx.match_suggestion.reason} · confianza {tx.match_suggestion.confidence}%</span>
+                  </div>
+                  <button onClick={() => resolveSuggestion(tx, 'accept')} className="px-3 py-1.5 rounded-lg text-[11px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 hover:bg-emerald-500/30 transition">✓ Confirmar</button>
+                  <button onClick={() => resolveSuggestion(tx, 'reject')} className="px-3 py-1.5 rounded-lg text-[11px] font-bold bg-red-500/10 text-red-300 border border-red-500/30 hover:bg-red-500/20 transition">✗ No es</button>
+                </div>
               )}
             </div>
           ))}

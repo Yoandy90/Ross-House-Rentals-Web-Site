@@ -537,3 +537,16 @@ Ver /app/memory/test_credentials.md
 - Deploys: Railway push OK (endpoints darán 500 hasta que usuario agregue env vars),
   Vercel squash 3c8cbfebb. Smoke screenshot página OK (SANDBOX badge, empty state con
   credenciales de prueba user_good/pass_good visibles).
+
+## Cron Plaid + Alertas (Ago 6, 2026)
+- rental/plaid_sync_cron.py (NUEVO, registrado en server.py lifespan):
+  * plaid_sync_loop cada PLAID_SYNC_INTERVAL_HOURS (default 24h), delay inicial 2 min.
+    Omite si faltan credenciales o no hay plaid_items.
+  * run_full_sync() extraído en plaid_router (endpoint /admin/plaid/sync lo reusa).
+  * check_large_unmatched(db): unmatched con |monto| >= umbral (app_settings
+    {_id:'plaid_alerts'}.threshold, default $500) y alerted != true → email a
+    yoandyross@gmail.com vía _send_via_sendgrid del buzón → marca alerted=true (no repite).
+- nav-summary ahora incluye bank_unmatched (count); NavBell + badge /admin/banco en layout.
+- Tests test_plaid.py 7/7 (test_07 mockea _send_via_sendgrid; nota: el sandbox importa
+  >20 txs grandes → asserts tolerantes a múltiples tandas de alerta).
+- Deploys: Railway push OK, Vercel squash ec8411e63.
