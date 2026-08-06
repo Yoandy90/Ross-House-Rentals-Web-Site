@@ -9,6 +9,7 @@ export type NavSummary = {
   open_maintenance: number;
   pending_signatures: number;
   late_payments: number;
+  bank_unmatched?: number;
   delinquent_taxes: { count: number; total_due: number };
 };
 
@@ -32,6 +33,7 @@ export default function NavBell({ summary }: { summary: NavSummary | null }) {
     { count: summary.pending_signatures, label: 'Firmas pendientes', desc: 'Contratos por firmar', href: '/admin/contratos', Icon: PenLine, color: 'text-violet-400' },
     { count: summary.late_payments, label: 'Pagos atrasados', desc: 'Rentas vencidas sin cobrar', href: '/admin/pagos', Icon: CreditCard, color: 'text-red-400' },
     { count: summary.delinquent_taxes.count, label: 'Impuestos vencidos', desc: `Deuda con el condado: $${summary.delinquent_taxes.total_due.toLocaleString('en-US', { minimumFractionDigits: 2 })}`, href: '/admin/impuestos', Icon: Landmark, color: 'text-orange-400' },
+    { count: summary.bank_unmatched || 0, label: 'Banco sin conciliar', desc: 'Movimientos bancarios sin cruzar', href: '/admin/banco', Icon: Landmark, color: 'text-emerald-400' },
   ].filter(r => r.count > 0) : [];
 
   return (

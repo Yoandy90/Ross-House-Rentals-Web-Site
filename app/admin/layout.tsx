@@ -270,6 +270,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       case '/admin/contratos': return summary.pending_signatures;
       case '/admin/pagos': return summary.late_payments;
       case '/admin/impuestos': return summary.delinquent_taxes?.count || 0;
+      case '/admin/banco': return summary.bank_unmatched || 0;
       default: return 0;
     }
   };

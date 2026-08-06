@@ -508,3 +508,32 @@ Ver /app/memory/test_credentials.md
   121 Oak Ave (guardado en ad_copy). Screenshot de página OK.
 - Deploys: Railway OK, Vercel squash 954721c95.
 - EIN configurado: usuario subió CP 575 → payer 1099 completo (EIN 39-3060069) en prod.
+
+## Fase 3: Conciliación Bancaria Plaid (Ago 6, 2026)
+- Credenciales del usuario (Sandbox): PLAID_CLIENT_ID=6a74332914a08e000d073377,
+  PLAID_SECRET=0d961a14be8720f22dec65e96cbce7, PLAID_ENV=sandbox — agregadas a .env LOCAL.
+  ⚠️ PENDIENTE: usuario debe agregar las 3 vars en Railway dashboard (issue recurrente #4).
+  Producción: usuario debe pedir Production access en Plaid (~1-3 días) y cambiar
+  PLAID_SECRET al de producción + PLAID_ENV=production.
+- BACKEND rental/plaid_router.py (plaid-python 37.1.0 agregado a requirements.txt):
+  * POST /admin/plaid/link-token (products=[transactions], lang es)
+  * POST /admin/plaid/exchange {public_token, institution_name} → plaid_items
+    {item_id, access_token(nunca se expone), accounts, cursor}
+  * POST /admin/plaid/sync → transactions/sync paginado con cursor → bank_transactions
+    {transaction_id único, amount (Plaid: + = sale dinero), date, pending, category,
+    match:{status unmatched|matched|ignored}} → corre _auto_match al final
+  * _auto_match: monto exacto ±$0.01 y fecha ±4 días contra MATCH_SOURCES:
+    rental_payments(in), property_expenses/provider_payments/utility_payments(out).
+    Campos amount/date detectados con fallbacks (AMOUNT_FIELDS/DATE_FIELDS).
+  * GET /admin/plaid/transactions?status=&limit + counts agregados
+  * POST /admin/plaid/transactions/{txid}/status {ignored|unmatched} manual
+  * POST /admin/plaid/reconcile · DELETE /admin/plaid/items/{item_id} (item_remove + limpia)
+- UI /admin/banco (nav FINANZAS, react-plaid-link 5.0 instalado con npm en /app):
+  ConnectButton usePlaidLink, cards de cuentas con balances, % conciliado, filtros
+  matched/unmatched/ignored, botones Sincronizar/Conciliar, Ignorar/Restaurar por tx.
+- Tests tests/test_plaid.py 6/6 con SANDBOX REAL (sandbox_public_token_create ins_109508
+  First Platypus Bank, sync importó transacciones reales de sandbox, auto-match verificado,
+  teardown hace item_remove y limpia bank_transactions).
+- Deploys: Railway push OK (endpoints darán 500 hasta que usuario agregue env vars),
+  Vercel squash 3c8cbfebb. Smoke screenshot página OK (SANDBOX badge, empty state con
+  credenciales de prueba user_good/pass_good visibles).
