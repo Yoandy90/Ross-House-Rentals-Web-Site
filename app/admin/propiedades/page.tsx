@@ -6,8 +6,9 @@ import {
   Home, Plus, Search, MapPin, DollarSign, Bed, Bath, Square,
   Edit3, Trash2, Eye, RefreshCw, CheckCircle2, Wrench, Clock,
   X, ChevronDown, ChevronUp, Save, Image as ImageIcon,
-  Building2, Shield, Calendar as CalIcon, AlertTriangle,
+  Building2, Shield, Calendar as CalIcon, AlertTriangle, Layers,
 } from 'lucide-react';
+import UnitsManager from '../../components/admin/UnitsManager';
 
 const fmt = (n: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 }).format(n);
 
@@ -27,6 +28,7 @@ const PHOTO_CATEGORIES = [
 export default function PropiedadesPage() {
   const { headers } = useAdminAuth();
   const [properties, setProperties] = useState<any[]>([]);
+  const [unitsProp, setUnitsProp] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [showForm, setShowForm] = useState(false);
@@ -723,10 +725,16 @@ export default function PropiedadesPage() {
                     <span className="flex items-center gap-1"><Bed className="w-3 h-3" /> {p.bedrooms || 0}</span>
                     <span className="flex items-center gap-1"><Bath className="w-3 h-3" /> {p.bathrooms || 0}</span>
                     {p.sqft > 0 && <span className="flex items-center gap-1"><Square className="w-3 h-3" /> {p.sqft} ft²</span>}
+                    {p.is_multi_unit && (
+                      <span className="flex items-center gap-1 text-cyan-400 font-bold" title={`${p.units_rented || 0} de ${p.units_count || 0} unidades ocupadas`}>
+                        <Layers className="w-3 h-3" /> {p.units_rented || 0}/{p.units_count || 0}
+                      </span>
+                    )}
                   </div>
                   <div className="flex items-center justify-between">
                     <div className="text-lg font-bold text-cyan-400">{fmt(p.rent_amount || 0)}<span className="text-[10px] text-gray-600 font-normal">/mes</span></div>
                     <div className="flex gap-1">
+                      <button onClick={() => setUnitsProp(p)} title="Unidades (multi-unidad)" className="p-1.5 rounded-lg hover:bg-cyan-500/10 text-gray-500 hover:text-cyan-400 transition"><Layers className="w-3.5 h-3.5" /></button>
                       <button onClick={() => startEdit(p)} className="p-1.5 rounded-lg hover:bg-white/[0.06] text-gray-500 hover:text-cyan-400 transition"><Edit3 className="w-3.5 h-3.5" /></button>
                       <button onClick={() => handleDelete(p._id)} className="p-1.5 rounded-lg hover:bg-red-500/10 text-gray-500 hover:text-red-400 transition"><Trash2 className="w-3.5 h-3.5" /></button>
                     </div>
@@ -736,6 +744,12 @@ export default function PropiedadesPage() {
             );
           })}
         </div>
+      )}
+
+      {/* Units manager modal */}
+      {unitsProp && (
+        <UnitsManager propertyId={unitsProp._id} propertyName={unitsProp.name || unitsProp.address || 'Propiedad'}
+          headers={headers} onClose={() => setUnitsProp(null)} onChanged={fetchProps} />
       )}
 
       {/* Quick-create owner modal (used inside form) */}

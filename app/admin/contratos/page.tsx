@@ -39,7 +39,7 @@ export default function ContratosPage() {
   const [editing, setEditing] = useState<any>(null);
   const [saving, setSaving] = useState(false);
   const [expanded, setExpanded] = useState<string | null>(null);
-  const [form, setForm] = useState({ property_id: '', tenant_id: '', start_date: '', end_date: '', rent_amount: '', deposit_amount: '', payment_day: '1', status: 'draft', late_fee: '25', grace_period_days: '5', terms: '' });
+  const [form, setForm] = useState({ property_id: '', unit_id: '', tenant_id: '', start_date: '', end_date: '', rent_amount: '', deposit_amount: '', payment_day: '1', status: 'draft', late_fee: '25', grace_period_days: '5', terms: '' });
 
   const fetchAll = useCallback(async () => {
     try {
@@ -71,7 +71,20 @@ export default function ContratosPage() {
   };
   const getTenantName = (id: string) => { const t = tenants.find(t => t._id === id); return t ? `${t.first_name} ${t.last_name}` : 'N/A'; };
 
-  const resetForm = () => { setForm({ property_id: '', tenant_id: '', start_date: '', end_date: '', rent_amount: '', deposit_amount: '', payment_day: '1', status: 'draft', late_fee: '25', grace_period_days: '5', terms: '' }); setEditing(null); setShowForm(false); };
+  const resetForm = () => { setForm({ property_id: '', unit_id: '', tenant_id: '', start_date: '', end_date: '', rent_amount: '', deposit_amount: '', payment_day: '1', status: 'draft', late_fee: '25', grace_period_days: '5', terms: '' }); setUnits([]); setEditing(null); setShowForm(false); };
+
+  // Unidades de la propiedad seleccionada (multi-unidad)
+  const [units, setUnits] = useState<any[]>([]);
+  useEffect(() => {
+    if (!form.property_id) { setUnits([]); return; }
+    (async () => {
+      try {
+        const res = await fetch(`/api/admin/properties/${form.property_id}/units`, { headers: headers() });
+        if (res.ok) setUnits((await res.json()).units || []);
+        else setUnits([]);
+      } catch { setUnits([]); }
+    })();
+  }, [form.property_id]);
 
   const handleSave = async () => {
     setSaving(true);
@@ -285,7 +298,15 @@ export default function ContratosPage() {
         <div className="bg-white/[0.03] backdrop-blur-xl rounded-2xl border border-emerald-500/20 p-6">
           <div className="flex items-center justify-between mb-4"><h3 className="text-lg font-bold text-white">{editing ? 'Editar Contrato' : 'Nuevo Contrato'}</h3><button onClick={resetForm} className="text-gray-500 hover:text-white"><X className="w-5 h-5" /></button></div>
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            <div><label className="block text-xs font-bold text-gray-400 mb-1 uppercase tracking-wider">Propiedad <span className="text-emerald-500">*</span></label><select value={form.property_id} onChange={e => setForm({...form, property_id: e.target.value})} className="w-full px-3 py-2.5 bg-[#0a1020]/60 border border-white/[0.08] rounded-xl text-white text-sm focus:border-emerald-500 focus:outline-none appearance-none"><option value="">Seleccionar...</option>{properties.map(p => <option key={p._id} value={p._id}>{getPropDisplayName(p)}</option>)}</select></div>
+            <div><label className="block text-xs font-bold text-gray-400 mb-1 uppercase tracking-wider">Propiedad <span className="text-emerald-500">*</span></label><select value={form.property_id} onChange={e => setForm({...form, property_id: e.target.value, unit_id: ''})} className="w-full px-3 py-2.5 bg-[#0a1020]/60 border border-white/[0.08] rounded-xl text-white text-sm focus:border-emerald-500 focus:outline-none appearance-none"><option value="">Seleccionar...</option>{properties.map(p => <option key={p._id} value={p._id}>{getPropDisplayName(p)}</option>)}</select></div>
+            {units.length > 0 && (
+              <div><label className="block text-xs font-bold text-gray-400 mb-1 uppercase tracking-wider">Unidad <span className="text-emerald-500">*</span></label>
+                <select value={form.unit_id} onChange={e => { const u = units.find(x => x._id === e.target.value); setForm({ ...form, unit_id: e.target.value, rent_amount: u?.rent_amount ? String(u.rent_amount) : form.rent_amount, deposit_amount: u?.deposit_amount ? String(u.deposit_amount) : form.deposit_amount }); }} className="w-full px-3 py-2.5 bg-[#0a1020]/60 border border-white/[0.08] rounded-xl text-white text-sm focus:border-emerald-500 focus:outline-none appearance-none">
+                  <option value="">Seleccionar unidad...</option>
+                  {units.map(u => <option key={u._id} value={u._id} disabled={u.status === 'rented'}>{u.unit_name} — ${u.rent_amount || 0}{u.status === 'rented' ? ` (ocupada${u.tenant_name ? ': ' + u.tenant_name : ''})` : u.status === 'maintenance' ? ' (mantenimiento)' : ''}</option>)}
+                </select>
+              </div>
+            )}
             <div><label className="block text-xs font-bold text-gray-400 mb-1 uppercase tracking-wider">Inquilino <span className="text-emerald-500">*</span></label><select value={form.tenant_id} onChange={e => setForm({...form, tenant_id: e.target.value})} className="w-full px-3 py-2.5 bg-[#0a1020]/60 border border-white/[0.08] rounded-xl text-white text-sm focus:border-emerald-500 focus:outline-none appearance-none"><option value="">Seleccionar...</option>{tenants.map(t => <option key={t._id} value={t._id}>{t.first_name} {t.last_name}</option>)}</select></div>
             <div><label className="block text-xs font-bold text-gray-400 mb-1 uppercase tracking-wider">Estado</label><select value={form.status} onChange={e => setForm({...form, status: e.target.value})} className="w-full px-3 py-2.5 bg-[#0a1020]/60 border border-white/[0.08] rounded-xl text-white text-sm focus:border-emerald-500 focus:outline-none appearance-none"><option value="draft">Borrador</option><option value="active">Activo</option><option value="pending_signature">Pendiente Firma</option></select></div>
             <FInput label="Fecha Inicio" value={form.start_date} onChange={v => setForm({...form, start_date: v})} type="date" required />
@@ -297,7 +318,7 @@ export default function ContratosPage() {
           </div>
           <div className="flex justify-end gap-2 mt-4">
             <button onClick={resetForm} className="px-4 py-2 border border-white/[0.08] rounded-lg text-sm text-gray-400 hover:bg-white/[0.04]">Cancelar</button>
-            <button onClick={handleSave} disabled={saving || !form.property_id || !form.tenant_id || !form.rent_amount} className="flex items-center gap-2 px-6 py-2 bg-gradient-to-r from-emerald-600 to-emerald-500 text-white rounded-lg text-sm font-bold hover:opacity-90 disabled:opacity-30 shadow-[0_0_15px_rgba(16,185,129,0.3)]">{saving ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <><Save className="w-4 h-4" /> {editing ? 'Guardar' : 'Crear'}</>}</button>
+            <button onClick={handleSave} disabled={saving || !form.property_id || !form.tenant_id || !form.rent_amount || (units.length > 0 && !form.unit_id)} className="flex items-center gap-2 px-6 py-2 bg-gradient-to-r from-emerald-600 to-emerald-500 text-white rounded-lg text-sm font-bold hover:opacity-90 disabled:opacity-30 shadow-[0_0_15px_rgba(16,185,129,0.3)]">{saving ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <><Save className="w-4 h-4" /> {editing ? 'Guardar' : 'Crear'}</>}</button>
           </div>
         </div>
       )}
@@ -317,7 +338,7 @@ export default function ContratosPage() {
                   <div className="flex items-center gap-3 flex-1 min-w-0">
                     <div className="w-10 h-10 bg-gradient-to-br from-emerald-500/30 to-emerald-600/20 rounded-xl flex items-center justify-center"><FileText className="w-5 h-5 text-emerald-400" /></div>
                     <div className="min-w-0">
-                      <div className="font-semibold text-sm text-white truncate">{getPropName(c.property_id)}</div>
+                      <div className="font-semibold text-sm text-white truncate">{getPropName(c.property_id)}{c.unit_name ? ` — ${c.unit_name}` : ''}</div>
                       <div className="text-[11px] text-gray-500 flex items-center gap-2"><Users className="w-3 h-3" /> {getTenantName(c.tenant_id)} <span>•</span> <Calendar className="w-3 h-3" /> {c.start_date} → {c.end_date}</div>
                     </div>
                   </div>
@@ -361,7 +382,7 @@ export default function ContratosPage() {
                       >
                         <PenTool className="w-3 h-3" /> Firmar en Oficina
                       </button>
-                      <button onClick={() => { setForm({ property_id: c.property_id, tenant_id: c.tenant_id, start_date: c.start_date || '', end_date: c.end_date || '', rent_amount: String(c.rent_amount || ''), deposit_amount: String(c.deposit_amount || ''), payment_day: String(c.payment_day || 1), status: c.status || 'draft', late_fee: String(c.late_fee || 25), grace_period_days: String(c.grace_period_days || 5), terms: c.terms || '' }); setEditing(c); setShowForm(true); }} className="flex items-center gap-1.5 text-xs px-3 py-1.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-lg hover:bg-emerald-500/20 transition"><Edit3 className="w-3 h-3" /> Editar</button>
+                      <button onClick={() => { setForm({ property_id: c.property_id, unit_id: c.unit_id || '', tenant_id: c.tenant_id, start_date: c.start_date || '', end_date: c.end_date || '', rent_amount: String(c.rent_amount || ''), deposit_amount: String(c.deposit_amount || ''), payment_day: String(c.payment_day || 1), status: c.status || 'draft', late_fee: String(c.late_fee || 25), grace_period_days: String(c.grace_period_days || 5), terms: c.terms || '' }); setEditing(c); setShowForm(true); }} className="flex items-center gap-1.5 text-xs px-3 py-1.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-lg hover:bg-emerald-500/20 transition"><Edit3 className="w-3 h-3" /> Editar</button>
                       <button onClick={() => handleDelete(c._id, c.status)} className="flex items-center gap-1.5 text-xs px-3 py-1.5 bg-red-500/10 text-red-400 border border-red-500/20 rounded-lg hover:bg-red-500/20 transition"><Trash2 className="w-3 h-3" /> Eliminar</button>
                     </div>
                   </div>
