@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { X, Smartphone, QrCode, Apple, Sparkles } from 'lucide-react'
 
 const IOS_URL = 'https://apps.apple.com/us/app/ross-house/id6775734340'
@@ -60,7 +61,7 @@ export function AppStickyBanner({ campaign = 'public-web' }: { campaign?: string
         <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-indigo-900 text-white rounded-2xl shadow-2xl shadow-black/30 border border-white/10 backdrop-blur-xl">
           <div className="flex items-center gap-3 p-3 pr-2">
             <div className="w-11 h-11 rounded-xl bg-white shrink-0 flex items-center justify-center shadow-lg">
-              {/* eslint-disable-next-line */}
+              { }
               <img src="/logo.jpg" alt="Ross House" className="w-9 h-9 rounded-lg object-contain" />
             </div>
             <div className="flex-1 min-w-0">
@@ -120,7 +121,7 @@ export function AppHeroCard({ campaign = 'tenant-dashboard' }: { campaign?: stri
       </button>
       <div className="relative p-5 md:p-6 flex flex-col md:flex-row items-start md:items-center gap-4">
         <div className="w-14 h-14 md:w-16 md:h-16 rounded-2xl bg-white/95 shadow-2xl flex items-center justify-center shrink-0">
-          {/* eslint-disable-next-line */}
+          { }
           <img src="/logo.jpg" alt="Ross House" className="w-11 h-11 md:w-12 md:h-12 rounded-xl object-contain" />
         </div>
         <div className="flex-1 min-w-0">
@@ -190,7 +191,7 @@ export function AppSidebarWidget({ campaign = 'admin-share', collapsed = false }
       <div className="mx-2 mb-3 p-2.5 rounded-xl bg-gradient-to-br from-indigo-500/10 to-violet-500/10 border border-indigo-400/20">
         <div className="flex items-center gap-2 mb-2">
           <div className="w-7 h-7 rounded-lg bg-white/95 flex items-center justify-center shrink-0">
-            {/* eslint-disable-next-line */}
+            { }
             <img src="/logo.jpg" alt="Ross House" className="w-5 h-5 rounded object-contain" />
           </div>
           <div className="flex-1 min-w-0">
@@ -244,7 +245,9 @@ export function AppHeaderButton({ campaign = 'admin-share' }: { campaign?: strin
 }
 
 function QrModal({ onClose, qrSrc, shareUrl, copy, copied }: { onClose: () => void; qrSrc: string; shareUrl: string; copy: () => void; copied: boolean }) {
-  return (
+  // Portal a <body>: el header usa backdrop-blur, que convierte 'fixed' en relativo al header
+  if (typeof document === 'undefined') return null
+  return createPortal(
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm" onClick={onClose}>
       <div className="bg-white rounded-3xl p-6 max-w-sm w-full shadow-2xl" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-4">
@@ -254,7 +257,7 @@ function QrModal({ onClose, qrSrc, shareUrl, copy, copied }: { onClose: () => vo
           </button>
         </div>
         <div className="bg-white p-4 rounded-2xl border border-gray-200 flex items-center justify-center mb-4">
-          {/* eslint-disable-next-line */}
+          { }
           <img src={qrSrc} alt="QR code Ross House App" className="w-64 h-64" />
         </div>
         <p className="text-xs text-slate-500 text-center leading-relaxed mb-3">
@@ -277,6 +280,7 @@ function QrModal({ onClose, qrSrc, shareUrl, copy, copied }: { onClose: () => vo
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }

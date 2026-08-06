@@ -486,3 +486,25 @@ Ver /app/memory/test_credentials.md
 - provider_payments reales: solo 3 residuos QA 'cancelled' (correctamente excluidos).
   service_providers: 3 residuos de pruebas del usuario (no borrados a propósito).
 - Deploys: Railway OK (verificado summary 200 en prod), Vercel squash f223ed769.
+
+## Fase 5: Publicar Anuncios (Ago 6, 2026)
+- BACKEND rental/listing_feed_router.py (NUEVO, registrado en server.py):
+  * GET /public/listings-feed.xml (sin auth) → XML estilo hotPadsItems v2.1 con propiedades
+    'available' + unidades libres de multi-unidad. Fotos con URL pública
+    {SITE}/api/public/property-file/... (SITE=https://www.rosshouserentals.com constante).
+    Escaping XML correcto. Excluye rentadas/mantenimiento.
+  * POST /admin/listings/{property_id}/ad-copy (body {unit_id?}) → Claude genera JSON
+    {es:{title,description,bullets,social}, en:{...}} y se cachea en properties.ad_copy.
+    Social post incluye teléfono (806) 934-2018. Usa MODEL de ai_brain_router.
+  * GET /admin/listings/publish-info → listings disponibles + ad_copy cacheado + feed_url.
+- UI /admin/publicar (nav grupo PROPIEDADES, icono Megaphone): tarjeta feed URL con copiar,
+  guía de 4 portales (Zillow Rental Manager manual, Facebook Marketplace, Zumper, Apartments.com),
+  cards por listing con Generar/Regenerar anuncio IA, tabs ES/EN, botones copiar por sección.
+  CopyBtn extraído fuera del componente (lint no-unstable-nested-components).
+- REALIDAD PORTALES: Zillow no acepta feeds de landlords pequeños → flujo copiar/pegar.
+  Zumper/Hotpads partners sí pueden consumir el feed XML.
+- Tests tests/test_listing_feed.py 5/5 (LLM mockeado vía monkey-patch de LlmChat).
+- VERIFICADO PROD: feed vivo (2 propiedades, 12 fotos), anuncio AI real generado para
+  121 Oak Ave (guardado en ad_copy). Screenshot de página OK.
+- Deploys: Railway OK, Vercel squash 954721c95.
+- EIN configurado: usuario subió CP 575 → payer 1099 completo (EIN 39-3060069) en prod.
