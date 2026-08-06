@@ -41,6 +41,8 @@ html[data-theme="light"] .bg-\[\#0C0C0E\] {
   background-color: #F8FAFC !important;
 }
 html[data-theme="light"] .bg-\[\#0b1220\],
+html[data-theme="light"] .bg-\[\#0d1526\],
+html[data-theme="light"] .bg-\[\#0d1526\]\/80,
 html[data-theme="light"] .bg-\[\#0f172a\],
 html[data-theme="light"] .bg-\[\#17171A\],
 html[data-theme="light"] .bg-\[\#1F1F23\] {

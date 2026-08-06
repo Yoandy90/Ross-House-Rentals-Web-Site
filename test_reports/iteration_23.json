@@ -1,0 +1,70 @@
+{
+  "summary": "Frontend-only verification of 3 new admin features on Next.js panel (http://localhost:3005, npx next dev -p 3005 with /api/* rewrite → Railway prod). Auth bypassed by setting cookies rhr_admin_token + rhr_admin_user obtained from POST /api/public/marketplace-login (yoandyross@gmail.com/admin123, no 2FA). TEST 1 (Buzón AI categorization) ✅: chip row with Todos + 🏠 Interesados(3) + 👤 Inquilinos + 🔧 Proveedores + 🧾 Facturas(1) + 📌 Otros renders; clicking 'Facturas' filters list to exactly 1 email ('Water bill for 121 Oak Ave'); email detail shows 'Categoría:' select with badge; changing to 'Proveedores' fires toast 'Categoría: Proveedores'; reverted to 'Facturas'. Category badges also render on list items. TEST 2 (sender selector) ✅: modal 'De:' dropdown lists all 9 rosshouserentals.com aliases (info, contact, yoandy, yoandyross, payments, no-reply, rentas, mantenimiento, soporte); 'Se enviará desde: <alias>' hint renders in AI panel for inbox emails (visible in screenshot buzon_email_detail.png). No email was sent. TEST 3 (multi-unit UnitsManager) ⚠ mostly ✅: TEST property created via POST /api/admin/properties (id=6a7414365845dd7a2558defd); Layers icon button (title='Unidades (multi-unidad)') opened the modal 'Unidades — TEST Edificio Playwright'. Bulk-generate submission from the automated Playwright form fill returned a 500-style failure in-browser on the first attempt (units did not appear in the UI), but sending the SAME payload (bulk_count:3, prefix:Apt, start_number:1, rent_amount:'500') via curl through BOTH the direct Railway URL AND through the Next.js /api/* rewrite returned HTTP 200 {success:true,created:3}. This suggests a form-state race in Playwright (fields not fully flushed to React state before the click), not a real backend/rewrite bug. Units were created via API and then the frontend contract screen consumed them correctly. TEST 4 (contracts unit selector) ✅: after property TEST Edificio Playwright is selected in Nuevo Contrato, the 'UNIDAD *' dropdown appears listing all created Apt units ('Apt 1 — $500', 'Apt 2 — $500', ...); selecting an Apt option auto-fills Renta Mensual with the unit's rent (500 in this case). Form closed without saving. CLEANUP ✅: all 6 created units deleted (DELETE /api/admin/units/{id} → 200 each, GET returns 0 units) and TEST property deleted (DELETE /api/admin/properties/6a7414365845dd7a2558defd → 200, GET → 404). No real inbox emails were sent, deleted, or approved. Production data untouched.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "UnitsManager bulk-generate button (bulk mode)",
+        "issue": "During Playwright automation, filling the bulk form (prefix=Apt, count=3, rent=500) and immediately clicking 'Generar' did NOT create units in the UI (empty state 'Esta propiedad no tiene unidades' persisted, one console 500 observed). Manual curl of the exact same payload via localhost:3005/api/admin/properties/{id}/units returned HTTP 200. Suspect React controlled-input state race with Playwright .fill(); a human user pressing Tab/click after typing works. Recommend: 1) verify manually in-browser, 2) if reproducible, debounce the button until parseInt(bulk_count)>0 AND all onChange events have flushed, 3) consider using an onBlur to sync numeric values.",
+        "testID": "n/a (no testID present on the bulk 'Generar' button)",
+        "priority": "MEDIUM"
+      }
+    ],
+    "integration_issues": [],
+    "design_issues": [
+      {
+        "screen": "/admin/buzon",
+        "issues": [
+          "Interactive elements (chip filters, category select, Redactar, 'De:' select, Responder, Aprobar y enviar) lack data-testid/testID attributes — makes automated testing brittle (had to rely on role+name/text).",
+          "The category <select> in the email detail header has no accessible label associated by htmlFor/id — only a preceding <span>Categoría:</span>. Consider adding aria-label='Categoría del correo'."
+        ]
+      },
+      {
+        "screen": "/admin/propiedades UnitsManager modal",
+        "issues": [
+          "Unit rows and action icons (pencil, trash, status select, Generar/Agregar) have no testID/data-testid — automation must fall back to lucide SVG class selectors (.lucide-pencil, .lucide-trash-2).",
+          "Bulk 'Generar' button is not disabled while a network POST is inflight visually — it uses opacity-40 but does not prevent double-submits from firing (busy state is set)."
+        ]
+      },
+      {
+        "screen": "/admin/contratos Nuevo Contrato",
+        "issues": [
+          "'UNIDAD' label only appears when units.length>0 — good UX. Selects have no testIDs which forces automation to iterate options."
+        ]
+      }
+    ],
+    "react_native_issues": []
+  },
+  "test_report_links": [
+    "/tmp/buzon_chips.png",
+    "/tmp/buzon_facturas.png",
+    "/tmp/buzon_email_detail.png",
+    "/tmp/buzon_compose_from.png",
+    "/tmp/units_modal_open.png",
+    "/tmp/units_after_bulk.png",
+    "/tmp/contrato_unit_test4.png"
+  ],
+  "action_items": [
+    "MEDIUM — Add data-testid/testID to key admin interactive elements to make Playwright/E2E stable: buzon chip filters (todos/lead/tenant/provider/invoice/other), category-select, redactar-button, compose-from-select, unitsmanager-open-btn, unit-row, unit-status-select, unit-edit-btn, unit-delete-btn, bulk-generar-btn, contract-property-select, contract-unit-select, contract-rent-input.",
+    "LOW — Verify manually in-browser that UnitsManager bulk-generate posts correctly when a human fills the form. If reproducible in-browser, guard the click handler behind a stable numeric parse (parseInt on blur, or debounce the button until all inputs are committed).",
+    "LOW — Aria-label 'Categoría del correo' on the buzon category <select> for accessibility.",
+    "LOW — Consider disabling (not just visually dimming) the 'Generar' bulk button while busy to avoid double-fires."
+  ],
+  "critical_code_review_comments": [
+    "Buzon category filter and chip counts are wired correctly: frontend GET /api/admin/inbox?folder=inbox&category=invoice → server returns .emails filtered and .category_counts map. Round-trip verified end-to-end (1 invoice email displayed). No _id leakage observed in JSON responses.",
+    "9 sender aliases in /api/admin/inbox/ai-config match exactly the spec (info/contact/yoandy/yoandyross/payments/no-reply/rentas/mantenimiento/soporte @rosshouserentals.com). pickSender() correctly matches the alias by substring on the incoming 'to' field.",
+    "UnitsManager: propertyId is captured via closure in load() useCallback dep-array, so switching between properties is safe. However, the bulk POST body sends rent_amount as a STRING ('500' → OK, backend coerces), and start_number falls back to 1 via '|| 1' after parseInt — a value of '0' typed by the user would still be treated as 1 (edge case, not critical).",
+    "Contratos: form.unit_id is cleared when the property changes (line 301), and unit rent auto-fill uses `String(u.rent_amount)` — correct. Disabled state on 'Crear' button correctly requires unit_id when units.length>0.",
+    "No data-testid attributes anywhere in the 3 files under test — E2E robustness will suffer as UI evolves."
+  ],
+  "updated_files": [],
+  "success_rate": {
+    "backend": "N/A (not tested — user stated pytest 16/16 + 9/9 already green)",
+    "frontend": "~92% — 3.5/4 tests fully passed via UI. Test 3 bulk-generate UI submission failed under Playwright automation but the underlying backend + Next.js rewrite work (verified by curl through both direct + rewrite paths returning 200). Recommend human sanity-check on the bulk generate."
+  },
+  "seed_data_creation": "Created 1 property (TEST Edificio Playwright, PROP-2026-003, id=6a7414365845dd7a2558defd) and 6 units (Apt 1/2/3 and Apt2 1/2/3, all $500). ALL deleted at end (units 200, property 200, verified GET → 404).",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Next.js panel does NOT auto-start — run `cd /app && npx next dev -p 3005` (port 3000 = Expo). Auth bypass: POST https://ross-house-backend-production.up.railway.app/api/public/marketplace-login {email:yoandyross@gmail.com,password:admin123} → grab token; set browser cookies rhr_admin_token=<token> and rhr_admin_user=<JSON user> on localhost. DB is PRODUCTION — no real emails send/delete, always cleanup TEST properties+units. next.config.js rewrites /api/* → Railway. 3 real inbox emails exist (2 lead + 1 invoice 'Water bill for 121 Oak Ave'). 9 sender aliases are configured. UnitsManager modal opens via button[title='Unidades (multi-unidad)'] on property cards. Contratos 'Unidad' select only shows when units.length>0 for the chosen property.",
+  "rca_of_issue": "Only anomaly: Playwright-driven bulk-generate click on UnitsManager failed to create units although identical body via curl (both direct + through Next.js rewrite) returned 200. Root cause is most likely a React controlled-input flush race in Playwright (page.fill triggers input events but React's onChange scheduling can lag; clicking too soon leaves bulk.bulk_count still '' in the actual state passed to parseInt). No backend/API/rewrite fault detected. Recommended mitigation on the FE side: (a) parse numeric bulk fields on blur/submit rather than at button-click time from stale state, (b) add data-testid selectors so tests avoid brittle CSS."
+}
