@@ -85,6 +85,7 @@ const NAV_GROUPS = [
       { href: '/admin/gastos', Icon: DollarSign, label: 'Gastos', desc: 'Mantenimiento', color: 'red' },
       { href: '/admin/impuestos', Icon: Landmark, label: 'Impuestos', desc: 'Moore County · deuda real 🏛️', color: 'orange' },
       { href: '/admin/formularios-1099', Icon: FileBarChart, label: '1099-NEC', desc: 'Contratistas · IRS 📋', color: 'lime' },
+      { href: '/admin/banco', Icon: Landmark, label: 'Banco', desc: 'Conciliación Plaid 🏦', color: 'emerald' },
       { href: '/admin/rendimiento', Icon: TrendingUp, label: 'Rendimiento', desc: 'ROI & Analytics', color: 'indigo' },
       { href: '/admin/inversiones', Icon: Briefcase, label: 'Inversiones', desc: 'Comprar/Reparar/Vender', color: 'orange' },
       { href: '/admin/propietarios', Icon: UserCog, label: 'Propietarios', desc: 'Gestión Owners', color: 'purple' },
