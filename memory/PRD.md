@@ -434,3 +434,31 @@ Ver /app/memory/test_credentials.md
   * Tests: test_email_ai.py ampliado a 13 (mock _classify_email) — 13/13 PASS.
 - NOTA deploy Vercel: el build tardó ~45 min en publicarse (cola lenta) — tener paciencia
   antes de asumir fallo.
+
+## Selector de remitente + Modelo Multi-Unidad (Ago 6, 2026)
+- SELECTOR REMITENTE (backend Railway + Vercel): SENDER_ADDRESSES 9 alias @rosshouserentals.com
+  (info default, contact, yoandy, yoandyross, payments, no-reply, rentas, mantenimiento, soporte).
+  Dominio autenticado en SendGrid → cualquier alias puede enviar. POST /admin/inbox/send acepta
+  from_email (valida whitelist); approve-draft/auto-send/ack responden desde el alias receptor
+  (_pick_sender sobre header 'to'). ai-config GET expone {senders, default_sender}. UI: dropdown
+  'De:' en redactar + hint 'Se enviará desde' en panel AI. Tests 16/16.
+- MULTI-UNIDAD (units_router.py NUEVO): colección property_units {property_id, unit_name, bedrooms,
+  bathrooms, rent_amount, deposit_amount, status available|rented|maintenance, current_tenant_id,
+  current_contract_id}. Endpoints: GET/POST /admin/properties/{id}/units (POST soporta bulk_count
+  hasta 200 con prefix+start_number — listo para Jasmine 142 unidades), PUT/DELETE /admin/units/{id}
+  (delete bloqueado si rentada). sync_property_from_units deriva status/counters de la propiedad
+  (respeta status_manually_set). Contratos: unit_id opcional (crear valida unidad libre, autofill
+  renta/depósito de la unidad, property_address += ' — Apt X'); activar→mark_unit_rented,
+  terminar/expirar/revertir→free_unit; tenants.current_unit_id. property_sync_cron y
+  /admin/properties/sync-status saltan multi-unit (derivan de unidades). Tests tests/test_units.py 9/9.
+- UI: components/admin/UnitsManager.tsx (modal: resumen 4 tarjetas, crear una/bulk, editar inline,
+  status select, eliminar), botón Layers + chip 'X/Y' en tarjetas de propiedades, selector 'Unidad'
+  en form de contratos (requerido si la propiedad tiene unidades, deshabilita ocupadas).
+- FIX TEMA CLARO: globals.css ahora mapea bg-[#0d1526] y /80 → blanco (antes modales de Buzón y
+  Unidades quedaban azul oscuro con texto oscuro invisible en light).
+- TESTING: testing_agent iteración 23 (frontend E2E vía next dev :3005 + cookie rhr_admin_token
+  del marketplace-login sin 2FA) — buzón categorías/remitentes/unidades/contratos OK. INCIDENTE
+  RESUELTO: prueba manual creó 3 units en 121 Oak Ave real (locator .last) — limpiado y verificado
+  (is_multi_unit False, 0 units, solo 2 propiedades reales). Cuidado con .last en cards de
+  propiedades: crear SIEMPRE propiedad TEST y localizar su card por nombre.
+- Deploys: backend Railway (2 pushes), Vercel squash 0d18e5596 (multi-unidad + fix tema).
