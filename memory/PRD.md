@@ -462,3 +462,27 @@ Ver /app/memory/test_credentials.md
   (is_multi_unit False, 0 units, solo 2 propiedades reales). Cuidado con .last en cards de
   propiedades: crear SIEMPRE propiedad TEST y localizar su card por nombre.
 - Deploys: backend Railway (2 pushes), Vercel squash 0d18e5596 (multi-unidad + fix tema).
+
+## Fase 2: Módulo 1099-NEC (Ago 6, 2026)
+- BACKEND rental/tax_1099_router.py (NUEVO, registrado en server.py):
+  * GET /admin/1099/summary?year= → filas por proveedor con {reportable, excluded, needs_1099
+    (umbral $600), w9_complete, w9 con tin_masked} + payer + totals. REGLA IRS: métodos
+    stripe_card/paypal/venmo/cashapp EXCLUIDOS (los reporta el procesador en 1099-K);
+    cash/check/zelle/wire/stripe_ach/other SÍ reportables. Solo pagos status='paid' del año.
+  * PUT /admin/1099/payer → app_settings {_id:'tax_1099'} (name, ein, address...). Default
+    Ross House Rentals LLC, 305 Bruce Ave. EIN requerido para payer_complete.
+  * PUT /admin/1099/providers/{id}/w9 → service_providers.w9 {legal_name, business_name,
+    tax_classification, tin_type, tin (valida 9 dígitos), address...}. TIN completo en DB,
+    enmascarado ***-**-XXXX en UI/summary, completo solo en CSV e-file.
+  * GET /admin/1099/providers/{id}/pdf?year= → PDF Copy B sustituto (reportlab, Pub 1179).
+  * POST /admin/1099/providers/{id}/email → envía PDF adjunto vía SendGrid (bilingüe según
+    language_pref), marca form_1099_sent.{year}.
+  * GET /admin/1099/export/csv → CSV con TIN completo para e-file (Tax1099/IRIS).
+- UI /admin/formularios-1099 (nav grupo finanzas, icono FileBarChart lime): selector año,
+  3 tarjetas resumen, alerta si falta EIN, filas con badges, modal W-9, modal payer,
+  descargar PDF, enviar email, export CSV.
+- Tests tests/test_1099.py 6/6 (fixture restaura payer config; OJO: correr tests deja/borra
+  payer según estado previo — tras primera corrida se limpió manualmente el EIN falso).
+- provider_payments reales: solo 3 residuos QA 'cancelled' (correctamente excluidos).
+  service_providers: 3 residuos de pruebas del usuario (no borrados a propósito).
+- Deploys: Railway OK (verificado summary 200 en prod), Vercel squash f223ed769.

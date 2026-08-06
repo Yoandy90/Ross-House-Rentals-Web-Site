@@ -14,7 +14,7 @@ import {
   Settings, LogOut, ChevronLeft, ChevronRight, Menu, X,
   DollarSign, Building2, TrendingUp, Briefcase, Store, UserCog,
   FileBarChart, MessageSquare, ClipboardCheck, Zap, ShieldAlert, ScanLine,
-  Wallet, Repeat, Vault, ClipboardList, Heart, Brain, Globe, Smartphone, Share2, Mail,
+  Wallet, Repeat, Vault, ClipboardList, Heart, Brain, Globe, Smartphone, Share2, Mail, Megaphone,
   Search, ChevronDown, Landmark, Star,
 } from 'lucide-react';
 
@@ -62,6 +62,7 @@ const NAV_GROUPS = [
       { href: '/admin/propiedades', Icon: Home, label: 'Propiedades', desc: 'Inventario', color: 'cyan' },
       { href: '/admin/aplicaciones', Icon: ClipboardList, label: 'Aplicaciones', desc: 'Prospectos web', color: 'blue' },
       { href: '/admin/interesados', Icon: Heart, label: 'Lista de Espera', desc: 'Inquilinos interesados', color: 'pink' },
+      { href: '/admin/publicar', Icon: Megaphone, label: 'Publicar', desc: 'Zillow · Zumper · Feed 📣', color: 'pink' },
       { href: '/admin/pm-waitlist', Icon: Building2, label: 'PM Waitlist', desc: 'Propietarios interesados 🚧', color: 'indigo' },
       { href: '/admin/proveedores', Icon: Wrench, label: 'Proveedores', desc: 'Plomeros, electricistas...', color: 'amber' },
       { href: '/admin/inquilinos', Icon: Users, label: 'Inquilinos', desc: 'Base de datos', color: 'violet' },
