@@ -42,9 +42,11 @@ export default function BuzonPage() {
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState('');
   const [compose, setCompose] = useState(false);
-  const [form, setForm] = useState({ to: '', subject: '', body: '', send_at: '' });
+  const [form, setForm] = useState({ from: '', to: '', subject: '', body: '', send_at: '' });
   const [sending, setSending] = useState(false);
   const [toast, setToast] = useState<{ ok: boolean; text: string } | null>(null);
+  const [senders, setSenders] = useState<Record<string, string>>({});
+  const [defaultSender, setDefaultSender] = useState('');
   const [aiCfg, setAiCfg] = useState<AiConfig | null>(null);
   const [showAiCfg, setShowAiCfg] = useState(false);
   const [draftEdit, setDraftEdit] = useState('');
@@ -82,7 +84,12 @@ export default function BuzonPage() {
     (async () => {
       try {
         const res = await fetch('/api/admin/inbox/ai-config', { headers: headers() });
-        if (res.ok) setAiCfg((await res.json()).config);
+        if (res.ok) {
+          const d = await res.json();
+          setAiCfg(d.config);
+          setSenders(d.senders || {});
+          setDefaultSender(d.default_sender || '');
+        }
       } catch { /* noop */ }
     })();
   }, [token]);
@@ -195,9 +202,16 @@ export default function BuzonPage() {
     load();
   };
 
+  // Responder desde el alias al que escribieron (si es uno permitido)
+  const pickSender = (toField?: string) => {
+    const txt = (toField || '').toLowerCase();
+    return Object.keys(senders).find(a => txt.includes(a)) || defaultSender;
+  };
+
   const startReply = () => {
     if (!selected) return;
     setForm({
+      from: selected.folder === 'inbox' ? pickSender(selected.to) : defaultSender,
       to: selected.folder === 'inbox' ? selected.from_email : selected.to,
       subject: selected.subject.toLowerCase().startsWith('re:') ? selected.subject : `Re: ${selected.subject}`,
       body: '', send_at: '',
@@ -250,7 +264,7 @@ export default function BuzonPage() {
           <Sparkles className="w-4 h-4" /> AI
           {aiCfg?.auto_send_enabled && <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300">AUTO</span>}
         </button>
-        <button onClick={() => { setSelected(null); setForm({ to: '', subject: '', body: '', send_at: '' }); setCompose(true); }}
+        <button onClick={() => { setSelected(null); setForm({ from: defaultSender, to: '', subject: '', body: '', send_at: '' }); setCompose(true); }}
           className="flex items-center gap-2 px-4 py-2 bg-pink-500/15 text-pink-400 border border-pink-500/30 rounded-lg text-sm font-bold hover:bg-pink-500/25 transition">
           <PenSquare className="w-4 h-4" /> Redactar
         </button>
@@ -446,6 +460,7 @@ export default function BuzonPage() {
                     {selected.ack_sent && (
                       <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-500/15 text-blue-300 border border-blue-500/30 font-bold">📨 Confirmación de recibido enviada</span>
                     )}
+                    <span className="text-[10px] text-gray-500">Se enviará desde: <span className="text-gray-400">{pickSender(selected.to)}</span></span>
                   </div>
                   {(selected.ai_draft || draftEdit) ? (
                     <>
@@ -533,6 +548,17 @@ export default function BuzonPage() {
               <h3 className="text-white font-bold text-lg flex items-center gap-2"><PenSquare className="w-5 h-5 text-pink-400" /> {selected && form.subject.startsWith('Re:') ? 'Responder' : 'Nuevo correo'}</h3>
               <button onClick={() => setCompose(false)} className="text-gray-500 hover:text-white"><X className="w-5 h-5" /></button>
             </div>
+            {Object.keys(senders).length > 0 && (
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-gray-500 font-bold shrink-0">De:</span>
+                <select value={form.from || defaultSender} onChange={e => setForm({ ...form, from: e.target.value })}
+                  className="flex-1 px-3 py-2.5 bg-[#0a1020]/60 border border-white/[0.08] rounded-xl text-white text-sm focus:border-pink-500 focus:outline-none cursor-pointer">
+                  {Object.entries(senders).map(([addr, label]) => (
+                    <option key={addr} value={addr} className="bg-[#0d1526]">{label} — {addr}</option>
+                  ))}
+                </select>
+              </div>
+            )}
             <input value={form.to} onChange={e => setForm({ ...form, to: e.target.value })}
               placeholder="Para (separar con comas)"
               className="w-full px-3 py-2.5 bg-[#0a1020]/60 border border-white/[0.08] rounded-xl text-white text-sm focus:border-pink-500 focus:outline-none" />

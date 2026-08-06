@@ -414,3 +414,23 @@ Ver /app/memory/test_credentials.md
   https://ross-house-backend-production.up.railway.app/api/webhooks/email-inbound con
   "Check incoming emails for spam" marcado; (3) forwarder info@ → admin@inbox.rosshouserentals.com
   en SiteGround Email Forwarders. Guía enviada al usuario en finish del 6-Ago.
+
+## Buzón IA — Setup DNS completado + Clasificación por categoría (Ago 6, 2026)
+- USUARIO COMPLETÓ: (1) Domain Authentication de rosshouserentals.com en SendGrid (5 CNAME +
+  TXT DMARC verificados en SiteGround DNS); (2) MX inbox.rosshouserentals.com → mx.sendgrid.net
+  prio 10; (3) Inbound Parse inbox.rosshouserentals.com → webhook Railway con spam check;
+  (4) Forwarder SiteGround info@ → admin@inbox.rosshouserentals.com.
+- VERIFICADO E2E EN PRODUCCIÓN (3 correos reales): entrante directo a admin@inbox, factura,
+  y correo a info@ vía forwarder — todos llegaron, se clasificaron y generaron borrador AI.
+- NUEVA FEATURE clasificación AI (backend Railway + Vercel 4b22e31):
+  * _classify_email() con Claude → categorías: lead/tenant/provider/invoice/other.
+    Prompt prioriza invoice sobre provider cuando es un cobro.
+  * Se ejecuta en _process_inbound_ai (paso 0, incluso para remitentes automáticos).
+  * GET /api/admin/inbox: param ?category= + campo category_counts (agregación inbox).
+  * POST /api/admin/inbox/{id}/category (manual, valida categorías, marca category_manual).
+  * POST /api/admin/inbox/classify-pending (clasifica hasta 15 sin categoría).
+  * UI buzon/page.tsx: chips de filtro con conteos (solo pestaña Recibidos), badges de color
+    por categoría en lista, selector de categoría en detalle, botón "Clasificar N pendientes".
+  * Tests: test_email_ai.py ampliado a 13 (mock _classify_email) — 13/13 PASS.
+- NOTA deploy Vercel: el build tardó ~45 min en publicarse (cola lenta) — tener paciencia
+  antes de asumir fallo.
