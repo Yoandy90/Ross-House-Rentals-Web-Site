@@ -386,3 +386,31 @@ Ver /app/memory/test_credentials.md
   6. Formulario de propiedad: campos "Cuenta Impuestos (Moore County)" y "Impuesto anual estimado"
 - NOTA deploy Vercel: SIEMPRE push con squash (git commit-tree HEAD^{tree} -p vercel-site/main)
   — la historia local contiene secretos bloqueados por GitHub Push Protection.
+
+## Buzón de Email con AI (Ago 5-6, 2026)
+- Backend email_inbox_router.py ampliado (Railway c834121):
+  * Webhook inbound: clasifica spam (spam_score>=5 → folder 'spam'), ignora remitentes
+    automáticos (no-reply/mailer-daemon/etc), y en background: auto-ack + borrador AI + auto-send.
+  * Auto-ack: confirmación de recibido, máx 1/remitente/24h (colección email_acks), configurable.
+  * Borradores AI: emergentintegrations LlmChat (Claude Sonnet 4.5, mismo stack que AI Brain,
+    EMERGENT_LLM_KEY en Railway). Prompt: responde en idioma del email, no inventa precios.
+  * Config: app_settings {_id:'email_ai'} {auto_ack_enabled(T), auto_draft_enabled(T),
+    auto_send_enabled(F), ack_message}. Endpoints GET/PUT /api/admin/inbox/ai-config
+    (definidos ANTES de /admin/inbox/{email_id} por orden de rutas).
+  * POST /admin/inbox/{id}/ai-draft (regenerar), /approve-draft (enviar, body editable),
+    /move (inbox↔spam).
+  * Tests: tests/test_email_ai.py 9/9 (mockea envío+LLM; fixture resetea config en BD compartida).
+  * VERIFICADO EN PROD: borrador AI real generado vía /ai-draft en Railway (Claude respondió
+    profesional en español). Email de prueba eliminado, config restaurada (ack=on, autosend=off).
+- Frontend buzon/page.tsx (Vercel 8387ead69): pestaña Spam, panel "Respuesta sugerida por AI"
+  (textarea editable + Aprobar y enviar + Regenerar), badges en lista (✨ borrador/🤖 auto/✅),
+  botón AI en header → modal con 3 toggles + mensaje de ack editable, botones mover a/de spam,
+  banner con instrucciones de Inbound Parse.
+  BUG conocido resuelto: fetch de ai-config debe esperar token (useEffect [token]).
+- DNS del usuario: rosshouserentals.com usa SiteGround (ns1/ns2.siteground.net) con MX de
+  SiteGround (mailspamprotection.com) — tiene mailbox existente. PASOS PENDIENTES DEL USUARIO
+  para recibir email en el buzón: (1) MX inbox.rosshouserentals.com → mx.sendgrid.net prio 10
+  en SiteGround DNS Zone Editor; (2) SendGrid Inbound Parse Add Host & URL →
+  https://ross-house-backend-production.up.railway.app/api/webhooks/email-inbound con
+  "Check incoming emails for spam" marcado; (3) forwarder info@ → admin@inbox.rosshouserentals.com
+  en SiteGround Email Forwarders. Guía enviada al usuario en finish del 6-Ago.
