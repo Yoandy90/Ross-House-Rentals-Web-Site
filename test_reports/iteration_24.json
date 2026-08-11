@@ -1,0 +1,24 @@
+{
+  "summary": "Frontend UI regression for Radar de Oportunidades (/admin/oportunidades) — ALL CHECKS PASS. Page loads with header, 5 stats cards (20/2/4/2/1), scan panel, 6 filter chips. Sidebar nav item 'Oportunidades' appears in FINANZAS group. Leads list renders 20 lead cards (all on 'birge' street from earlier scan) with address, owner, mailing city, signal badges, appraised value and red tax debt. Filter chip 'Impuestos atrasados' narrows list to 2 tax-delinquent leads; 'Todas' resets to 20. Empty-state text 'Aún no hay oportunidades con esos filtros' shows when search yields no matches. Search input filters correctly. Drawer opens on card click and renders every required section: owner ('GUEVARA ROBIN'), mailing block, Valores del condado, Impuestos, Análisis AI (score 85/100 displayed, verdict + reasons + strategy + oferta sugerida 55%≈$45,996.5), Carta de oferta with English/Español tabs + Copiar button (verified Spanish letter starts with 'Estimado/a Robin Guevara'), Seguimiento pipeline buttons, Notes textarea, portal link to esearch. Pipeline: clicking 'Contactado' highlights the chip (amber class) and card badge updates to 'Contactado' in the list; a written note ('TEST_NOTE_iter24 — llamé al dueño') persists after closing and reopening the drawer. Cleanup performed (status reset to Nuevo, notes cleared). Optional scan was NOT run per instructions (real Moore County portal). No AI re-analyze/letter calls were triggered.",
+  "backend_issues": { "critical": [], "minor": [] },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [],
+    "react_native_issues": []
+  },
+  "test_report_links": [],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Search input placeholder='Buscar dirección o dueño...' — since all 20 seeded leads are on Birge street, typing 'birge' still returns all 20; not a bug but confirmed by inspection.",
+    "Note-persistence relies on onBlur firing when clicking inside the drawer; tested by clicking the 'Seguimiento' header, which correctly triggers blur + PATCH. Works as designed.",
+    "Nav item 'Oportunidades' correctly placed in FINANZAS group at layout.tsx:91 (right after Inversiones as specified)."
+  ],
+  "updated_files": [],
+  "success_rate": { "backend": "N/A (skipped per request)", "frontend": "100%" },
+  "seed_data_creation": "None — used the existing 20 leads from earlier 'birge' scan. Test artifacts (status='contacted', notes='TEST_NOTE_iter24...') on lead 424 S BIRGE were reverted (status→new, notes cleared) at end of test.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Deal Finder page fully verified. Optional 'porter' scan was intentionally skipped — main agent should run manually if needed. Local Next.js on :3005 and ross-house-backend on :8002 must be running; cookie-inject rhr_admin_token from /tmp/admtok.txt to bypass 2FA. Ignore supervisor 'backend' (broken template).",
+  "rca_of_issue": "N/A — no bugs found."
+}

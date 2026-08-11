@@ -1,0 +1,36 @@
+{
+  "summary": "Backend-only security audit against Ross House Rentals FastAPI on Railway (https://ross-house-backend-production.up.railway.app). All 8 targeted security tests PASSED. SEC-001 (password bypass via email+phone) is fixed: bypass attempt returns 401 'Credenciales inválidas'. Admin login (yoandyross@gmail.com/admin123) still works and was run FIRST to reserve the admin account before any failure tests. SEC-002 anti-enumeration verified: unknown email and wrong-password (both against throwaway emails, never the admin) return exactly the same status (401) AND exact same detail message ('Credenciales inválidas'). SEC-003 verified: /api/upload/image rejects requests without a token (401) and also rejects JWTs signed with the classic weak secret 'secret' (401 'Token inválido') — server only trusts TENANT_JWT_SECRET. CORS: OPTIONS with Origin https://evil-hacker.com does NOT reflect the origin (Access-Control-Allow-Origin absent, not '*'); OPTIONS with Origin https://www.rosshouserentals.com correctly echoes the origin. No rate-limit 429s were hit (kept /login calls to 4 within the 5/min window).",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [],
+    "react_native_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_ross_house_security.py",
+    "/app/test_reports/pytest/iter29_security.xml"
+  ],
+  "action_items": [
+    "None required for the security fixes tested. All P0/P1 items from the audit are verified fixed on the Railway prod backend."
+  ],
+  "critical_code_review_comments": [
+    "auth_router.py marketplace_login: correct pattern — constant-time bcrypt via _DUMMY_HASH, generic GENERIC_LOGIN_ERROR, DB-side lockout (5/15min), rate limiter per IP.",
+    "server.py CORS: allow_origins is a strict allowlist unless ENVIRONMENT is explicitly 'development/dev/local'; allow_origin_regex only matches emergent preview domains. Safe by default.",
+    "server.py /api/upload/image: only accepts JWT signed with TENANT_JWT_SECRET (strong secret); the old guessable JWT_SECRET_KEY is intentionally NOT trusted. Good.",
+    "Nit (not tested): auth_router.py line 458 redefines normalize_rental_phone (identical duplicate of the one at line 76). Dead duplicate — safe to remove.",
+    "Nit: rate limiter is in-memory (per process). Fine for single-worker Railway, but if Railway ever scales to >1 worker/replica, per-IP limits become per-replica; DB-based lockout mitigates the risk. Consider Redis-backed limiter if scaling."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_ross_house_security.py (new)"
+  ],
+  "success_rate": {"backend": "100% (8/8)", "frontend": "not tested (backend-only request)"},
+  "seed_data_creation": "None. Only throwaway emails were used for failure cases; admin account not touched by any failing test (login success run first only).",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Regression file at /app/backend/tests/test_ross_house_security.py hits Railway prod. Base URL overridable via ROSS_BACKEND_URL env var (default = Railway). All 4 /login calls stay within the 5/min rate-limit window; if 429 hits, the tests skip gracefully. To retest locally against http://localhost:8002 set ROSS_BACKEND_URL=http://localhost:8002. Admin account lockout counter is cleared on successful login (see auth_router.py:307-310), so running test_01 first also resets any prior failure state for the admin.",
+  "rca_of_issue": "N/A — this iteration verifies fixes, not a new bug. Prior root cause (per user description): marketplace-login accepted email+phone/last-4 as an alternate credential path. Fix (verified in auth_router.py lines 255-327): the endpoint now reads ONLY {email, password}, always runs bcrypt (even against a _DUMMY_HASH when the account is missing) for constant-time behavior, returns the single message 'Credenciales inválidas' for every failure branch, increments failed_login_attempts and sets locked_until after 5 fails/15min, and is rate-limited to 5 req/min per IP."
+}

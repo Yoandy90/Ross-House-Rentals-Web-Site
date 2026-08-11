@@ -7,6 +7,7 @@ import { trackEvent } from './VisitorTracker';
 interface ChatMsg {
   role: 'user' | 'assistant';
   content: string;
+  admin?: boolean;
 }
 
 const STORAGE_KEY = 'rh_chatbot_session_id';
@@ -41,6 +42,8 @@ export default function PublicChatbot() {
   const [leadCaptured, setLeadCaptured] = useState(false);
   const [unreadHint, setUnreadHint] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const seenAdminRef = useRef(0);
+  const historyLoadedRef = useRef(false);
 
   // Restore session
   useEffect(() => {
@@ -53,6 +56,53 @@ export default function PublicChatbot() {
       /* ignore storage errors */
     }
   }, []);
+
+  // Restore full history from server (includes admin replies bridged from the app)
+  useEffect(() => {
+    if (!sessionId || historyLoadedRef.current) return;
+    historyLoadedRef.current = true;
+    (async () => {
+      try {
+        const res = await fetch(`/api/public/chatbot/sessions/${sessionId}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        const msgs: ChatMsg[] = (data.messages || [])
+          .filter((m: any) => m.role === 'user' || m.role === 'assistant')
+          .map((m: any) => ({ role: m.role, content: m.content, admin: !!m.from_admin }));
+        seenAdminRef.current = msgs.filter(m => m.admin).length;
+        if (msgs.length > 0) setMessages(msgs);
+        if (data.lead_captured) setLeadCaptured(true);
+      } catch {
+        /* ignore */
+      }
+    })();
+  }, [sessionId]);
+
+  // Poll for human (admin) replies bridged from the admin app
+  useEffect(() => {
+    if (!sessionId) return;
+    const iv = setInterval(async () => {
+      if (sending) return;
+      try {
+        const res = await fetch(`/api/public/chatbot/sessions/${sessionId}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        const adminMsgs = (data.messages || []).filter((m: any) => m.from_admin);
+        if (adminMsgs.length > seenAdminRef.current) {
+          const fresh = adminMsgs.slice(seenAdminRef.current);
+          seenAdminRef.current = adminMsgs.length;
+          setMessages(prev => [
+            ...prev,
+            ...fresh.map((m: any) => ({ role: 'assistant' as const, content: m.content, admin: true })),
+          ]);
+          if (!open) setUnreadHint(true);
+        }
+      } catch {
+        /* ignore */
+      }
+    }, 7000);
+    return () => clearInterval(iv);
+  }, [sessionId, sending, open]);
 
   // Persist session id + open state
   useEffect(() => {
@@ -223,7 +273,12 @@ export default function PublicChatbot() {
                     {m.content}
                   </div>
                 ) : (
-                  <div className="max-w-[85%] px-3.5 py-2 rounded-2xl rounded-tl-md bg-white border border-gray-200 text-gray-800 text-sm leading-relaxed">
+                  <div className={`max-w-[85%] px-3.5 py-2 rounded-2xl rounded-tl-md text-sm leading-relaxed ${m.admin ? 'bg-emerald-50 border border-emerald-300 text-gray-800' : 'bg-white border border-gray-200 text-gray-800'}`}>
+                    {m.admin && (
+                      <div className="text-[10px] font-bold text-emerald-600 mb-0.5 flex items-center gap-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" /> Equipo Ross House
+                      </div>
+                    )}
                     {m.content ? renderMd(m.content) : <Loader2 className="w-4 h-4 animate-spin text-amber-500" />}
                   </div>
                 )}

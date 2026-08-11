@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -6,863 +6,460 @@ import {
   ScrollView,
   TouchableOpacity,
   Alert,
-  Image,
-  ActivityIndicator,
   Linking,
+  ActivityIndicator,
+  TextInput,
+  Modal,
+  Image,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter, useFocusEffect } from 'expo-router';
-import { useAuth } from '../../contexts/AuthContext';
-import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
-import { useThemeColors } from '../../constants/colors';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
-import { getCurrentLanguage } from '../../i18n/config';
-import * as ImagePicker from 'expo-image-picker';
-import * as ImageManipulator from 'expo-image-manipulator';
-import api from '../../services/api';
+import { Ionicons } from '@expo/vector-icons';
+import { useAuth } from '../../src/contexts/AuthContext';
+import { useRouter } from 'expo-router';
+import { Card } from '../../src/components/ui/Card';
+import { Button } from '../../src/components/ui/Button';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Spacing, FontSizes, BorderRadius, Shadows, useColors } from '../../src/constants/theme';
+import { Config } from '../../src/constants/config';
+import { apiCall } from '../../src/utils/api';
+import ThemeSelector from '../../src/components/ThemeSelector';
 
-interface MenuItemType {
-  icon: string;
-  title: string;
-  subtitle?: string;
-  onPress: () => void;
-  badge?: string;
-  badgeColor?: string;
-}
-
-interface MenuSectionType {
-  title: string;
-  icon: string;
-  items: MenuItemType[];
-  hidden?: boolean;
-}
-
-export default function Profile() {
-  const colors = useThemeColors();
-  const styles = React.useMemo(() => createStyles(colors), [colors]);
-  const { user, signOut, refreshUser } = useAuth();
-  const router = useRouter();
+export default function ProfileScreen() {
+  const C = useColors();
+  const styles = React.useMemo(() => createStyles(C), [C]);
   const { t, i18n } = useTranslation();
-  const [currentLang, setCurrentLang] = useState(getCurrentLanguage());
-  const [uploadingImage, setUploadingImage] = useState(false);
-  const [profileCompletion, setProfileCompletion] = useState(0);
-  const [walletBalance, setWalletBalance] = useState(0);
-  const [featureFlags, setFeatureFlags] = useState<any>({});
-  const [subscriptionStatus, setSubscriptionStatus] = useState<{receiptsPro: boolean, financesPro: boolean}>({receiptsPro: false, financesPro: false});
+  const { tenant, user, logout, viewAsTenant, toggleViewAsTenant } = useAuth();
+  const insets = useSafeAreaInsets();
+  const router = useRouter();
 
-  useEffect(() => {
-    const handleLanguageChange = (lng: string) => {
-      setCurrentLang(lng);
-    };
-    i18n.on('languageChanged', handleLanguageChange);
-    return () => {
-      i18n.off('languageChanged', handleLanguageChange);
-    };
-  }, [i18n]);
+  const [deleteModalVisible, setDeleteModalVisible] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
+  const [deleting, setDeleting] = useState(false);
 
-  // Load wallet balance and feature flags
-  useFocusEffect(
-    useCallback(() => {
-      const loadData = async () => {
-        try {
-          const creditsResponse = await api.get('/credits/balance');
-          if (creditsResponse.data?.balance !== undefined) {
-            setWalletBalance(creditsResponse.data.balance);
-          }
-        } catch (error) {
-//           console.log('Error loading balance:', error);
-        }
-        
-        try {
-          const flagsResponse = await api.get('/feature-flags');
-          setFeatureFlags(flagsResponse.data || {});
-        } catch (error) {
-//           console.log('Error loading feature flags:', error);
-        }
-        
-        try {
-          // Load profile completion
-          const profileResponse = await api.get('/client-profile');
-          const profile = profileResponse.data;
-          const fields = [
-            profile.first_name, profile.last_name, profile.phone,
-            profile.date_of_birth, profile.sex,
-            profile.address?.street, profile.address?.city,
-          ];
-          const filled = fields.filter(f => f && f.trim && f.trim() !== '').length;
-          setProfileCompletion(Math.round((filled / fields.length) * 100));
-        } catch {
-          setProfileCompletion(0);
-        }
+  const isTenant = (user?.role || tenant?.role) === 'tenant';
+  const displayUser = user || tenant;
+  const deleteKeyword = i18n.language === 'es' ? 'ELIMINAR' : 'DELETE';
 
-        // Load subscription status
-        try {
-          const subRes = await api.get('/receipts/usage-limits');
-          if (subRes.data) {
-            setSubscriptionStatus(prev => ({
-              ...prev,
-              receiptsPro: subRes.data.has_receipts_pro || subRes.data.is_unlimited || false,
-            }));
-          }
-        } catch {
-          // Subscription check failed, keep defaults
-        }
-      };
-      loadData();
-    }, [])
-  );
-
-  const handleChangeProfilePicture = async () => {
-    try {
-      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert(t('profile.permissionRequired'), t('profile.permissionRequiredDesc'));
-        return;
-      }
-
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        aspect: [1, 1],
-        quality: 1,
-      });
-
-      if (!result.canceled && result.assets[0]) {
-        setUploadingImage(true);
-        try {
-          const manipulatedImage = await ImageManipulator.manipulateAsync(
-            result.assets[0].uri,
-            [{ resize: { width: 512 } }],
-            { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG }
-          );
-
-          const response = await fetch(manipulatedImage.uri);
-          const blob = await response.blob();
-          const reader = new FileReader();
-          
-          reader.onloadend = async () => {
-            const base64data = reader.result as string;
-            const base64Image = base64data.split(',')[1];
-            
-            try {
-              await api.put('/users/profile-picture', { profile_picture: base64Image });
-              await refreshUser();
-              Alert.alert(t('profileScreen.success', '✅ Éxito'), t('profileScreen.photoUpdated', 'Foto de perfil actualizada'));
-            } catch (error: any) {
-              Alert.alert(t('common.error', 'Error'), t('profileScreen.photoError', 'No se pudo actualizar la foto'));
-            } finally {
-              setUploadingImage(false);
-            }
-          };
-          reader.readAsDataURL(blob);
-        } catch (error) {
-          setUploadingImage(false);
-          Alert.alert(t('common.error', 'Error'), t('profileScreen.imageError', 'No se pudo procesar la imagen'));
-        }
-      }
-    } catch (error) {
-      Alert.alert(t('common.error', 'Error'), t('profileScreen.galleryError', 'No se pudo abrir la galería'));
-    }
-  };
-
-  const handleLogout = async () => {
+  const handleLogout = () => {
     Alert.alert(
-      t('profile.logout'),
-      t('profile.logoutMessage'),
+      t('auth.logout'),
+      '',
       [
         { text: t('common.cancel'), style: 'cancel' },
-        { text: t('profile.logout'), style: 'destructive', onPress: () => signOut() },
+        {
+          text: t('auth.logout'),
+          style: 'destructive',
+          onPress: async () => {
+            await logout();
+            router.replace('/(auth)/login');
+          },
+        },
       ]
     );
   };
 
-  const navigateToCredits = () => {
-    router.push('/(tabs)/credits');
+  const handleDeleteAccount = async () => {
+    if (deleteConfirmText !== deleteKeyword) return;
+
+    setDeleting(true);
+    try {
+      await apiCall('/marketplace/delete-account', { method: 'DELETE' });
+      setDeleteModalVisible(false);
+      Alert.alert(
+        '✅',
+        i18n.language === 'es'
+          ? 'Tu cuenta ha sido eliminada exitosamente.'
+          : 'Your account has been successfully deleted.',
+        [
+          {
+            text: 'OK',
+            onPress: async () => {
+              await logout();
+              router.replace('/(auth)/login');
+            },
+          },
+        ]
+      );
+    } catch (err: any) {
+      Alert.alert('Error', err.message || 'Error eliminando cuenta');
+    } finally {
+      setDeleting(false);
+    }
   };
 
-  // Menu sections
-  const menuSections: MenuSectionType[] = [
-    {
-      title: t('profile.subscriptionPayments', 'FINANZAS').toUpperCase(),
-      icon: 'wallet',
-      items: [
-        {
-          icon: 'wallet',
-          title: t('profile.myWallet'),
-          subtitle: t('profile.walletSubtitle'),
-          onPress: navigateToCredits,
-          badge: walletBalance > 0 ? `$${walletBalance.toFixed(2)}` : undefined,
-          badgeColor: colors.success,
-        },
-        {
-          icon: 'card',
-          title: t('profile.paymentMethods'),
-          subtitle: t('profile.manageCards'),
-          onPress: () => router.push('/(tabs)/payment-methods'),
-        },
-        {
-          icon: 'receipt',
-          title: t('profile.invoices'),
-          subtitle: t('profile.invoicesSubtitle'),
-          onPress: () => router.push('/(tabs)/invoices'),
-        },
-      ],
-    },
-    {
-      title: t('profile.subscriptions', 'SUSCRIPCIONES').toUpperCase(),
-      icon: 'diamond',
-      items: [
-        {
-          icon: 'camera',
-          title: t('profile.receiptsPro', 'Recibos Pro'),
-          subtitle: subscriptionStatus.receiptsPro
-            ? t('profile.activeSubscription', '✅ Suscripción activa — $9.99/mes')
-            : t('profile.inactiveSubscription', 'Escaneos ilimitados de recibos'),
-          onPress: () => router.push('/finance-subscription' as any),
-          badge: subscriptionStatus.receiptsPro ? 'PRO' : undefined,
-          badgeColor: subscriptionStatus.receiptsPro ? '#6366F1' : undefined,
-        },
-        {
-          icon: 'settings',
-          title: t('profile.manageAppStoreSubscriptions', 'Gestionar en App Store'),
-          subtitle: t('profile.cancelOrChangePlan', 'Cancelar o cambiar plan'),
-          onPress: () => {
-            Linking.openURL('https://apps.apple.com/account/subscriptions');
-          },
-        },
-      ],
-    },
-    {
-      title: t('home.documents', 'MIS DOCUMENTOS').toUpperCase(),
-      icon: 'folder',
-      items: [
-        {
-          icon: 'document-text',
-          title: t('profile.taxReturns'),
-          subtitle: t('profile.taxReturnsSubtitle'),
-          onPress: () => router.push('/(tabs)/tax-returns'),
-        },
-        {
-          icon: 'camera',
-          title: t('profile.expenseReceipts'),
-          subtitle: t('profile.expenseReceiptsSubtitle'),
-          onPress: () => router.push('/(tabs)/my-receipts'),
-        },
-        {
-          icon: 'cube',
-          title: t('profile.myShipments'),
-          subtitle: t('profile.myShipmentsSubtitle'),
-          onPress: () => router.push('/(tabs)/shipments'),
-        },
-      ],
-    },
-    {
-      title: t('profile.accountInfo', 'MI CUENTA').toUpperCase(),
-      icon: 'person-circle',
-      items: [
-        {
-          icon: 'person-circle',
-          title: t('profile.personalInfo', 'Mi Perfil'),
-          subtitle: profileCompletion > 0 ? `${profileCompletion}% ${t('profile.completed', 'completado')}` : t('profile.fullProfileSubtitle', 'Completa tu información'),
-          onPress: () => router.push('/(tabs)/personal-info'),
-          badge: profileCompletion < 100 ? '⭐' : '✓',
-          badgeColor: profileCompletion < 100 ? colors.warning : colors.success,
-        },
-        {
-          icon: 'shield-checkmark',
-          title: t('profile.security'),
-          subtitle: t('profile.securitySubtitle'),
-          onPress: () => router.push('/(tabs)/security-settings'),
-        },
-      ],
-    },
-    {
-      title: t('home.appointments', 'CITAS').toUpperCase(),
-      icon: 'calendar',
-      items: [
-        {
-          icon: 'calendar',
-          title: t('profile.bookAppointment'),
-          subtitle: t('profile.bookAppointmentSubtitle'),
-          onPress: () => router.push('/(tabs)/appointments'),
-        },
-        {
-          icon: 'time',
-          title: t('profile.myAppointments'),
-          subtitle: t('profile.myAppointmentsSubtitle'),
-          onPress: () => router.push('/(tabs)/appointments'),
-        },
-      ],
-    },
-    {
-      title: t('home.games', 'ENTRETENIMIENTO').toUpperCase(),
-      icon: 'game-controller',
-      hidden: !(featureFlags.gambling_enabled || featureFlags.raffles_enabled),
-      items: [
-        {
-          icon: 'game-controller',
-          title: t('home.games'),
-          subtitle: t('home.winPrizes'),
-          onPress: () => router.push('/(tabs)/games'),
-          badge: '🎁',
-          badgeColor: '#6C1110',
-        },
-        {
-          icon: 'share-social',
-          title: t('home.referrals'),
-          subtitle: t('home.earnCredits'),
-          onPress: () => router.push('/(tabs)/referrals'),
-          badge: '$$$',
-          badgeColor: '#10B981',
-        },
-      ],
-    },
-    {
-      title: t('profile.settings', 'PREFERENCIAS').toUpperCase(),
-      icon: 'settings',
-      items: [
-        {
-          icon: 'notifications',
-          title: t('profile.notifications'),
-          subtitle: t('profile.notificationPreferences'),
-          onPress: () => router.push('/(tabs)/notification-settings'),
-        },
-        {
-          icon: 'language',
-          title: t('profile.language'),
-          subtitle: currentLang === 'es' ? t('profile.spanish') : t('profile.english'),
-          onPress: () => router.push('/(tabs)/language-settings'),
-        },
-      ],
-    },
-    {
-      title: t('profile.help', 'AYUDA').toUpperCase(),
-      icon: 'help-circle',
-      items: [
-        {
-          icon: 'help-circle',
-          title: t('profile.help'),
-          subtitle: t('profile.helpSubtitle'),
-          onPress: () => router.push('/(tabs)/help'),
-        },
-        {
-          icon: 'book',
-          title: t('profile.education'),
-          subtitle: t('profile.educationSubtitle'),
-          onPress: () => router.push('/(tabs)/education'),
-        },
-      ],
-    },
-  ];
+  const toggleLanguage = () => {
+    i18n.changeLanguage(i18n.language === 'es' ? 'en' : 'es');
+  };
 
-  const renderMenuItem = (item: MenuItemType, isLast: boolean) => (
-    <TouchableOpacity
-      key={item.title}
-      style={[styles.menuItem, !isLast && styles.menuItemBorder]}
-      onPress={item.onPress}
-      activeOpacity={0.7}
-    >
-      <View style={styles.menuIconContainer}>
-        <Ionicons name={item.icon as any} size={20} color="#10B981" />
+  const handleToggleView = () => {
+    const goingToTenant = !viewAsTenant;
+    toggleViewAsTenant();
+    router.replace(goingToTenant ? '/(tabs)' : '/(tabs)/dashboard');
+  };
+
+  const MenuItem = ({ icon, label, value, onPress, color = C.textPrimary, iconBg }: any) => (
+    <TouchableOpacity style={styles.menuItem} onPress={onPress} activeOpacity={0.7}>
+      <View style={styles.menuLeft}>
+        {iconBg ? (
+          <View style={[styles.menuIconBg, { backgroundColor: iconBg }]}>
+            <Ionicons name={icon} size={16} color={color} />
+          </View>
+        ) : (
+          <Ionicons name={icon} size={20} color={color} />
+        )}
+        <Text style={[styles.menuLabel, { color: color === C.textPrimary ? C.textPrimary : color }]}>{label}</Text>
       </View>
-      <View style={styles.menuContent}>
-        <Text style={styles.menuTitle}>{item.title}</Text>
-        {item.subtitle && <Text style={styles.menuSubtitle}>{item.subtitle}</Text>}
-      </View>
-      {item.badge && (
-        <View style={[styles.badge, { backgroundColor: item.badgeColor || '#10B981' }]}>
-          <Text style={styles.badgeText}>{item.badge}</Text>
-        </View>
+      {value ? (
+        <Text style={styles.menuValue}>{value}</Text>
+      ) : (
+        <Ionicons name="chevron-forward" size={18} color={C.textMuted} />
       )}
-      <Ionicons name="chevron-forward" size={18} color={colors.textLight} />
     </TouchableOpacity>
   );
 
-  const renderSection = (section: MenuSectionType) => (
-    <View key={section.title} style={styles.section}>
-      <View style={styles.sectionHeader}>
-        <Ionicons name={section.icon as any} size={16} color={colors.textGray} />
-        <Text style={styles.sectionTitle}>{section.title}</Text>
-      </View>
-      <View style={styles.sectionContent}>
-        {section.items.map((item, index) => 
-          renderMenuItem(item, index === section.items.length - 1)
-        )}
-      </View>
-    </View>
-  );
-
   return (
-    <View style={styles.container}>
-      {/* FIXED HEADER */}
-      <LinearGradient
-        colors={['#064E3B', '#065F46', '#047857']}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.headerGradient}
+    <ScrollView
+      style={[styles.container, { paddingTop: insets.top }]}
+      contentContainerStyle={styles.content}
+    >
+      <Text style={styles.title}>{t('profile.title')}</Text>
+
+      {/* User Info */}
+      <Card accentColor={C.brandRed} style={styles.userCard}>
+        <View style={styles.avatarRow}>
+          <View style={styles.avatar}>
+            <LinearGradient
+              colors={['#C8102E', '#9B1B30']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={StyleSheet.absoluteFill}
+            />
+            <Text style={styles.avatarText}>
+              {(displayUser?.name || 'U')[0].toUpperCase()}
+            </Text>
+          </View>
+          <View style={styles.userInfo}>
+            <Text style={styles.userName}>{displayUser?.name || 'Usuario'}</Text>
+            <Text style={styles.userEmail}>{displayUser?.email || ''}</Text>
+            {(displayUser?.role) && (
+              <View style={styles.tenantBadge}>
+                <Text style={styles.tenantBadgeText}>
+                  {displayUser.role === 'admin' ? '🛡️ Administrador' :
+                   displayUser.role === 'tenant' ? '🏠 Inquilino' :
+                   displayUser.role === 'landlord' ? '🏢 Propietario' :
+                   displayUser.role === 'guest' ? '👋 Invitado' :
+                   displayUser.role === 'buyer' ? '🔑 Comprador' :
+                   '👤 Usuario'}
+                </Text>
+              </View>
+            )}
+          </View>
+        </View>
+      </Card>
+
+      {/* Admin: switch between Admin / Tenant view */}
+      {user?.role === 'admin' && (
+        <>
+          <Text style={styles.sectionTitle}>Modo de vista</Text>
+          <View style={styles.menuGroup}>
+            <MenuItem
+              icon={viewAsTenant ? 'shield-checkmark-outline' : 'eye-outline'}
+              label={viewAsTenant ? 'Volver a vista Admin' : 'Ver como inquilino'}
+              onPress={handleToggleView}
+              iconBg="rgba(59,130,246,0.10)"
+              color="#3B82F6"
+            />
+          </View>
+        </>
+      )}
+
+      {/* Account Section */}
+      <Text style={styles.sectionTitle}>{t('profile.account')}</Text>
+      <View style={styles.menuGroup}>
+        <MenuItem
+          icon="person-outline"
+          label={t('profile.edit_profile')}
+          onPress={() => router.push('/edit-profile')}
+          iconBg="rgba(200,16,46,0.10)"
+          color={C.brandRed}
+        />
+        <MenuItem
+          icon="lock-closed-outline"
+          label={t('profile.change_password')}
+          onPress={() => router.push('/change-password')}
+          iconBg="rgba(200,16,46,0.10)"
+          color={C.brandRed}
+        />
+        <MenuItem
+          icon="card-outline"
+          label={t('profile.payment_methods')}
+          onPress={() => router.push('/payment-methods')}
+          iconBg="rgba(200,16,46,0.10)"
+          color={C.brandRed}
+        />
+        <MenuItem
+          icon="flash-outline"
+          label="Mis Servicios"
+          onPress={() => router.push('/services')}
+          iconBg="rgba(225,29,72,0.10)"
+          color="#E11D48"
+        />
+        <MenuItem
+          icon="document-text-outline"
+          label="Mis Contratos"
+          onPress={() => router.push('/contracts')}
+          iconBg="rgba(99,91,255,0.10)"
+          color="#635BFF"
+        />
+        <MenuItem
+          icon="receipt-outline"
+          label="Historial de Pagos"
+          onPress={() => router.push('/invoices')}
+          iconBg="rgba(16,185,129,0.10)"
+          color="#10B981"
+        />
+      </View>
+
+      {/* Theme selector */}
+      <Text style={styles.sectionTitle}>Apariencia</Text>
+      <View style={styles.themeGroup}>
+        <ThemeSelector variant="list" />
+      </View>
+
+      {/* Language */}
+      <Text style={styles.sectionTitle}>{t('profile.language')}</Text>
+      <View style={styles.menuGroup}>
+        <MenuItem
+          icon="globe-outline"
+          label={t('profile.language')}
+          value={i18n.language === 'es' ? t('profile.spanish') : t('profile.english')}
+          onPress={toggleLanguage}
+        />
+      </View>
+
+      {/* Support */}
+      <Text style={styles.sectionTitle}>{t('profile.support')}</Text>
+      <View style={styles.menuGroup}>
+        <MenuItem
+          icon="call-outline"
+          label={t('profile.call_us')}
+          value={Config.SUPPORT_PHONE}
+          onPress={() => Linking.openURL(`tel:${Config.SUPPORT_PHONE.replace(/[^0-9]/g, '')}`)}
+        />
+        <MenuItem
+          icon="mail-outline"
+          label={t('profile.email_us')}
+          onPress={() => Linking.openURL(`mailto:${Config.SUPPORT_EMAIL}`)}
+        />
+        <MenuItem
+          icon="help-circle-outline"
+          label={t('profile.faq')}
+          onPress={() => router.push('/faq')}
+        />
+      </View>
+
+      {/* About */}
+      <Text style={styles.sectionTitle}>{t('profile.about')}</Text>
+      <View style={styles.menuGroup}>
+        <MenuItem
+          icon="information-circle-outline"
+          label={t('profile.version')}
+          value={Config.APP_VERSION}
+        />
+        <MenuItem
+          icon="document-text-outline"
+          label={t('profile.terms')}
+          onPress={() => router.push('/legal/terms')}
+        />
+        <MenuItem
+          icon="shield-checkmark-outline"
+          label={t('profile.privacy')}
+          onPress={() => router.push('/legal/privacy')}
+        />
+      </View>
+
+      {/* Logout */}
+      <View style={styles.logoutContainer}>
+        <Button
+          title={t('auth.logout')}
+          onPress={handleLogout}
+          variant="outline"
+          fullWidth
+          icon={<Ionicons name="log-out-outline" size={18} color={C.brandRed} />}
+        />
+      </View>
+
+      {/* Danger Zone */}
+      <Text style={[styles.sectionTitle, { color: '#EF4444' }]}>{t('profile.danger_zone')}</Text>
+      <View style={[styles.menuGroup, styles.dangerGroup]}>
+        <MenuItem
+          icon="trash-outline"
+          label={t('profile.delete_account')}
+          onPress={() => setDeleteModalVisible(true)}
+          color="#EF4444"
+        />
+      </View>
+
+      {/* Branding */}
+      <View style={styles.branding}>
+        <Image
+          source={C.background === '#F8FAFC' ? require('../../assets/images/ross_house_logo.png') : require('../../assets/images/ross_house_logo_white.png')}
+          style={styles.companyLogo}
+          resizeMode="contain"
+        />
+        <Text style={styles.brandTagline}>{t('app.tagline')}</Text>
+      </View>
+
+      <View style={{ height: 40 }} />
+
+      {/* Delete Account Modal */}
+      <Modal
+        visible={deleteModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setDeleteModalVisible(false)}
       >
-        <SafeAreaView edges={['top']} style={styles.safeHeader}>
-          <View style={styles.headerContent}>
-            {/* Avatar and Info */}
-            <TouchableOpacity 
-              style={styles.avatarContainer}
-              onPress={handleChangeProfilePicture}
-              disabled={uploadingImage}
-            >
-              {user?.profile_picture ? (
-                <Image 
-                  source={{ uri: `data:image/jpeg;base64,${user.profile_picture}` }} 
-                  style={styles.avatar} 
-                />
-              ) : (
-                <View style={styles.avatarPlaceholder}>
-                  <Ionicons name="person" size={28} color="#fff" />
-                </View>
-              )}
-              <View style={styles.cameraButton}>
-                {uploadingImage ? (
-                  <ActivityIndicator size="small" color="#fff" />
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalIconWrap}>
+              <Ionicons name="warning" size={40} color="#EF4444" />
+            </View>
+            <Text style={styles.modalTitle}>{t('profile.delete_account_title')}</Text>
+            <Text style={styles.modalDesc}>{t('profile.delete_account_warning')}</Text>
+
+            <Text style={styles.modalInputLabel}>
+              {t('profile.type_delete').replace('DELETE', deleteKeyword).replace('ELIMINAR', deleteKeyword)}
+            </Text>
+            <TextInput
+              style={styles.modalInput}
+              value={deleteConfirmText}
+              onChangeText={setDeleteConfirmText}
+              placeholder={deleteKeyword}
+              placeholderTextColor={C.textDim}
+              autoCapitalize="characters"
+            />
+
+            <View style={styles.modalActions}>
+              <TouchableOpacity
+                style={styles.modalCancelBtn}
+                onPress={() => { setDeleteModalVisible(false); setDeleteConfirmText(''); }}
+              >
+                <Text style={styles.modalCancelText}>{t('common.cancel')}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.modalDeleteBtn,
+                  deleteConfirmText !== deleteKeyword && styles.modalDeleteBtnDisabled,
+                ]}
+                onPress={handleDeleteAccount}
+                disabled={deleteConfirmText !== deleteKeyword || deleting}
+              >
+                {deleting ? (
+                  <ActivityIndicator size="small" color="#FFF" />
                 ) : (
-                  <Ionicons name="camera" size={12} color="#fff" />
+                  <Text style={styles.modalDeleteText}>{t('common.delete')}</Text>
                 )}
-              </View>
-            </TouchableOpacity>
-            
-            <View style={styles.userInfo}>
-              <Text style={styles.userName}>{user?.name || 'Usuario'}</Text>
-              <Text style={styles.userEmail}>{user?.email}</Text>
-            </View>
-
-            {/* Quick Stats - All clickable */}
-            <View style={styles.quickStats}>
-              <TouchableOpacity 
-                style={styles.quickStatItem}
-                onPress={navigateToCredits}
-                activeOpacity={0.7}
-              >
-                <Ionicons name="wallet-outline" size={18} color="rgba(255,255,255,0.9)" />
-                <Text style={styles.quickStatValue}>${walletBalance.toFixed(2)}</Text>
-                <Text style={styles.quickStatLabel}>{t('profileScreen.balance', 'Balance')}</Text>
-              </TouchableOpacity>
-              
-              <View style={styles.quickStatDivider} />
-              
-              <TouchableOpacity 
-                style={styles.quickStatItem}
-                onPress={() => router.push('/complete-profile')}
-                activeOpacity={0.7}
-              >
-                <Ionicons name="person-circle-outline" size={18} color="rgba(255,255,255,0.9)" />
-                <Text style={styles.quickStatValue}>{profileCompletion}%</Text>
-                <Text style={styles.quickStatLabel}>{t('profileScreen.profile', 'Perfil')}</Text>
-              </TouchableOpacity>
-              
-              <View style={styles.quickStatDivider} />
-              
-              <TouchableOpacity 
-                style={styles.quickStatItem}
-                onPress={() => router.push('/(tabs)/appointments')}
-                activeOpacity={0.7}
-              >
-                <Ionicons name="calendar-outline" size={18} color="rgba(255,255,255,0.9)" />
-                <Text style={styles.quickStatValue}>{t('profileScreen.view', 'Ver')}</Text>
-                <Text style={styles.quickStatLabel}>{t('profileScreen.appointments', 'Citas')}</Text>
               </TouchableOpacity>
             </View>
           </View>
-        </SafeAreaView>
-      </LinearGradient>
-
-      {/* SCROLLABLE MENU */}
-      <ScrollView 
-        style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Menu Sections */}
-        {menuSections.filter(s => !s.hidden).map(renderSection)}
-
-        {/* Legal Section */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Ionicons name="document-text" size={16} color={colors.textGray} />
-            <Text style={styles.sectionTitle}>LEGAL</Text>
-          </View>
-          <View style={styles.sectionContent}>
-            <TouchableOpacity
-              style={[styles.menuItem, styles.menuItemBorder]}
-              onPress={() => Linking.openURL('https://www.rosstaxpreparation.com/terms')}
-            >
-              <View style={styles.menuIconContainer}>
-                <Ionicons name="document" size={20} color={colors.info} />
-              </View>
-              <View style={styles.menuContent}>
-                <Text style={styles.menuTitle}>{t('profile.termsConditions', 'Términos y Condiciones')}</Text>
-              </View>
-              <Ionicons name="open-outline" size={18} color={colors.textLight} />
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.menuItem}
-              onPress={() => Linking.openURL('https://www.rosstaxpreparation.com/privacy')}
-            >
-              <View style={styles.menuIconContainer}>
-                <Ionicons name="shield" size={20} color={colors.info} />
-              </View>
-              <View style={styles.menuContent}>
-                <Text style={styles.menuTitle}>{t('profile.privacyPolicy', 'Política de Privacidad')}</Text>
-              </View>
-              <Ionicons name="open-outline" size={18} color={colors.textLight} />
-            </TouchableOpacity>
-          </View>
         </View>
-
-        {/* Government Disclaimer & IRS Sources */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Ionicons name="alert-circle" size={16} color={colors.textGray} />
-            <Text style={styles.sectionTitle}>{t('profile.disclaimer', 'AVISO LEGAL')}</Text>
-          </View>
-          <View style={[styles.sectionContent, { padding: 16 }]}>
-            <Text style={{ fontSize: 13, color: colors.textGray, lineHeight: 20, marginBottom: 12 }}>
-              {t('profile.disclaimerText', 'Ross Tax Preparation es un servicio independiente de preparación de impuestos. Esta aplicación NO está afiliada, respaldada ni asociada con el Servicio de Impuestos Internos (IRS) ni con ninguna agencia gubernamental.')}
-            </Text>
-            <Text style={{ fontSize: 14, fontWeight: '700', color: colors.text, marginBottom: 8 }}>
-              {t('profile.officialSources', 'Fuentes oficiales del gobierno:')}
-            </Text>
-            <TouchableOpacity
-              style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 8 }}
-              onPress={() => Linking.openURL('https://www.irs.gov')}
-            >
-              <Ionicons name="globe-outline" size={18} color="#0066CC" />
-              <Text style={{ fontSize: 14, color: '#0066CC', marginLeft: 8 }}>{t('profile.irsOfficial', 'IRS.gov — Servicio de Impuestos Internos')}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 8 }}
-              onPress={() => Linking.openURL('https://www.irs.gov/refunds')}
-            >
-              <Ionicons name="globe-outline" size={18} color="#0066CC" />
-              <Text style={{ fontSize: 14, color: '#0066CC', marginLeft: 8 }}>{t('profile.irsRefunds', 'IRS.gov/refunds — Estado de reembolso')}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 8 }}
-              onPress={() => Linking.openURL('https://www.irs.gov/individuals/individual-taxpayer-identification-number')}
-            >
-              <Ionicons name="globe-outline" size={18} color="#0066CC" />
-              <Text style={{ fontSize: 14, color: '#0066CC', marginLeft: 8 }}>{t('profile.irsItin', 'IRS.gov — Información de ITIN')}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 8 }}
-              onPress={() => Linking.openURL('https://www.irs.gov/forms-instructions')}
-            >
-              <Ionicons name="globe-outline" size={18} color="#0066CC" />
-              <Text style={{ fontSize: 14, color: '#0066CC', marginLeft: 8 }}>{t('profile.irsForms', 'IRS.gov — Formularios e instrucciones')}</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        {/* App Info with Brand Color */}
-        <View style={styles.appInfo}>
-          <View style={{ 
-            width: 64, 
-            height: 64, 
-            borderRadius: 16, 
-            backgroundColor: '#6C1110', 
-            justifyContent: 'center', 
-            alignItems: 'center',
-            marginBottom: 12,
-            shadowColor: '#6C1110',
-            shadowOffset: { width: 0, height: 4 },
-            shadowOpacity: 0.3,
-            shadowRadius: 8,
-            elevation: 6,
-          }}>
-            <Ionicons name="business" size={32} color="#FFF" />
-          </View>
-          <Text style={[styles.appVersion, { color: '#6C1110', fontWeight: '700', fontSize: 16 }]}>Ross Tax Preparation</Text>
-          <Text style={styles.appVersion}>v1.2.2</Text>
-          <Text style={styles.appCopyright}>© 2025 Todos los derechos reservados</Text>
-          <Text style={{ fontSize: 11, color: colors.textLight, marginTop: 4, textAlign: 'center' }}>
-            {t('profile.notGovernment', 'Servicio independiente — No afiliado al gobierno')}
-          </Text>
-        </View>
-
-        {/* Logout & Delete */}
-        <View style={styles.dangerZone}>
-          <TouchableOpacity style={[styles.logoutButton, { backgroundColor: '#6C111015', borderColor: '#6C1110' }]} onPress={handleLogout}>
-            <Ionicons name="log-out-outline" size={20} color="#6C1110" />
-            <Text style={[styles.logoutText, { color: '#6C1110' }]}>Cerrar Sesión</Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity 
-            style={styles.deleteButton} 
-            onPress={() => Alert.alert(t('profileScreen.deleteAccount', 'Eliminar Cuenta'), t('profileScreen.deleteAccountMessage', 'Contacta a soporte para eliminar tu cuenta.'))}
-          >
-            <Ionicons name="trash-outline" size={18} color={colors.textGray} />
-            <Text style={styles.deleteText}>Eliminar Cuenta</Text>
-          </TouchableOpacity>
-        </View>
-
-        <View style={{ height: 120 }} />
-      </ScrollView>
-    </View>
+      </Modal>
+    </ScrollView>
   );
 }
 
-const createStyles = (colors: any) => StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.backgroundGray,
-  },
-  // Fixed Header
-  headerGradient: {
-    borderBottomLeftRadius: 24,
-    borderBottomRightRadius: 28,
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.25,
-    shadowRadius: 16,
-    elevation: 12,
-    zIndex: 10,
-  },
-  safeHeader: {
-    paddingBottom: 24,
-  },
-  headerContent: {
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingTop: 12,
-  },
-  avatarContainer: {
-    position: 'relative',
-    marginBottom: 14,
-  },
+const createStyles = (C: any) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: C.background },
+  content: { paddingHorizontal: Spacing.base, paddingBottom: 100 },
+  title: { fontSize: FontSizes['2xl'], fontWeight: '800', color: C.textPrimary, paddingVertical: Spacing.md, letterSpacing: -0.5 },
+  userCard: { marginBottom: Spacing.lg },
+  avatarRow: { flexDirection: 'row', alignItems: 'center', gap: 16 },
   avatar: {
-    width: 88,
-    height: 88,
-    borderRadius: 44,
-    borderWidth: 4,
-    borderColor: 'rgba(255,255,255,0.4)',
-    // Premium shadow
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-  },
-  avatarPlaceholder: {
-    width: 88,
-    height: 88,
-    borderRadius: 44,
-    backgroundColor: 'rgba(255,255,255,0.25)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 4,
-    borderColor: 'rgba(255,255,255,0.4)',
-  },
-  cameraButton: {
-    position: 'absolute',
-    bottom: 2,
-    right: 2,
-    width: 26,
-    height: 26,
-    borderRadius: 13,
-    backgroundColor: colors.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: '#fff',
-  },
-  userInfo: {
-    alignItems: 'center',
-    marginBottom: 18,
-  },
-  userName: {
-    fontSize: 24,
-    fontWeight: '800',
-    color: '#fff',
-    marginBottom: 4,
-    letterSpacing: -0.5,
-    textShadowColor: 'rgba(0,0,0,0.1)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 2,
-  },
-  userEmail: {
-    fontSize: 14,
-    color: 'rgba(255,255,255,0.85)',
-    fontWeight: '500',
-  },
-  // Quick Stats - Premium Glass Effect
-  quickStats: {
-    flexDirection: 'row',
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    borderRadius: 18,
-    padding: 14,
-    width: '100%',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.2)',
-  },
-  quickStatItem: {
-    flex: 1,
-    alignItems: 'center',
-    gap: 4,
-  },
-  quickStatValue: {
-    fontSize: 20,
-    fontWeight: '800',
-    color: '#fff',
-  },
-  quickStatLabel: {
-    fontSize: 12,
-    color: 'rgba(255,255,255,0.8)',
-    fontWeight: '600',
-  },
-  quickStatDivider: {
-    width: 1,
-    backgroundColor: 'rgba(255,255,255,0.25)',
-    marginVertical: 6,
-  },
-  // Scrollable Content
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    paddingTop: 20,
-    paddingBottom: 30,
-  },
-  // Sections - Premium Design
-  section: {
-    marginHorizontal: 16,
-    marginBottom: 18,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 12,
-    paddingHorizontal: 4,
-  },
-  sectionTitle: {
-    fontSize: 12,
-    fontWeight: '800',
-    color: colors.textGray,
-    letterSpacing: 1.2,
-    textTransform: 'uppercase',
-  },
-  sectionContent: {
-    backgroundColor: colors.background,
-    borderRadius: 20,
+    width: 56, height: 56, borderRadius: 16,
     overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.06,
-    shadowRadius: 12,
-    elevation: 4,
+    justifyContent: 'center', alignItems: 'center',
+  },
+  avatarText: { fontSize: FontSizes.xl, fontWeight: '700', color: C.white },
+  userInfo: { flex: 1 },
+  userName: { fontSize: FontSizes.lg, fontWeight: '700', color: C.textPrimary },
+  userEmail: { fontSize: FontSizes.sm, color: C.textMuted, marginTop: 2 },
+  tenantBadge: {
+    backgroundColor: 'rgba(200,16,46,0.10)',
+    paddingVertical: 3, paddingHorizontal: 10, borderRadius: BorderRadius.full,
+    alignSelf: 'flex-start', marginTop: 6,
     borderWidth: 1,
-    borderColor: colors.border + '20',
+    borderColor: 'rgba(200,16,46,0.15)',
   },
-  // Menu Items - Premium
-  menuItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 16,
-    paddingHorizontal: 16,
-    gap: 14,
+  tenantBadgeText: { fontSize: FontSizes.xs, color: C.brandRed, fontWeight: '600' },
+  sectionTitle: {
+    fontSize: FontSizes.xs, color: C.textMuted, fontWeight: '700',
+    textTransform: 'uppercase', letterSpacing: 1.2, marginBottom: Spacing.sm, marginTop: Spacing.base,
   },
-  menuItemBorder: {
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border + '30',
+  menuGroup: {
+    backgroundColor: C.glass, borderRadius: BorderRadius.card,
+    borderWidth: 1, borderColor: C.glassBorder, overflow: 'hidden',
   },
-  menuIconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    backgroundColor: colors.primary + '12',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  menuContent: {
-    flex: 1,
-  },
-  menuTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.text,
-    letterSpacing: -0.2,
-  },
-  menuSubtitle: {
-    fontSize: 13,
-    color: colors.textGray,
-    marginTop: 2,
-  },
-  badge: {
-    paddingHorizontal: 10,
+  themeGroup: {
     paddingVertical: 4,
-    borderRadius: 12,
-    marginRight: 6,
   },
-  badgeText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#fff',
+  menuItem: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    paddingVertical: 14, paddingHorizontal: Spacing.base,
+    borderBottomWidth: 1, borderBottomColor: C.glassBorder,
   },
-  // App Info - Premium
-  appInfo: {
-    alignItems: 'center',
-    paddingVertical: 24,
+  menuLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  menuLabel: { fontSize: FontSizes.base, fontWeight: '500' },
+  menuValue: { fontSize: FontSizes.sm, color: C.textMuted },
+  logoutContainer: { marginTop: Spacing['2xl'] },
+  dangerGroup: { borderColor: 'rgba(239,68,68,0.15)' },
+  branding: { alignItems: 'center', marginTop: Spacing['2xl'], opacity: 0.7 },
+  companyLogo: { width: 180, height: 60 },
+  brandTagline: { fontSize: FontSizes.xs, color: C.textMuted, fontStyle: 'italic', marginTop: 8 },
+  menuIconBg: {
+    width: 32, height: 32, borderRadius: 10, justifyContent: 'center', alignItems: 'center',
   },
-  appLogo: {
-    width: 56,
-    height: 56,
-    marginBottom: 10,
-    borderRadius: 14,
+
+  // Delete Account Modal
+  modalOverlay: {
+    flex: 1, backgroundColor: 'rgba(0,0,0,0.85)',
+    justifyContent: 'center', alignItems: 'center', padding: Spacing.lg,
   },
-  appVersion: {
-    fontSize: 14,
-    color: colors.textGray,
-    fontWeight: '600',
+  modalContent: {
+    backgroundColor: '#1A1A1E', borderRadius: BorderRadius.card,
+    padding: Spacing['2xl'], width: '100%', maxWidth: 360,
+    borderWidth: 1, borderColor: 'rgba(239,68,68,0.15)',
   },
-  appCopyright: {
-    fontSize: 12,
-    color: colors.textLight,
-    marginTop: 4,
+  modalIconWrap: { alignItems: 'center', marginBottom: Spacing.base },
+  modalTitle: {
+    fontSize: FontSizes.xl, fontWeight: '800', color: '#EF4444',
+    textAlign: 'center', marginBottom: Spacing.sm,
   },
-  // Danger Zone - Premium
-  dangerZone: {
-    marginHorizontal: 16,
-    gap: 12,
+  modalDesc: {
+    fontSize: FontSizes.sm, color: C.textSecondary,
+    textAlign: 'center', lineHeight: 20, marginBottom: Spacing.lg,
   },
-  logoutButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 10,
-    backgroundColor: colors.error + '10',
-    paddingVertical: 16,
-    borderRadius: 16,
-    borderWidth: 1.5,
-    borderColor: colors.error + '25',
-    // Premium shadow
-    shadowColor: colors.error,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 6,
-    elevation: 3,
+  modalInputLabel: {
+    fontSize: FontSizes.xs, color: C.textMuted, fontWeight: '600',
+    marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5,
   },
-  logoutText: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: colors.error,
+  modalInput: {
+    backgroundColor: C.glassLight, borderRadius: BorderRadius.md,
+    borderWidth: 1, borderColor: C.glassBorderLight,
+    padding: 14, color: C.white, fontSize: FontSizes.base,
+    fontWeight: '700', letterSpacing: 2, textAlign: 'center', marginBottom: Spacing.lg,
   },
-  deleteButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    paddingVertical: 12,
+  modalActions: { flexDirection: 'row', gap: 12 },
+  modalCancelBtn: {
+    flex: 1, paddingVertical: 14, borderRadius: BorderRadius.md,
+    backgroundColor: C.glassLight, alignItems: 'center',
+    borderWidth: 1, borderColor: C.glassBorder,
   },
-  deleteText: {
-    fontSize: 14,
-    color: colors.textGray,
-    fontWeight: '500',
+  modalCancelText: { fontSize: FontSizes.base, color: C.textSecondary, fontWeight: '600' },
+  modalDeleteBtn: {
+    flex: 1, paddingVertical: 14, borderRadius: BorderRadius.md,
+    backgroundColor: '#EF4444', alignItems: 'center',
   },
+  modalDeleteBtnDisabled: { opacity: 0.3 },
+  modalDeleteText: { fontSize: FontSizes.base, color: C.white, fontWeight: '700' },
 });

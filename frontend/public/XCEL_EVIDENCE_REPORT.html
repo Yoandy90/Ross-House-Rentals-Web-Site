@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Green Button Connect — Authorization Flow Issue Evidence · Ross House Rentals</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: Arial, Helvetica, sans-serif; color: #1a202c; background: #f1f5f9; line-height: 1.5; }
+  .page { background: #fff; max-width: 8.5in; margin: 24px auto; padding: 0.65in 0.75in; box-shadow: 0 4px 24px rgba(0,0,0,.12); }
+  h1 { font-size: 21px; color: #0f2a4a; }
+  h2 { font-size: 14px; color: #fff; background: #0f2a4a; padding: 8px 12px; margin: 22px 0 10px; border-radius: 6px; }
+  p, li, td { font-size: 12px; }
+  pre { background: #0d1117; color: #7ee787; font-family: 'Courier New', monospace; font-size: 10.5px; padding: 12px 14px; border-radius: 8px; overflow-x: auto; margin: 8px 0 14px; white-space: pre-wrap; word-break: break-all; line-height: 1.45; }
+  pre .hl { color: #ff7b72; font-weight: bold; }
+  pre .info { color: #79c0ff; }
+  .result { border-left: 4px solid #dc2626; background: #fef2f2; padding: 10px 14px; margin: 8px 0 14px; font-size: 12px; }
+  .okbox { border-left: 4px solid #16a34a; background: #f0fdf4; padding: 10px 14px; margin: 8px 0 14px; font-size: 12px; }
+  table { width: 100%; border-collapse: collapse; margin: 8px 0 14px; }
+  th { background: #e2e8f0; text-align: left; padding: 6px 10px; font-size: 11px; }
+  td { padding: 6px 10px; border-bottom: 1px solid #e2e8f0; }
+  .hdr { border-bottom: 3px solid #0f2a4a; padding-bottom: 10px; margin-bottom: 16px; }
+  .meta { font-size: 11px; color: #64748b; }
+  .printbtn { position: fixed; top: 16px; right: 16px; background: #0f2a4a; color: #fff; border: none; font: bold 14px Arial; padding: 12px 22px; border-radius: 8px; cursor: pointer; box-shadow: 0 4px 14px rgba(0,0,0,.25); }
+  @media print { body { background:#fff } .page { box-shadow:none; margin:0; padding:0.45in 0.5in; page-break-after: always; } .printbtn { display:none !important } }
+</style>
+</head>
+<body>
+<button class="printbtn" onclick="window.print()">🖨️ Print / Save PDF</button>
+
+<div class="page">
+  <div class="hdr">
+    <h1>Green Button Connect — OAuth Authorization Flow Failure<br>Technical Evidence for Replication</h1>
+    <p class="meta">Vendor: Ross House Rent (client_id 9dcf7385177c67119581) · Prepared: July 15, 2026 · Contact: yoandyross@rosshouserentals.com</p>
+  </div>
+
+  <p><strong>Summary:</strong> The vendor-initiated OAuth authorization flow fails for every customer. The <code>/oauth/authorize</code> endpoint itself responds correctly, but it redirects the customer's browser to <strong>wsservices.xcelenergy.com</strong>, which does not respond to any connection attempt (TCP connect timeout). The customer therefore sees a blank page and can never reach the consent screen. Reproduction takes under 2 minutes with the steps below.</p>
+
+  <h2>STEP 1 — Customer opens the authorization URL (what the end user does)</h2>
+  <p>URL opened in a normal browser (Chrome, logged in or not — result is identical):</p>
+  <pre>https://myenergy.xcelenergy.com/greenbutton-connect/gbc/espi/1_1/oauth/authorize?client_id=9dcf7385177c67119581&redirect_uri=https%3A%2F%2Fwww.rosshouserentals.com%2Ftenant%2Futilities%3Fcallback%3Dgreenbutton&response_type=code&scope=FB%3D1_3_4_5_10_13_15_31_37_39&state=VkJr9IqTqRTah-R21UznzgX1ZaaABokW</pre>
+  <div class="result"><strong>Observed result:</strong> The browser redirects and then hangs, ending on a <strong>blank white page</strong>. Chrome DevTools shows the final navigation error: <code>net::ERR_CONNECTION_TIMED_OUT</code> at <code>wsservices.xcelenergy.com</code>. Tested on July 15, 2026 from multiple networks (residential ISP in Texas and a cloud datacenter) — identical behavior.</div>
+
+  <h2>STEP 2 — The /oauth/authorize endpoint responds 302 (this part works)</h2>
+  <p>Raw HTTP transcript (curl, July 15 2026, 18:42 UTC):</p>
+  <pre>$ curl -sk -D - "https://myenergy.xcelenergy.com/greenbutton-connect/gbc/espi/1_1/oauth/authorize?client_id=9dcf7385177c67119581&redirect_uri=...&response_type=code&scope=FB%3D1_3_4_5_10_13_15_31_37_39&state=..."
+
+<span class="info">HTTP/2 302</span>
+date: Wed, 15 Jul 2026 18:42:50 GMT
+content-type: text/html; charset=UTF-8
+<span class="hl">location: https://wsservices.xcelenergy.com?SAMLRequest=fZJdT8IwFIb%2FytL7fcEYs2EkCDGSoC4wvfDGlO4MmnTt7OlE%2Fr1jwwgXctXmnPc5H287QVbJms4au1dr%2BGwArfNdSYW0S6SkMYpqhgKpYhUgtZxuZk8rOvACWhttNdeSXCC3CYYIxgqtiLNcpOSDJZxFLByFZRyWURkk0Ti4g5iHBRRxNIRwvI2TbTBkCXHewGBLpqQt1OKIDSwVWqZsGwoGsRuM3XCUhwmNBnQUvBNn0W4jFLMdtbe2Rur7h9MIX4IDet8cJCgwu6PHdUWc2e90c62wqcBseuXrevXHV8czck37p%2BX9SheNhP6OdXcOXMbRq%2Fe1X0DJGmldrImTna27F6oQanfbtW0vQvqY55mbvWxyMp2catPOBTP9Z6aJfyma9E%2F93JZfLjItBT86D9pUzN7ufoqIwi07KbWGKRSgbGuXlPowN8AspMSaBog%2F7Vtef6jpDw%3D%3D&RelayState=...</span>
+server: nginx
+set-cookie: SimpleSAMLSessionID=07d87a3780133deacce4455e30f0e0a3; ...</pre>
+  <div class="okbox"><strong>Analysis:</strong> The OAuth server accepts our client_id and certified scope (<code>FB=1_3_4_5_10_13_15_31_37_39</code>) and issues a standard SAML SSO redirect. Note the Location header points to the <strong>bare domain with no path</strong> (<code>https://wsservices.xcelenergy.com?SAMLRequest=...</code>), which may itself be a misconfiguration.</div>
+
+  <h2>STEP 3 — wsservices.xcelenergy.com never responds (the failure point)</h2>
+  <pre>$ python3 -c "import socket; print(socket.gethostbyname('wsservices.xcelenergy.com'))"
+192.234.135.91          <span class="info"># DNS resolves correctly</span>
+
+$ curl -sk -o /dev/null -w "connect:%{time_connect} http:%{http_code}" --max-time 40 "https://wsservices.xcelenergy.com/"
+<span class="hl">connect:0.000000 http:000
+curl: (28) Connection timed out after 40001 milliseconds</span></pre>
+  <div class="result"><strong>Analysis:</strong> DNS resolves to 192.234.135.91, but the host never completes a TCP connection on port 443. Since the customer's browser is redirected here for the SAML login, the flow dies with a blank page 100% of the time.</div>
+
+  <h2>What we ask</h2>
+  <table>
+    <tr><th>#</th><th>Request</th></tr>
+    <tr><td>1</td><td>Restore or correct the SAML SSO endpoint that <code>/greenbutton-connect/gbc/espi/1_1/oauth/authorize</code> redirects to (currently <code>wsservices.xcelenergy.com</code>, unreachable).</td></tr>
+    <tr><td>2</td><td>Confirm the exact <code>scope</code> value for the <strong>client_credentials</strong> grant at <code>/greenbutton-connect/oauth-access-token/</code>. Every value we send returns <code>{"error":"invalid_scope"}</code>, including our registered scope <code>FB=1_3_4_5_10_13_15_31_37_39</code> and the standard admin scopes. Omitting scope returns "This application requires you specify a scope parameter".</td></tr>
+  </table>
+
+  <h2>What already works (for context)</h2>
+  <table>
+    <tr><td>✅ Customer-initiated authorization from My Account (Usage &amp; Cost → Green Button Connect) — completed July 14 by customer YOANDY ROSS (UUID 5f66fdca-f752-55ac-b591-0b17bcf9339a)</td></tr>
+    <tr><td>✅ Notification received at our notification URI referencing Authorization resource <code>e1615387-0a22-5815-9f89-f44239d8e58f</code></td></tr>
+    <tr><td>✅ ApplicationInformation resource retrieval with our registration token</td></tr>
+    <tr><td>❌ Programmatic data retrieval — blocked by items 1 and 2 above</td></tr>
+  </table>
+
+  <p class="meta" style="margin-top:20px;text-align:center">Ross House Rentals · Dumas, TX · rosshouserentals.com · Technical contact: yoandyross@rosshouserentals.com</p>
+</div>
+
+</body>
+</html>

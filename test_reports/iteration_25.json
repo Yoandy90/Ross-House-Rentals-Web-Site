@@ -1,0 +1,90 @@
+{
+  "summary": "Ross House Rentals — full per-profile QA against Railway PROD (https://ross-house-backend-production.up.railway.app) + Vercel web (rosshouserentals.com) + Expo web preview. Pytest suite (backend/tests/test_ross_house_full_profiles.py) covers ADMIN, TENANT, GUEST, BUYER, LANDLORD, PROVIDER, PUBLIC and cross-role security guards. Result: 43 passed, 3 skipped (service-provider registration blocked by Cloudflare Turnstile in prod — expected, cannot generate a valid token from headless test). All ADMIN GET dashboards return 200 with data: /api/admin/rental-contracts, /api/admin/properties, /api/admin/tenants, /api/admin/drip/config, /api/admin/drip/templates, /api/admin/deal-finder/leads, /api/admin/service-providers(+/stats), /api/admin/owners, /api/admin/tenant-leads, /api/admin/provider-payments/stats. Anonymous access to admin endpoints correctly returns 401/403. TENANT: /api/signatures/pending → 200, /api/tenant/service-providers(+/services) → 200, /api/marketplace/me → 200 with correct email, and tenant token is CORRECTLY blocked from /api/admin/* (401/403). GUEST self-registration works; tenant self-registration is CORRECTLY downgraded to guest role; guest token blocked from admin. BUYER identical to guest. LANDLORD: admin creates owner via POST /api/admin/owners (with password) → owner logs in via marketplace-login → /api/owner/dashboard 200 → banking POST+GET roundtrip 200 → admin endpoints blocked (401/403) → cleanup via DELETE /api/admin/owners/{id}. PUBLIC: /api/public/blog/posts returns 15 posts (matches spec); posted a TEST QA comment on '5-preguntas-que-debes-hacer-antes-de-rentar' and admin deleted it via DELETE /api/admin/blog/comments/{id}; /api/public/newsletter/subscribe accepts TEST QA email; /api/public/properties 200. Web (Vercel prod): /admin login page renders with email+password+Cloudflare Turnstile+'Protegido por verificación en 2 pasos' (2FA gate visible — cannot proceed further without solving Turnstile which is expected). /noticias renders all 15 posts + 10 category chips + newsletter widget. /propiedades shows the catalog with 1 property (matches DB). Expo web preview (banking-filter-hub): onboarding shows, 'Omitir' skip works, email login screen renders, logging in as tenant successfully lands on dashboard 'Bienvenido, Yandisleydis' with next payment $1,100/121 Oak ave; all 5 tabs (Inicio/Propiedades/Mercado/Pagos/Perfil) navigate correctly and render real data (Pagos shows $1,100 balance, Propiedades shows the 812 NE 2nd listing, Perfil shows Yandisleydis Ross Sanchez/Inquilino badge). No red-screen errors. Only console warnings: expo-notifications web limitation, deprecated shadow*/pointerEvents style props (non-blocking Expo warnings). Cleanup: created records were deleted where a delete endpoint exists (owner, blog comment); self-registered guest/buyer/tenant->guest test users remain in app_users collection because there is NO admin endpoint to delete marketplace users — flagged as action item. Provider registration could not be exercised end-to-end because prod Turnstile blocks it (recorded as skip, not a failure). NO real newsletter campaigns sent, NO Lob letters, NO Stripe charges, NO existing production records mutated.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {
+        "endpoint": "DELETE /api/admin/marketplace-users/{id} (or equivalent)",
+        "issue": "No admin endpoint exists to delete a marketplace app_user (guest/buyer/etc). Test QA users created during self-registration flows cannot be programmatically cleaned up. Tried /api/admin/marketplace-users/{id}, /api/admin/app-users/{id}, /api/admin/users/{id} — all return 404. Left 3 TEST QA users in app_users collection (testqa.guest.<stamp>@example.com, testqa.tenantdown.<stamp>@example.com, testqa.buyer.<stamp>@example.com). Consider adding DELETE /api/admin/marketplace-users/{id} for auditability."
+      },
+      {
+        "endpoint": "DELETE /api/admin/newsletter/subscribers?email=...",
+        "issue": "Unsubscribe/delete via admin endpoint not confirmed. testqa.news.<stamp>@example.com subscription may persist. Recommend a documented admin cleanup path."
+      }
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {
+        "screen": "Expo app onboarding + tenant dashboard",
+        "issues": [
+          "Interactive elements (Omitir button, Iniciar con Email button, tab bar items) do not expose testID attributes — automation had to rely on text selectors which is brittle across ES/EN locales.",
+          "Email/password inputs on the phone-login and email-login screens have no testIDs — recommend adding testID='login-email', testID='login-password', testID='login-submit'."
+        ]
+      }
+    ],
+    "react_native_issues": [
+      {
+        "component": "shadow* style props",
+        "issue": "Multiple '\"shadow*\" style props are deprecated. Use \"boxShadow\".' warnings emitted at runtime on the Expo web build. Migrate shadowColor/shadowOffset/shadowOpacity/shadowRadius to the unified boxShadow / elevation on Android."
+      },
+      {
+        "component": "pointerEvents prop",
+        "issue": "'props.pointerEvents is deprecated. Use style.pointerEvents' warnings on Expo web. Move pointerEvents from prop to style object."
+      },
+      {
+        "component": "expo-notifications on web",
+        "issue": "'[expo-notifications] Listening to push token changes is not yet fully supported on web. Adding a listener will have no effect.' — gate push-token registration behind Platform.OS !== 'web' to silence the warning."
+      },
+      {
+        "component": "Package version drift (Expo doctor)",
+        "issue": "Expo start reported multiple packages out of expected version range (async-storage 3.0.2 vs 2.2.0, netinfo 12.0.1 vs 11.4.1, stripe 0.65.0 vs 0.50.3, expo 54.0.34 vs 54.0.36, expo-device 55.0.16 vs 8.0.10, expo-router 6.0.23 vs 6.0.24, react-native-svg 15.15.5 vs 15.12.1, react-native-worklets 0.5.2 vs 0.5.1, etc.). Not blocking web preview but may break native builds — run 'npx expo install --fix'."
+      }
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_ross_house_full_profiles.py",
+    "/app/test_reports/pytest/iter25_full_profiles.xml",
+    "/tmp/rhr/expo_home.png",
+    "/tmp/rhr/expo_dashboard.png",
+    "/tmp/rhr/tab_Propiedades.png",
+    "/tmp/rhr/tab_Mercado.png",
+    "/tmp/rhr/tab_Pagos.png",
+    "/tmp/rhr/tab_Perfil.png",
+    "/tmp/rhr/admin_login.png",
+    "/tmp/rhr/noticias.png",
+    "/tmp/rhr/propiedades.png"
+  ],
+  "action_items": [
+    "LOW — Add DELETE /api/admin/marketplace-users/{id} (or a soft-delete flag) so QA and admins can clean up self-registered guest/buyer accounts.",
+    "LOW — Add testID props on Expo mobile app critical elements: onboarding-skip, login-email, login-password, login-submit, tab-inicio, tab-propiedades, tab-mercado, tab-pagos, tab-perfil, pay-rent-btn, my-services-btn, quick-action buttons in home dashboard.",
+    "LOW — Fix Expo web console deprecation warnings: migrate 'shadow*' style props to 'boxShadow', move 'pointerEvents' from props to style, and gate expo-notifications listeners behind Platform.OS !== 'web'.",
+    "LOW — Run 'npx expo install --fix' inside /app/rosslending-app to align 15+ package versions with the expected Expo 54 range (async-storage, netinfo, stripe, expo-device, expo-router, react-native-svg, react-native-worklets, etc.).",
+    "INFO — Provider public registration end-to-end could not be exercised from a headless test because Cloudflare Turnstile is enforced in prod. Consider optional=True (like /public/marketplace-register) OR wire a mobile-app path without captcha for the app-only registration flow.",
+    "INFO — 3 TEST QA guest/buyer users remain in app_users collection because no delete endpoint exists (see backend_issues.minor). Purge manually if desired: testqa.guest.<STAMP>, testqa.tenantdown.<STAMP>, testqa.buyer.<STAMP> — all @example.com."
+  ],
+  "critical_code_review_comments": [
+    "auth_router.marketplace_register correctly downgrades role='tenant' from self-registration to 'guest' (line 176–177). Verified end-to-end.",
+    "auth_router.marketplace_register sends a real SendGrid welcome email on success (line 224). All QA test registrations used @example.com which SendGrid drops without hitting real inboxes, but if SendGrid is misconfigured with strict validation the endpoint may log warnings — verified not blocking here.",
+    "owner_router.admin_create_owner (line 439) works as documented: accepts password OR generates temp password, sets role='landlord', kyc_status='approved'. Response returns owner_id. Verified admin→owner login→dashboard flow.",
+    "service_providers_router.public_register_provider correctly enforces Turnstile — captcha_token is required and cannot be bypassed with an arbitrary string in prod. Design is correct; consider optional=True flag for mobile-app registration if that flow ever ships.",
+    "drip_router blog comments: schema requires 'name' and 'comment' (not 'content'/'email'). Original QA payload spec was wrong — verified and adjusted in test file.",
+    "All admin GET endpoints correctly return 401/403 when Authorization header is absent — cross-role guards verified for admin/tenant/owner/guest/buyer tokens.",
+    "MongoDB _id fields do NOT leak in any of the tested JSON responses (spot-checked admin/tenants, admin/properties, admin/rental-contracts, tenant/service-providers, public/blog/posts, public/properties). Good.",
+    "Expo web preview: no red-screen errors. All 5 tenant tabs render real data. The frequent 'shadow* deprecated' warning is cosmetic but should be cleaned up before RN 0.75+ migration."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_ross_house_full_profiles.py"
+  ],
+  "success_rate": {
+    "backend": "43/46 (93.5%) — 3 skipped due to Turnstile enforcement (expected, not a bug)",
+    "frontend": "Expo web preview 100% (login + all 5 tabs render real tenant data). Vercel admin login shows 2FA gate as expected. Vercel /noticias + /propiedades render correctly."
+  },
+  "seed_data_creation": "Created (all prefixed TEST QA): 1 landlord (testqa.owner.<stamp>@example.com — DELETED at teardown), 1 guest (testqa.guest.<stamp>) + 1 tenant-downgraded-to-guest (testqa.tenantdown.<stamp>) + 1 buyer (testqa.buyer.<stamp>) [these 3 remain in app_users, no delete endpoint], 1 blog comment (DELETED at teardown), 1 newsletter subscription (testqa.news.<stamp>, best-effort cleanup). Provider registration was not created (blocked by prod Turnstile).",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Regression pytest at /app/backend/tests/test_ross_house_full_profiles.py can be re-run with `python -m pytest backend/tests/test_ross_house_full_profiles.py -v` — expect 43 passed + 3 skipped against Railway prod. Every mutation is guarded by cleanup teardown (owner+comment). Guest/buyer/tenant->guest user rows accumulate (no delete endpoint exists) — flag if this becomes a hygiene issue. Turnstile in prod blocks headless provider-registration testing; only path forward is to (a) whitelist a test secret in prod (not recommended) or (b) mock the frontend widget with the CF test siteKey in staging. Admin web login e2e requires a human to solve Turnstile — cannot be automated from sandbox. Expo web preview at https://banking-filter-hub.preview.emergentagent.com uses port 3000 supervisor 'expo' service, launched from /app/rosslending-app. Tenant login screen path: onboarding → 'Omitir' → 'Iniciar con Email' → email+password → dashboard.",
+  "rca_of_issue": "No production defects found. All apparent 'failures' during initial test run were test-payload mistakes on my side (blog comment schema, provider captcha) — the backend was correct. Only real observations: (a) missing DELETE endpoint for marketplace app_users blocks full test cleanup, (b) Expo web build emits deprecated-style-prop warnings that should be addressed before next RN major upgrade, (c) 15+ Expo packages are drifted from Expo 54 expected versions."
+}

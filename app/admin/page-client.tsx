@@ -147,20 +147,20 @@ export default function AdminDashboard() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3 lg:space-y-4">
       {/* ─── URGENT ALERTS BAR (NEW) ─── */}
       {hasAlerts && (
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="rounded-2xl bg-gradient-to-r from-amber-500/10 via-red-500/5 to-transparent border border-amber-500/20 p-4"
+          className="rounded-xl bg-gradient-to-r from-amber-500/10 via-red-500/5 to-transparent border border-amber-500/20 px-3 py-2"
         >
           <div className="flex flex-wrap items-center gap-3">
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
-              <span className="text-xs font-bold text-amber-400 uppercase tracking-wider">Atención requerida</span>
+              <span className="text-[10px] font-bold text-amber-400 uppercase tracking-wider">Atención requerida</span>
             </div>
-            <div className="flex flex-wrap gap-4 text-sm">
+            <div className="flex flex-wrap gap-4 text-xs">
               {displayStats.maintenanceRequests > 0 && (
                 <a href="/admin/mantenimiento" className="flex items-center gap-1.5 text-white/90 hover:text-amber-300 transition">
                   <span className="text-amber-400 font-bold">🔧 {displayStats.maintenanceRequests}</span>
@@ -184,57 +184,51 @@ export default function AdminDashboard() {
         </motion.div>
       )}
 
-      {/* ─── COMPUTED KPIs ROW (NEW) ─── */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <div className="rounded-xl bg-white/[0.03] border border-white/[0.06] p-3">
-          <div className="text-[10px] uppercase tracking-wider text-gray-500 font-bold mb-1">Ocupación</div>
+      {/* Welcome strip (compact) */}
+      <motion.div
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="relative overflow-hidden rounded-xl bg-gradient-to-br from-blue-600/20 via-violet-600/10 to-transparent border border-white/[0.08] px-4 py-2.5 flex flex-wrap items-center gap-x-3 gap-y-1"
+      >
+        <div className="p-1.5 bg-gradient-to-br from-blue-500 to-blue-400 rounded-lg shadow-lg shadow-blue-500/25">
+          <Zap className="w-4 h-4 text-white" />
+        </div>
+        <h1 className="text-base lg:text-lg font-bold text-white">
+          ¡Bienvenido{user?.name ? `, ${user.name.split(' ')[0]}` : ''}!
+        </h1>
+        <p className="text-gray-400 text-xs">
+          Portafolio funcionando a <span className="text-emerald-400 font-semibold">{occupancyRate}%</span> de ocupación — resumen de hoy.
+        </p>
+      </motion.div>
+
+      {/* ─── COMPUTED KPIs ROW ─── */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 lg:gap-3">
+        <div className="rounded-xl bg-white/[0.03] border border-white/[0.06] px-3 py-2">
+          <div className="text-[9px] uppercase tracking-wider text-gray-500 font-bold">Ocupación</div>
           <div className="flex items-baseline gap-2">
-            <span className="text-2xl font-bold text-emerald-400">{occupancyRate}%</span>
-            <span className="text-xs text-gray-500">{displayStats.occupiedProperties}/{displayStats.totalProperties}</span>
+            <span className="text-lg lg:text-xl font-bold text-emerald-400">{occupancyRate}%</span>
+            <span className="text-[11px] text-gray-500">{displayStats.occupiedProperties}/{displayStats.totalProperties}</span>
           </div>
         </div>
-        <div className="rounded-xl bg-white/[0.03] border border-white/[0.06] p-3">
-          <div className="text-[10px] uppercase tracking-wider text-gray-500 font-bold mb-1">Renta promedio/unidad</div>
-          <div className="text-2xl font-bold text-blue-400">${avgRentPerUnit.toLocaleString()}</div>
+        <div className="rounded-xl bg-white/[0.03] border border-white/[0.06] px-3 py-2">
+          <div className="text-[9px] uppercase tracking-wider text-gray-500 font-bold">Renta promedio/unidad</div>
+          <div className="text-lg lg:text-xl font-bold text-blue-400">${avgRentPerUnit.toLocaleString()}</div>
         </div>
-        <div className="rounded-xl bg-white/[0.03] border border-white/[0.06] p-3">
-          <div className="text-[10px] uppercase tracking-wider text-gray-500 font-bold mb-1">Delinquency rate</div>
+        <div className="rounded-xl bg-white/[0.03] border border-white/[0.06] px-3 py-2">
+          <div className="text-[9px] uppercase tracking-wider text-gray-500 font-bold">Delinquency rate</div>
           <div className="flex items-baseline gap-2">
-            <span className={`text-2xl font-bold ${delinquencyRate > 10 ? 'text-red-400' : 'text-emerald-400'}`}>{delinquencyRate}%</span>
-            <span className="text-xs text-gray-500">{displayStats.pendingPayments} atrasos</span>
+            <span className={`text-lg lg:text-xl font-bold ${delinquencyRate > 10 ? 'text-red-400' : 'text-emerald-400'}`}>{delinquencyRate}%</span>
+            <span className="text-[11px] text-gray-500">{displayStats.pendingPayments} atrasos</span>
           </div>
         </div>
-        <div className="rounded-xl bg-white/[0.03] border border-white/[0.06] p-3">
-          <div className="text-[10px] uppercase tracking-wider text-gray-500 font-bold mb-1">Revenue MTD</div>
-          <div className="text-2xl font-bold text-amber-400">${displayStats.monthlyRevenue.toLocaleString()}</div>
+        <div className="rounded-xl bg-white/[0.03] border border-white/[0.06] px-3 py-2">
+          <div className="text-[9px] uppercase tracking-wider text-gray-500 font-bold">Revenue MTD</div>
+          <div className="text-lg lg:text-xl font-bold text-amber-400">${displayStats.monthlyRevenue.toLocaleString()}</div>
         </div>
       </div>
 
-      {/* Welcome Banner */}
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-600/20 via-violet-600/10 to-transparent border border-white/[0.08] p-6"
-      >
-        <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-blue-500/10 to-violet-500/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
-        <div className="relative z-10">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="p-2 bg-gradient-to-br from-blue-500 to-blue-400 rounded-xl shadow-lg shadow-blue-500/25">
-              <Zap className="w-5 h-5 text-white" />
-            </div>
-            <h1 className="text-2xl font-bold text-white">
-              ¡Bienvenido{user?.name ? `, ${user.name.split(' ')[0]}` : ''}!
-            </h1>
-          </div>
-          <p className="text-gray-400 text-sm max-w-xl">
-            Tu portafolio de propiedades está funcionando a <span className="text-emerald-400 font-semibold">{occupancyRate}%</span> de ocupación. 
-            Aquí tienes un resumen de hoy.
-          </p>
-        </div>
-      </motion.div>
-
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 lg:gap-3">
         {statCards.map((stat, i) => {
           const colors = COLOR_MAP[stat.color];
           return (
@@ -242,29 +236,29 @@ export default function AdminDashboard() {
               key={stat.title}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.1 }}
-              className={`relative overflow-hidden rounded-2xl bg-[#0c1222]/80 backdrop-blur-xl border border-white/[0.06] p-5 hover:border-white/[0.12] transition-all duration-300 group ${colors.glow}`}
+              transition={{ delay: i * 0.06 }}
+              className={`relative overflow-hidden rounded-xl bg-[#0c1222]/80 backdrop-blur-xl border border-white/[0.06] p-3 hover:border-white/[0.12] transition-all duration-300 group ${colors.glow}`}
             >
               {/* Background Glow */}
-              <div className={`absolute top-0 right-0 w-24 h-24 ${colors.bg} rounded-full blur-2xl opacity-50 group-hover:opacity-80 transition-opacity`} />
-              
+              <div className={`absolute top-0 right-0 w-20 h-20 ${colors.bg} rounded-full blur-2xl opacity-50 group-hover:opacity-80 transition-opacity`} />
+
               <div className="relative z-10">
-                <div className="flex items-center justify-between mb-4">
-                  <div className={`p-3 rounded-xl ${colors.icon} ring-1 ring-white/10`}>
-                    <stat.icon className={`w-5 h-5 ${colors.text}`} />
+                <div className="flex items-center justify-between mb-2">
+                  <div className={`p-2 rounded-lg ${colors.icon} ring-1 ring-white/10`}>
+                    <stat.icon className={`w-4 h-4 ${colors.text}`} />
                   </div>
                   {stat.trendUp !== undefined && (
-                    <div className={`flex items-center gap-1 text-xs font-medium ${stat.trendUp ? 'text-emerald-400' : 'text-red-400'}`}>
+                    <div className={`flex items-center gap-1 text-[11px] font-medium ${stat.trendUp ? 'text-emerald-400' : 'text-red-400'}`}>
                       {stat.trendUp ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
                       {stat.trend}
                     </div>
                   )}
                 </div>
-                <h3 className={`text-3xl font-bold bg-gradient-to-r ${colors.gradient} bg-clip-text text-transparent`}>
+                <h3 className={`text-xl lg:text-2xl font-bold bg-gradient-to-r ${colors.gradient} bg-clip-text text-transparent`}>
                   {stat.value}
                 </h3>
-                <p className="text-gray-400 text-sm mt-1">{stat.title}</p>
-                <p className="text-xs text-gray-600 mt-0.5">{stat.subtext}</p>
+                <p className="text-gray-400 text-xs mt-0.5">{stat.title}</p>
+                <p className="text-[11px] text-gray-600">{stat.subtext}</p>
               </div>
             </motion.div>
           );
@@ -272,25 +266,25 @@ export default function AdminDashboard() {
       </div>
 
       {/* Middle Section - 2 Columns */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-2 lg:gap-3">
         {/* Occupancy Card */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4 }}
-          className="rounded-2xl bg-[#0c1222]/80 backdrop-blur-xl border border-white/[0.06] p-6"
+          transition={{ delay: 0.25 }}
+          className="rounded-xl bg-[#0c1222]/80 backdrop-blur-xl border border-white/[0.06] p-4"
         >
-          <div className="flex items-center gap-3 mb-6">
-            <div className="p-2 bg-gradient-to-br from-emerald-500/30 to-emerald-600/20 rounded-xl ring-1 ring-emerald-500/20">
-              <PieChart className="w-5 h-5 text-emerald-400" />
+          <div className="flex items-center gap-2.5 mb-3">
+            <div className="p-1.5 bg-gradient-to-br from-emerald-500/30 to-emerald-600/20 rounded-lg ring-1 ring-emerald-500/20">
+              <PieChart className="w-4 h-4 text-emerald-400" />
             </div>
-            <h3 className="text-lg font-semibold text-white">Tasa de Ocupación</h3>
+            <h3 className="text-sm lg:text-base font-semibold text-white">Tasa de Ocupación</h3>
           </div>
-          
-          <div className="flex items-center gap-6">
+
+          <div className="flex items-center gap-4 lg:gap-6">
             {/* Circular Progress */}
-            <div className="relative w-28 h-28 flex-shrink-0">
-              <svg className="w-28 h-28 transform -rotate-90" viewBox="0 0 100 100">
+            <div className="relative w-20 h-20 lg:w-24 lg:h-24 flex-shrink-0">
+              <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
                 <circle 
                   cx="50" cy="50" r="42" 
                   stroke="rgba(255,255,255,0.06)" 
@@ -315,27 +309,27 @@ export default function AdminDashboard() {
               </svg>
               <div className="absolute inset-0 flex items-center justify-center">
                 <div className="text-center">
-                  <span className="text-3xl font-bold text-white">{occupancyRate}</span>
-                  <span className="text-lg text-emerald-400">%</span>
+                  <span className="text-xl lg:text-2xl font-bold text-white">{occupancyRate}</span>
+                  <span className="text-sm text-emerald-400">%</span>
                 </div>
               </div>
             </div>
-            
+
             {/* Stats */}
-            <div className="flex-1 space-y-3">
-              <div className="flex items-center justify-between p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
+            <div className="flex-1 space-y-2">
+              <div className="flex items-center justify-between px-3 py-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
                 <div className="flex items-center gap-2">
-                  <CheckCircle className="w-4 h-4 text-emerald-400" />
-                  <span className="text-sm text-gray-300">Ocupadas</span>
+                  <CheckCircle className="w-3.5 h-3.5 text-emerald-400" />
+                  <span className="text-xs text-gray-300">Ocupadas</span>
                 </div>
-                <span className="text-lg font-bold text-emerald-400">{displayStats.occupiedProperties}</span>
+                <span className="text-sm font-bold text-emerald-400">{displayStats.occupiedProperties}</span>
               </div>
-              <div className="flex items-center justify-between p-3 rounded-xl bg-amber-500/10 border border-amber-500/20">
+              <div className="flex items-center justify-between px-3 py-2 rounded-lg bg-amber-500/10 border border-amber-500/20">
                 <div className="flex items-center gap-2">
-                  <Clock className="w-4 h-4 text-amber-400" />
-                  <span className="text-sm text-gray-300">Disponibles</span>
+                  <Clock className="w-3.5 h-3.5 text-amber-400" />
+                  <span className="text-xs text-gray-300">Disponibles</span>
                 </div>
-                <span className="text-lg font-bold text-amber-400">{displayStats.vacantProperties}</span>
+                <span className="text-sm font-bold text-amber-400">{displayStats.vacantProperties}</span>
               </div>
             </div>
           </div>
@@ -345,17 +339,17 @@ export default function AdminDashboard() {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.5 }}
-          className="rounded-2xl bg-[#0c1222]/80 backdrop-blur-xl border border-white/[0.06] p-6"
+          transition={{ delay: 0.3 }}
+          className="rounded-xl bg-[#0c1222]/80 backdrop-blur-xl border border-white/[0.06] p-4"
         >
-          <div className="flex items-center gap-3 mb-6">
-            <div className="p-2 bg-gradient-to-br from-blue-500/30 to-blue-600/20 rounded-xl ring-1 ring-blue-500/20">
-              <Zap className="w-5 h-5 text-blue-400" />
+          <div className="flex items-center gap-2.5 mb-3">
+            <div className="p-1.5 bg-gradient-to-br from-blue-500/30 to-blue-600/20 rounded-lg ring-1 ring-blue-500/20">
+              <Zap className="w-4 h-4 text-blue-400" />
             </div>
-            <h3 className="text-lg font-semibold text-white">Acciones Rápidas</h3>
+            <h3 className="text-sm lg:text-base font-semibold text-white">Acciones Rápidas</h3>
           </div>
-          
-          <div className="grid grid-cols-2 gap-3">
+
+          <div className="grid grid-cols-2 gap-2">
             {[
               { label: 'Nueva Propiedad', icon: Home, href: '/admin/propiedades', color: 'blue' },
               { label: 'Nuevo Inquilino', icon: Users, href: '/admin/inquilinos', color: 'violet' },
@@ -367,12 +361,12 @@ export default function AdminDashboard() {
                 <a
                   key={action.label}
                   href={action.href}
-                  className={`flex items-center gap-3 p-4 rounded-xl bg-white/[0.02] border border-white/[0.06] hover:border-white/[0.12] hover:bg-white/[0.04] transition-all duration-200 group`}
+                  className={`flex items-center gap-2.5 px-3 py-2.5 rounded-lg bg-white/[0.02] border border-white/[0.06] hover:border-white/[0.12] hover:bg-white/[0.04] transition-all duration-200 group`}
                 >
-                  <div className={`p-2 rounded-lg ${colors.icon} group-hover:scale-110 transition-transform`}>
-                    <action.icon className={`w-4 h-4 ${colors.text}`} />
+                  <div className={`p-1.5 rounded-lg ${colors.icon} group-hover:scale-110 transition-transform`}>
+                    <action.icon className={`w-3.5 h-3.5 ${colors.text}`} />
                   </div>
-                  <span className="text-sm font-medium text-gray-300 group-hover:text-white transition-colors">{action.label}</span>
+                  <span className="text-xs font-medium text-gray-300 group-hover:text-white transition-colors">{action.label}</span>
                 </a>
               );
             })}
@@ -384,50 +378,50 @@ export default function AdminDashboard() {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.6 }}
-        className="rounded-2xl bg-[#0c1222]/80 backdrop-blur-xl border border-white/[0.06] p-6"
+        transition={{ delay: 0.35 }}
+        className="rounded-xl bg-[#0c1222]/80 backdrop-blur-xl border border-white/[0.06] p-4"
       >
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-gradient-to-br from-green-500/30 to-green-600/20 rounded-xl ring-1 ring-green-500/20">
-              <BarChart3 className="w-5 h-5 text-green-400" />
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2.5">
+            <div className="p-1.5 bg-gradient-to-br from-green-500/30 to-green-600/20 rounded-lg ring-1 ring-green-500/20">
+              <BarChart3 className="w-4 h-4 text-green-400" />
             </div>
             <div>
-              <h3 className="text-lg font-semibold text-white">Resumen Financiero</h3>
-              <p className="text-xs text-gray-500">Últimos 30 días</p>
+              <h3 className="text-sm lg:text-base font-semibold text-white">Resumen Financiero</h3>
+              <p className="text-[10px] text-gray-500">Últimos 30 días</p>
             </div>
           </div>
-          <a href="/admin/rendimiento" className="flex items-center gap-1 text-sm text-blue-400 hover:text-blue-300 transition-colors">
-            Ver detalles <ArrowRight className="w-4 h-4" />
+          <a href="/admin/rendimiento" className="flex items-center gap-1 text-xs text-blue-400 hover:text-blue-300 transition-colors">
+            Ver detalles <ArrowRight className="w-3.5 h-3.5" />
           </a>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div className="p-4 rounded-xl bg-gradient-to-br from-green-500/10 to-transparent border border-green-500/20">
-            <div className="flex items-center gap-2 mb-2">
-              <TrendingUp className="w-4 h-4 text-green-400" />
-              <span className="text-sm text-gray-400">Ingresos</span>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 lg:gap-3">
+          <div className="px-3 py-2.5 rounded-lg bg-gradient-to-br from-green-500/10 to-transparent border border-green-500/20">
+            <div className="flex items-center gap-2 mb-1">
+              <TrendingUp className="w-3.5 h-3.5 text-green-400" />
+              <span className="text-xs text-gray-400">Ingresos</span>
             </div>
-            <p className="text-2xl font-bold text-green-400">${displayStats.monthlyRevenue.toLocaleString()}</p>
-            <p className="text-xs text-gray-500 mt-1">Este mes</p>
+            <p className="text-lg lg:text-xl font-bold text-green-400">${displayStats.monthlyRevenue.toLocaleString()}</p>
+            <p className="text-[11px] text-gray-500">Este mes</p>
           </div>
-          
-          <div className="p-4 rounded-xl bg-gradient-to-br from-amber-500/10 to-transparent border border-amber-500/20">
-            <div className="flex items-center gap-2 mb-2">
-              <AlertTriangle className="w-4 h-4 text-amber-400" />
-              <span className="text-sm text-gray-400">Pendientes</span>
+
+          <div className="px-3 py-2.5 rounded-lg bg-gradient-to-br from-amber-500/10 to-transparent border border-amber-500/20">
+            <div className="flex items-center gap-2 mb-1">
+              <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />
+              <span className="text-xs text-gray-400">Pendientes</span>
             </div>
-            <p className="text-2xl font-bold text-amber-400">{displayStats.pendingPayments}</p>
-            <p className="text-xs text-gray-500 mt-1">Pagos por cobrar</p>
+            <p className="text-lg lg:text-xl font-bold text-amber-400">{displayStats.pendingPayments}</p>
+            <p className="text-[11px] text-gray-500">Pagos por cobrar</p>
           </div>
-          
-          <div className="p-4 rounded-xl bg-gradient-to-br from-violet-500/10 to-transparent border border-violet-500/20">
-            <div className="flex items-center gap-2 mb-2">
-              <Wrench className="w-4 h-4 text-violet-400" />
-              <span className="text-sm text-gray-400">Mantenimiento</span>
+
+          <div className="px-3 py-2.5 rounded-lg bg-gradient-to-br from-violet-500/10 to-transparent border border-violet-500/20">
+            <div className="flex items-center gap-2 mb-1">
+              <Wrench className="w-3.5 h-3.5 text-violet-400" />
+              <span className="text-xs text-gray-400">Mantenimiento</span>
             </div>
-            <p className="text-2xl font-bold text-violet-400">{displayStats.maintenanceRequests}</p>
-            <p className="text-xs text-gray-500 mt-1">Solicitudes activas</p>
+            <p className="text-lg lg:text-xl font-bold text-violet-400">{displayStats.maintenanceRequests}</p>
+            <p className="text-[11px] text-gray-500">Solicitudes activas</p>
           </div>
         </div>
       </motion.div>
@@ -436,8 +430,8 @@ export default function AdminDashboard() {
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        transition={{ delay: 0.8 }}
-        className="flex items-center justify-center gap-2 text-xs text-gray-600 py-4"
+        transition={{ delay: 0.5 }}
+        className="flex items-center justify-center gap-2 text-[11px] text-gray-600 py-2"
       >
         <Shield className="w-3 h-3" />
         <span>Panel seguro • Ross House Rentals LLC • Dumas, TX</span>

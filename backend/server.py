@@ -59,7 +59,7 @@ def get_database():
 
 
 # ─── 3. JWT & Crypto ─────────────────────────────────────────
-SECRET_KEY = os.getenv('JWT_SECRET_KEY', 'ross-tax-secret-key-2025-change-in-production')
+SECRET_KEY = os.environ['JWT_SECRET_KEY']
 ALGORITHM = 'HS256'
 ACCESS_TOKEN_EXPIRE_DAYS = 90
 

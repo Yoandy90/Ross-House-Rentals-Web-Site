@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Scorecard de Builders — Ross House Rentals</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: Georgia, 'Times New Roman', serif; color: #1a202c; background: #f1f5f9; line-height: 1.5; }
+  .page { background: #fff; max-width: 11in; margin: 24px auto; padding: 0.6in 0.7in; box-shadow: 0 4px 24px rgba(0,0,0,.12); }
+  h1 { font-size: 23px; color: #0f2a4a; }
+  h2 { font-size: 15px; color: #0f2a4a; border-bottom: 3px solid #b8860b; padding-bottom: 5px; margin: 20px 0 10px; text-transform: uppercase; letter-spacing: 1px; }
+  p, li, td, th { font-size: 11.5px; }
+  table { width: 100%; border-collapse: collapse; margin: 10px 0 14px; }
+  th { background: #0f2a4a; color: #fff; text-align: left; padding: 6px 8px; font-size: 10px; text-transform: uppercase; }
+  td { padding: 6px 8px; border: 1px solid #e2e8f0; vertical-align: top; }
+  .crit { font-weight: bold; width: 32%; }
+  .w { color: #b8860b; font-family: Arial; font-size: 9px; font-weight: bold; }
+  .in { color: #b45309; background:#fffbeb; text-align: center; font-family: Arial; }
+  .hdr { display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 4px double #0f2a4a; padding-bottom: 10px; margin-bottom: 16px; }
+  .hdr .b { font-family: Arial; font-size: 11px; color: #b8860b; font-weight: bold; letter-spacing: 2px; text-transform: uppercase; }
+  .total td { background: #fdf6e3; font-weight: bold; border-top: 2px solid #b8860b; }
+  .warn { background: #fef2f2; border-left: 4px solid #dc2626; padding: 8px 12px; font-size: 11px; margin: 8px 0; }
+  .ok { background: #f0fdf4; border-left: 4px solid #16a34a; padding: 8px 12px; font-size: 11px; margin: 8px 0; }
+  ol li, ul li { margin: 3px 0 3px 18px; }
+  .printbtn { position: fixed; top: 16px; right: 16px; background: #b8860b; color: #fff; border: none; font: bold 14px Arial; padding: 12px 22px; border-radius: 8px; cursor: pointer; box-shadow: 0 4px 14px rgba(0,0,0,.25); }
+  @media print { body { background:#fff } .page { box-shadow:none; margin:0; padding:0.45in 0.5in; page-break-after: always; } .printbtn { display:none !important } }
+</style>
+</head>
+<body>
+<button class="printbtn" onclick="window.print()">🖨️ Imprimir / Guardar PDF</button>
+
+<!-- PÁGINA 1 · SCORECARD -->
+<div class="page">
+  <div class="hdr">
+    <div><div class="b">Ross House Rentals · Herramienta de Decisión</div><h1>Scorecard de Comparación de Builders</h1></div>
+    <div style="font-family:Arial;font-size:11px;color:#64748b;text-align:right">Puntúa 1-5 cada criterio<br>Junio 2026</div>
+  </div>
+
+  <p><strong>Cómo usarlo:</strong> entrevista a tus 2-3 builders candidatos, puntúa cada criterio de <strong>1 (malo) a 5 (excelente)</strong>, multiplica por el peso y suma. El de mayor puntaje total gana — y tendrás evidencia objetiva de por qué.</p>
+
+  <table>
+    <tr>
+      <th style="width:32%">Criterio <span class="w">(peso)</span></th>
+      <th>Qué verificar</th>
+      <th style="width:11%">Builder A<br><span style="font-weight:normal">_________</span></th>
+      <th style="width:11%">Builder B<br><span style="font-weight:normal">_________</span></th>
+      <th style="width:11%">Builder C<br><span style="font-weight:normal">_________</span></th>
+    </tr>
+    <tr><td class="crit">1. Referencias verificadas <span class="w">(x3)</span></td><td>Llamaste a 3 clientes recientes: ¿terminó a tiempo? ¿respetó el precio? ¿respondió la garantía?</td><td class="in">__ x3</td><td class="in">__ x3</td><td class="in">__ x3</td></tr>
+    <tr><td class="crit">2. Experiencia en el tipo de proyecto <span class="w">(x3)</span></td><td>¿Ha construido casas de renta / multifamily similares? ¿Cuántas en los últimos 3 años? Fotos y direcciones reales</td><td class="in">__ x3</td><td class="in">__ x3</td><td class="in">__ x3</td></tr>
+    <tr><td class="crit">3. Registro municipal + seguro <span class="w">(x3)</span></td><td>Registro en la ciudad (Dalhart/Amarillo) vigente + certificado de liability y workers comp entregado sin excusas</td><td class="in">__ x3</td><td class="in">__ x3</td><td class="in">__ x3</td></tr>
+    <tr><td class="crit">4. Precio por sqft turnkey <span class="w">(x2)</span></td><td>Comparable entre los 3 (mismo plano/specs). Sospecha del 20%+ más barato</td><td class="in">__ x2</td><td class="in">__ x2</td><td class="in">__ x2</td></tr>
+    <tr><td class="crit">5. Contrato de precio fijo <span class="w">(x3)</span></td><td>¿Tiene contrato escrito estándar (TAB)? ¿Acepta draws del banco, change orders por escrito y lien waivers?</td><td class="in">__ x3</td><td class="in">__ x3</td><td class="in">__ x3</td></tr>
+    <tr><td class="crit">6. Cronograma y capacidad <span class="w">(x2)</span></td><td>¿Fecha de inicio real? ¿Cuántas obras lleva a la vez? ¿Equipo propio o todo subcontratado?</td><td class="in">__ x2</td><td class="in">__ x2</td><td class="in">__ x2</td></tr>
+    <tr><td class="crit">7. Garantías <span class="w">(x2)</span></td><td>1 año mano de obra / 2 años sistemas / 10 años estructural — por escrito</td><td class="in">__ x2</td><td class="in">__ x2</td><td class="in">__ x2</td></tr>
+    <tr><td class="crit">8. Aprobado por el banco <span class="w">(x2)</span></td><td>¿Está en la lista de builders del banco (Happy = $3,000 crédito)? ¿Ha trabajado con draws bancarios antes?</td><td class="in">__ x2</td><td class="in">__ x2</td><td class="in">__ x2</td></tr>
+    <tr><td class="crit">9. Comunicación <span class="w">(x1)</span></td><td>¿Responde llamadas en 24-48h? ¿Explica claro? Como se comunica ahora es como se comunicará en la obra</td><td class="in">__ x1</td><td class="in">__ x1</td><td class="in">__ x1</td></tr>
+    <tr><td class="crit">10. Solidez financiera <span class="w">(x1)</span></td><td>¿Años en el negocio? ¿Pide anticipo razonable (≤10%)? ¿Sin liens ni demandas? (búscalo en el county records)</td><td class="in">__ x1</td><td class="in">__ x1</td><td class="in">__ x1</td></tr>
+    <tr class="total"><td colspan="2">PUNTAJE TOTAL (máx 110)</td><td class="in"></td><td class="in"></td><td class="in"></td></tr>
+  </table>
+
+  <div class="ok"><strong>✅ Regla de decisión:</strong> 85-110 = contrátalo con confianza · 65-84 = negociar los puntos débiles antes de firmar · &lt;65 = descártalo aunque sea el más barato.</div>
+  <div class="warn"><strong>🚩 Descalificación automática (sin importar el puntaje):</strong> no entrega certificado de seguro · no da referencias · pide &gt;10% de anticipo · no acepta draws del banco · no tiene contrato escrito.</div>
+</div>
+
+<!-- PÁGINA 2 · PREGUNTAS PARA REFERENCIAS -->
+<div class="page">
+  <h2>Guion: las 8 preguntas para las referencias de cada builder</h2>
+  <p>Llama a los 3 clientes anteriores de cada builder. 10 minutos por llamada. Toma notas.</p>
+  <ol>
+    <li><strong>"¿El proyecto terminó en la fecha prometida?"</strong> — si se atrasó, ¿cuánto y por qué?</li>
+    <li><strong>"¿El precio final fue el del contrato?"</strong> — ¿hubo extras sorpresa? ¿de cuánto?</li>
+    <li><strong>"¿Cómo manejó los problemas?"</strong> — siempre hay problemas; lo que importa es cómo respondió.</li>
+    <li><strong>"¿La calidad se mantiene?"</strong> — ¿grietas, plomería, techos después de 1-2 años?</li>
+    <li><strong>"¿Respondió a la garantía?"</strong> — ¿volvió a arreglar detalles después de cobrar?</li>
+    <li><strong>"¿Con qué frecuencia se comunicaba?"</strong> — ¿te enterabas del avance o tenías que perseguirlo?</li>
+    <li><strong>"¿Sus subcontratistas cobraron bien?"</strong> — ¿algún lien o subcontratista reclamando pago?</li>
+    <li><strong>"¿Lo volverías a contratar?"</strong> — la pregunta definitiva. Si duda, ya tienes la respuesta.</li>
+  </ol>
+
+  <h2>Preguntas para la entrevista directa con el builder</h2>
+  <ol>
+    <li>¿Cuántos proyectos tienes activos ahora mismo y cuántos terminas al año?</li>
+    <li>¿Cuál es tu precio por sqft turnkey para una 3/2 con acabados estándar de renta? ¿Y para un fourplex?</li>
+    <li>¿Has trabajado con draws de Dalhart Federal / ANB / Happy State Bank? ¿Con cuál banco prefieres trabajar?</li>
+    <li>¿Qué incluye exactamente tu precio? (flatwork, landscaping, conexiones de servicios — los "extras" clásicos)</li>
+    <li>¿Quién saca los permisos, tú o yo? (respuesta correcta: él)</li>
+    <li>¿Cuál es tu calendario de pagos propuesto? (correcto: atado a hitos verificados, anticipo ≤10%)</li>
+    <li>¿Qué pasa si los materiales suben de precio a mitad de obra? (correcto en precio fijo: es su riesgo, no el tuyo)</li>
+    <li>Si te contrato para 1 casa y sale bien, ¿qué descuento harías por 2-3 proyectos al año? (siembra la relación de volumen)</li>
+  </ol>
+
+  <div class="ok"><strong>💡 Estrategia Ross House:</strong> la pregunta #8 es tu palanca de largo plazo. Los builders viven de flujo constante de trabajo — un inversionista que construye 2-3 unidades al año vale más que 10 clientes de una sola casa. Úsalo para negociar precio/sqft y prioridad en el cronograma.</div>
+
+  <p style="margin-top:26px;font-size:10px;color:#94a3b8;text-align:center">
+    Ross House Rentals LLC · Dumas, TX · rosshouserentals.com · Junio 2026
+  </p>
+</div>
+
+</body>
+</html>

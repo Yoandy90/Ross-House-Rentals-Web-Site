@@ -525,9 +525,9 @@ async def send_push_notification(
             from motor.motor_asyncio import AsyncIOMotorClient
             import os
             
-            mongo_url = os.getenv('MONGO_URL', 'mongodb://localhost:27017')
+            mongo_url = os.environ['MONGO_URL']
             client = AsyncIOMotorClient(mongo_url)
-            db = client['taxportal']
+            db = client[os.environ['DB_NAME']]
             
             # Try string ID first (UUID), then ObjectId
             user = await db.users.find_one({'_id': user_id})

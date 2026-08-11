@@ -51,11 +51,14 @@ class RossAIBrain:
         
         # Configurar Gemini 2.0 Flash
         gemini_api_key = os.getenv('GEMINI_API_KEY')
-        if not gemini_api_key:
-            raise ValueError("GEMINI_API_KEY not found in environment variables")
-        
-        genai.configure(api_key=gemini_api_key)
-        self.model = genai.GenerativeModel('gemini-2.5-flash')
+        if gemini_api_key:
+            genai.configure(api_key=gemini_api_key)
+            self.model = genai.GenerativeModel('gemini-2.5-flash')
+        else:
+            # Degradación elegante: el backend arranca aunque falte la key
+            # (las funciones de AI Brain devolverán error hasta configurarla)
+            logger.warning("GEMINI_API_KEY no configurada — AI Brain deshabilitado")
+            self.model = None
         
         # Cache de prompts de la base de datos
         self._prompts_cache = {}

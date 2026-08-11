@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Auditoría de Seguridad — Ross House Rentals</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: Arial, Helvetica, sans-serif; color: #1a202c; background: #f1f5f9; line-height: 1.5; }
+  .page { background: #fff; max-width: 8.5in; margin: 24px auto; padding: 0.65in 0.75in; box-shadow: 0 4px 24px rgba(0,0,0,.12); }
+  h1 { font-size: 22px; color: #0f2a4a; }
+  h2 { font-size: 14px; color: #fff; background: #0f2a4a; padding: 8px 12px; margin: 22px 0 10px; border-radius: 6px; }
+  p, li, td, th { font-size: 12px; }
+  table { width: 100%; border-collapse: collapse; margin: 8px 0 14px; }
+  th { background: #e2e8f0; text-align: left; padding: 6px 9px; font-size: 11px; }
+  td { padding: 6px 9px; border: 1px solid #e2e8f0; vertical-align: top; }
+  .sev { font-weight: bold; padding: 2px 8px; border-radius: 10px; font-size: 10px; color: #fff; white-space: nowrap; }
+  .high { background: #dc2626; } .med { background: #d97706; } .low { background: #64748b; } .fixed { background: #16a34a; }
+  .okbox { border-left: 4px solid #16a34a; background: #f0fdf4; padding: 10px 14px; margin: 8px 0 14px; }
+  .warn { border-left: 4px solid #d97706; background: #fffbeb; padding: 10px 14px; margin: 8px 0 14px; }
+  .hdr { border-bottom: 3px solid #0f2a4a; padding-bottom: 10px; margin-bottom: 16px; }
+  .printbtn { position: fixed; top: 16px; right: 16px; background: #0f2a4a; color: #fff; border: none; font: bold 14px Arial; padding: 12px 22px; border-radius: 8px; cursor: pointer; box-shadow: 0 4px 14px rgba(0,0,0,.25); }
+  code { background: #f1f5f9; padding: 1px 5px; border-radius: 4px; font-size: 11px; }
+  @media print { body { background:#fff } .page { box-shadow:none; margin:0; padding:0.45in 0.5in } .printbtn { display:none !important } }
+</style>
+</head>
+<body>
+<button class="printbtn" onclick="window.print()">🖨️ Imprimir / PDF</button>
+
+<div class="page">
+  <div class="hdr">
+    <h1>Auditoría de Seguridad — Ross House Rentals</h1>
+    <p style="color:#64748b;font-size:11px">Realizada: 15 julio 2026 · Alcance: backend FastAPI + web Next.js + app Expo</p>
+  </div>
+
+  <div class="okbox">
+    <strong>✅ Lo que ya estaba BIEN:</strong> Las claves/API keys NO están expuestas en ningún lado — ni en el código del frontend, ni en los archivos públicos (.html/.md), ni en la app Expo, ni en las respuestas de la API. El archivo <code>.env</code> con los secretos reales está correctamente fuera del repositorio (gitignored). El login de admin tiene 2FA. Las listas de métodos de pago solo muestran datos enmascarados (últimos 4 dígitos). No se encontró inyección NoSQL (las búsquedas de usuario están sanitizadas).
+  </div>
+
+  <h2>Vulnerabilidades encontradas y CORREGIDAS</h2>
+  <table>
+    <tr><th style="width:18%">Severidad</th><th>Problema</th><th>Corrección aplicada</th></tr>
+    <tr>
+      <td><span class="sev high">ALTA</span> → <span class="sev fixed">ARREGLADA</span></td>
+      <td>El webhook de Xcel (público, sin login) descargaba cualquier URL que le enviaran, adjuntando nuestro token de Xcel. Un atacante podía robar el token o hacer que el servidor llamara a sistemas internos (SSRF).</td>
+      <td>Ahora solo se descargan URLs de dominios oficiales <code>*.xcelenergy.com</code> por HTTPS. Cualquier otra URL se bloquea y se registra.</td>
+    </tr>
+    <tr>
+      <td><span class="sev high">ALTA</span> → <span class="sev fixed">ARREGLADA</span></td>
+      <td>La encriptación del Baúl Seguro usaba llaves derivadas de texto que estaba en el código. Si la base de datos se filtraba, se podían desencriptar los números de cuenta bancaria y tarjetas.</td>
+      <td>Se generaron llaves aleatorias fuertes nuevas (<code>VAULT_ENCRYPTION_KEY</code>, <code>VAULT_JWT_SECRET</code>). Se eliminaron todas las llaves "de respaldo" del código: si la llave no está en el entorno, el baúl se niega a operar. El token de sesión del baúl ya no se puede falsificar desde el código.</td>
+    </tr>
+    <tr>
+      <td><span class="sev med">MEDIA</span> → <span class="sev fixed">ARREGLADA</span></td>
+      <td>El bloqueo tras 5 intentos de PIN del baúl no funcionaba: la verificación de bloqueo ocurría después de comprobar el PIN, así que se podía intentar sin límite (fuerza bruta).</td>
+      <td>Ahora el bloqueo se verifica ANTES de comprobar el PIN. Tras 5 fallos → bloqueo de 15 min real. Muestra intentos restantes y resetea el contador al acertar.</td>
+    </tr>
+    <tr>
+      <td><span class="sev med">MEDIA</span> → <span class="sev fixed">ARREGLADA</span></td>
+      <td>Un tenant podía pagar $1 y registrar el mes como pagado, porque el monto de la renta se tomaba del cliente.</td>
+      <td>El monto base de la renta ahora se toma SIEMPRE del contrato en el servidor; el cliente no puede alterarlo.</td>
+    </tr>
+    <tr>
+      <td><span class="sev med">MEDIA</span> → <span class="sev fixed">ARREGLADA</span></td>
+      <td>El webhook de Stripe procesaba eventos sin verificar la firma si faltaba el secreto → se podían falsificar pagos.</td>
+      <td>Ahora rechaza cualquier webhook sin firma verificada (falla cerrado).</td>
+    </tr>
+    <tr>
+      <td><span class="sev med">MEDIA</span> → <span class="sev fixed">ARREGLADA</span></td>
+      <td>La página de callback de Xcel reflejaba un parámetro sin escapar (XSS reflejado).</td>
+      <td>El valor ahora se escapa como HTML.</td>
+    </tr>
+    <tr>
+      <td><span class="sev low">BAJA</span> → <span class="sev fixed">ARREGLADA</span></td>
+      <td>El endpoint de subida de imágenes aceptaba cualquier texto como autorización (subidas anónimas de 10MB).</td>
+      <td>Ahora valida que el token JWT sea auténtico antes de aceptar la subida.</td>
+    </tr>
+  </table>
+
+  <h2>⚠️ ACCIÓN REQUERIDA DE TU PARTE (en Railway)</h2>
+  <div class="warn">
+    Los arreglos ya están en el código. Para que surtan efecto en producción, agrega estas variables de entorno en Railway (backend) y haz redeploy:
+    <table style="margin-top:8px">
+      <tr><th>Variable</th><th>Valor</th></tr>
+      <tr><td><code>VAULT_ENCRYPTION_KEY</code></td><td><code>L1APtZzS7pjMRZPNBXP5BxSV52kDWLjCln1oJZZeSsQ=</code></td></tr>
+      <tr><td><code>VAULT_JWT_SECRET</code></td><td>(cadena aleatoria larga — te la paso por separado)</td></tr>
+      <tr><td><code>TENANT_JWT_SECRET</code></td><td>(fija la actual para que no cierre sesión de admins al reiniciar)</td></tr>
+      <tr><td><code>LEGACY_ENCRYPTION_KEY</code></td><td>(solo si migras la 1 tarjeta legacy existente)</td></tr>
+      <tr><td><code>STRIPE_WEBHOOK_SECRET</code></td><td>(desde tu dashboard de Stripe — necesario para que los webhooks funcionen)</td></tr>
+      <tr><td><code>XCEL_SCOPE</code></td><td><code>FB=1_3_4_5_10_13_15_31_37_39</code></td></tr>
+    </table>
+    <strong>Importante:</strong> genera <code>VAULT_ENCRYPTION_KEY</code> UNA sola vez. Como el baúl aún no tiene datos encriptados con ella, ponerla ahora no rompe nada. Si la cambias después de guardar datos, esos datos ya no se podrán leer.
+  </div>
+
+  <h2>Veredicto</h2>
+  <p>Se corrigieron <strong>7 hallazgos</strong> (2 altos, 4 medios, 1 bajo). Ninguna clave estaba expuesta públicamente. Tras aplicar las variables de entorno en Railway y redeploy, la plataforma queda con una postura de seguridad sólida para manejar pagos y datos personales. Nadie puede "hackearte" a través de los vectores auditados.</p>
+
+  <p style="margin-top:16px;font-size:10px;color:#94a3b8;text-align:center">Ross House Rentals · Auditoría read-only · Sin cambios en producción hasta que hagas redeploy en Railway</p>
+</div>
+</body>
+</html>

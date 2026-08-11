@@ -4,7 +4,8 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useAdminAuth } from '../layout';
 import {
   Building2, Users, Home, RefreshCw, Loader2, Mail, Phone, MapPin,
-  Search, Download, Sparkles, TrendingUp, ArrowUpRight,
+  Search, Download, Sparkles, TrendingUp, ArrowUpRight, Trash2,
+  PhoneCall, CheckCircle2,
 } from 'lucide-react';
 
 interface PmLead {
@@ -37,12 +38,23 @@ const TYPE_LABEL: Record<string, string> = {
   commercial: 'Comercial',
 };
 
+const STATUS_META: Record<string, { label: string; badge: string; dot: string }> = {
+  new: { label: 'Nuevo', badge: 'bg-sky-500/15 text-sky-400 border-sky-500/30', dot: 'bg-sky-400' },
+  contacted: { label: 'Contactado', badge: 'bg-amber-500/15 text-amber-400 border-amber-500/30', dot: 'bg-amber-400' },
+  converted: { label: 'Convertido', badge: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30', dot: 'bg-emerald-400' },
+  discarded: { label: 'Descartado', badge: 'bg-rose-500/15 text-rose-400 border-rose-500/30', dot: 'bg-rose-400' },
+};
+
+const STATUS_ORDER = ['new', 'contacted', 'converted', 'discarded'];
+
 export default function PmWaitlistAdminPage() {
   const { token } = useAdminAuth();
   const [items, setItems] = useState<PmLead[]>([]);
-  const [stats, setStats] = useState<{ total: number; new: number; total_properties_interested: number } | null>(null);
+  const [stats, setStats] = useState<{ total: number; new: number; contacted?: number; converted?: number; total_properties_interested: number } | null>(null);
   const [loading, setLoading] = useState(false);
   const [q, setQ] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [busyId, setBusyId] = useState<string | null>(null);
 
   const authHdr = useMemo(() => ({ Authorization: `Bearer ${token}` }), [token]);
 
@@ -64,7 +76,39 @@ export default function PmWaitlistAdminPage() {
 
   useEffect(() => { load(); }, [load]);
 
+  const updateStatus = async (id: string, status: string) => {
+    setBusyId(id);
+    try {
+      const r = await fetch(`/api/admin/pm-service-waitlist/${id}`, {
+        method: 'PATCH',
+        headers: { ...authHdr, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status }),
+      });
+      if (r.ok) {
+        setItems(prev => prev.map(l => (l.id === id ? { ...l, status } : l)));
+        const statsR = await fetch('/api/admin/pm-service-waitlist/stats', { headers: authHdr }).then(x => x.json());
+        setStats(statsR || null);
+      }
+    } catch (e) { console.error(e); }
+    setBusyId(null);
+  };
+
+  const deleteLead = async (id: string, name: string) => {
+    if (!window.confirm(`¿Eliminar permanentemente a "${name}" de la lista de espera?`)) return;
+    setBusyId(id);
+    try {
+      const r = await fetch(`/api/admin/pm-service-waitlist/${id}`, { method: 'DELETE', headers: authHdr });
+      if (r.ok) {
+        setItems(prev => prev.filter(l => l.id !== id));
+        const statsR = await fetch('/api/admin/pm-service-waitlist/stats', { headers: authHdr }).then(x => x.json());
+        setStats(statsR || null);
+      }
+    } catch (e) { console.error(e); }
+    setBusyId(null);
+  };
+
   const filtered = items.filter(l => {
+    if (statusFilter !== 'all' && (l.status || 'new') !== statusFilter) return false;
     if (!q) return true;
     const s = q.toLowerCase();
     return (
@@ -77,7 +121,7 @@ export default function PmWaitlistAdminPage() {
 
   const exportCsv = () => {
     const rows = [
-      ['Nombre', 'Email', 'Teléfono', 'Ciudad', 'Estado', 'Propiedades', 'Tipos', 'Situación', 'Idioma', 'Notas', 'Recibido'],
+      ['Nombre', 'Email', 'Teléfono', 'Ciudad', 'Estado', 'Propiedades', 'Tipos', 'Situación', 'Idioma', 'Status', 'Notas', 'Recibido'],
       ...filtered.map(l => [
         l.name, l.email, l.phone,
         l.city || '', l.state || '',
@@ -85,6 +129,7 @@ export default function PmWaitlistAdminPage() {
         (l.property_types || []).join('|'),
         SITUATION_LABEL[l.current_situation || ''] || l.current_situation || '',
         l.language_pref || '',
+        STATUS_META[l.status || 'new']?.label || l.status || '',
         (l.notes || '').replace(/\n/g, ' '),
         l.created_at ? new Date(l.created_at).toLocaleString('es-MX') : '',
       ]),
@@ -136,10 +181,36 @@ export default function PmWaitlistAdminPage() {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
           <StatCard icon={<Users className="w-4 h-4" />} label="Total interesados" value={stats?.total ?? 0} accent="indigo" />
-          <StatCard icon={<Sparkles className="w-4 h-4" />} label="Nuevos" value={stats?.new ?? 0} accent="emerald" />
-          <StatCard icon={<Home className="w-4 h-4" />} label="Propiedades" value={stats?.total_properties_interested ?? 0} accent="amber" />
+          <StatCard icon={<Sparkles className="w-4 h-4" />} label="Nuevos" value={stats?.new ?? 0} accent="sky" />
+          <StatCard icon={<PhoneCall className="w-4 h-4" />} label="Contactados" value={stats?.contacted ?? 0} accent="amber" />
+          <StatCard icon={<CheckCircle2 className="w-4 h-4" />} label="Convertidos" value={stats?.converted ?? 0} accent="emerald" />
+          <StatCard icon={<Home className="w-4 h-4" />} label="Propiedades" value={stats?.total_properties_interested ?? 0} accent="violet" />
+        </div>
+
+        {/* Status filter chips */}
+        <div className="flex items-center gap-2 flex-wrap">
+          <button
+            onClick={() => setStatusFilter('all')}
+            className={`px-3 py-1.5 rounded-full text-xs font-bold border transition ${statusFilter === 'all' ? 'bg-white/[0.12] text-white border-white/[0.25]' : 'bg-white/[0.04] text-slate-400 border-white/[0.08] hover:border-white/[0.2]'}`}
+          >
+            Todos ({items.length})
+          </button>
+          {STATUS_ORDER.map(s => {
+            const count = items.filter(l => (l.status || 'new') === s).length;
+            const m = STATUS_META[s];
+            return (
+              <button
+                key={s}
+                onClick={() => setStatusFilter(statusFilter === s ? 'all' : s)}
+                className={`px-3 py-1.5 rounded-full text-xs font-bold border transition flex items-center gap-1.5 ${statusFilter === s ? m.badge : 'bg-white/[0.04] text-slate-400 border-white/[0.08] hover:border-white/[0.2]'}`}
+              >
+                <span className={`w-1.5 h-1.5 rounded-full ${m.dot}`} />
+                {m.label} ({count})
+              </button>
+            );
+          })}
         </div>
 
         {/* Search */}
@@ -186,7 +257,7 @@ export default function PmWaitlistAdminPage() {
                     </div>
                   </div>
                   <div className="flex items-center gap-1.5 shrink-0">
-                    <span className="text-[10px] px-2 py-1 rounded-full bg-indigo-100 text-indigo-700 font-bold flex items-center gap-1">
+                    <span className="text-[10px] px-2 py-1 rounded-full bg-indigo-500/15 text-indigo-400 border border-indigo-500/30 font-bold flex items-center gap-1">
                       <Home className="w-3 h-3" /> {l.property_count} prop
                     </span>
                     {l.language_pref && (
@@ -194,6 +265,10 @@ export default function PmWaitlistAdminPage() {
                         {l.language_pref}
                       </span>
                     )}
+                    <span className={`text-[10px] px-2 py-1 rounded-full border font-bold flex items-center gap-1 ${STATUS_META[l.status || 'new']?.badge || STATUS_META.new.badge}`}>
+                      <span className={`w-1.5 h-1.5 rounded-full ${STATUS_META[l.status || 'new']?.dot || STATUS_META.new.dot}`} />
+                      {STATUS_META[l.status || 'new']?.label || l.status}
+                    </span>
                   </div>
                 </div>
 
@@ -225,7 +300,7 @@ export default function PmWaitlistAdminPage() {
                 {l.property_types && l.property_types.length > 0 && (
                   <div className="flex flex-wrap gap-1 mb-3">
                     {l.property_types.map(t => (
-                      <span key={t} className="text-[10px] px-2 py-0.5 rounded-full bg-violet-50 text-violet-700 border border-violet-200 font-semibold">
+                      <span key={t} className="text-[10px] px-2 py-0.5 rounded-full bg-violet-500/15 text-violet-400 border border-violet-500/30 font-semibold">
                         {TYPE_LABEL[t] || t}
                       </span>
                     ))}
@@ -233,11 +308,40 @@ export default function PmWaitlistAdminPage() {
                 )}
 
                 {l.notes && (
-                  <div className="mt-2 p-3 bg-white/[0.04] border border-white/[0.06] rounded-xl">
+                  <div className="mt-2 p-3 bg-black/30 border border-white/[0.08] rounded-xl">
                     <div className="text-[10px] uppercase tracking-wider text-slate-500 font-bold mb-1">Notas</div>
                     <p className="text-sm text-slate-300 leading-relaxed whitespace-pre-wrap">{l.notes}</p>
                   </div>
                 )}
+
+                {/* Actions: status pipeline + delete */}
+                <div className="mt-3 pt-3 border-t border-white/[0.06] flex items-center justify-between gap-2 flex-wrap">
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    {STATUS_ORDER.map(s => {
+                      const m = STATUS_META[s];
+                      const active = (l.status || 'new') === s;
+                      return (
+                        <button
+                          key={s}
+                          disabled={busyId === l.id || active}
+                          onClick={() => updateStatus(l.id, s)}
+                          className={`text-[10px] px-2.5 py-1.5 rounded-lg border font-bold transition disabled:cursor-default ${active ? m.badge : 'bg-white/[0.03] text-slate-500 border-white/[0.07] hover:text-slate-300 hover:border-white/[0.2]'}`}
+                        >
+                          {m.label}
+                        </button>
+                      );
+                    })}
+                    {busyId === l.id && <Loader2 className="w-3.5 h-3.5 animate-spin text-slate-400" />}
+                  </div>
+                  <button
+                    disabled={busyId === l.id}
+                    onClick={() => deleteLead(l.id, l.name)}
+                    className="text-[10px] px-2.5 py-1.5 rounded-lg border border-rose-500/25 bg-rose-500/10 text-rose-400 font-bold hover:bg-rose-500/20 transition flex items-center gap-1 disabled:opacity-50"
+                    title="Eliminar (spam)"
+                  >
+                    <Trash2 className="w-3 h-3" /> Eliminar
+                  </button>
+                </div>
               </div>
             ))}
           </div>
@@ -248,17 +352,18 @@ export default function PmWaitlistAdminPage() {
 }
 
 function StatCard({ icon, label, value, accent }: {
-  icon: React.ReactNode; label: string; value: number; accent: 'indigo' | 'emerald' | 'amber';
+  icon: React.ReactNode; label: string; value: number; accent: 'indigo' | 'emerald' | 'amber' | 'sky' | 'violet';
 }) {
-  const map: Record<string, { bg: string; text: string; ring: string }> = {
-    indigo: { bg: 'bg-indigo-50', text: 'text-indigo-700', ring: 'ring-indigo-100' },
-    emerald: { bg: 'bg-emerald-50', text: 'text-emerald-700', ring: 'ring-emerald-100' },
-    amber: { bg: 'bg-amber-50', text: 'text-amber-700', ring: 'ring-amber-100' },
+  const map: Record<string, string> = {
+    indigo: 'bg-indigo-500/15 text-indigo-400 ring-indigo-500/20',
+    emerald: 'bg-emerald-500/15 text-emerald-400 ring-emerald-500/20',
+    amber: 'bg-amber-500/15 text-amber-400 ring-amber-500/20',
+    sky: 'bg-sky-500/15 text-sky-400 ring-sky-500/20',
+    violet: 'bg-violet-500/15 text-violet-400 ring-violet-500/20',
   };
-  const c = map[accent];
   return (
     <div className="bg-[#0c1222] rounded-2xl border border-white/[0.08] p-4">
-      <div className={`w-9 h-9 rounded-xl ${c.bg} ${c.text} flex items-center justify-center ring-1 ${c.ring} mb-2`}>
+      <div className={`w-9 h-9 rounded-xl flex items-center justify-center ring-1 mb-2 ${map[accent]}`}>
         {icon}
       </div>
       <div className="text-2xl lg:text-3xl font-black text-white leading-none tabular-nums">{value.toLocaleString()}</div>

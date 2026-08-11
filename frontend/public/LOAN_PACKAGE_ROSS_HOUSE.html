@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Construction Loan Package — Ross House Rentals LLC</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: Georgia, 'Times New Roman', serif; color: #1a202c; background: #f1f5f9; line-height: 1.5; }
+  .page { background: #fff; max-width: 8.5in; margin: 24px auto; padding: 0.8in 0.9in; box-shadow: 0 4px 24px rgba(0,0,0,.12); min-height: 10.5in; }
+  h1 { font-size: 26px; color: #0f2a4a; }
+  h2 { font-size: 17px; color: #0f2a4a; border-bottom: 3px solid #b8860b; padding-bottom: 6px; margin: 26px 0 12px; text-transform: uppercase; letter-spacing: 1px; }
+  h3 { font-size: 14px; color: #b8860b; margin: 16px 0 6px; text-transform: uppercase; letter-spacing: .5px; }
+  p, li { font-size: 12.5px; }
+  table { width: 100%; border-collapse: collapse; margin: 10px 0 16px; font-size: 12px; }
+  th { background: #0f2a4a; color: #fff; text-align: left; padding: 7px 10px; font-size: 11px; text-transform: uppercase; letter-spacing: .5px; }
+  td { padding: 7px 10px; border-bottom: 1px solid #e2e8f0; }
+  tr:nth-child(even) td { background: #f8fafc; }
+  .total td { background: #fdf6e3 !important; font-weight: bold; border-top: 2px solid #b8860b; }
+  .fill { background: #fff8dc; color: #92600a; font-weight: bold; padding: 1px 6px; border: 1px dashed #d4a017; border-radius: 3px; font-family: Arial, sans-serif; font-size: 11px; white-space: nowrap; }
+  .badge { display: inline-block; background: #e6f4ea; color: #1e7a3a; font-family: Arial; font-size: 10px; font-weight: bold; padding: 2px 8px; border-radius: 10px; }
+  .kpi-row { display: flex; gap: 12px; margin: 14px 0; }
+  .kpi { flex: 1; border: 1px solid #d8dee7; border-top: 4px solid #b8860b; padding: 10px 12px; text-align: center; }
+  .kpi .v { font-size: 20px; font-weight: bold; color: #0f2a4a; font-family: Arial; }
+  .kpi .l { font-size: 9.5px; text-transform: uppercase; letter-spacing: .8px; color: #64748b; font-family: Arial; }
+  .note { background: #f0f6ff; border-left: 4px solid #2563eb; padding: 10px 14px; font-size: 11.5px; margin: 12px 0; }
+  .cover { display: flex; flex-direction: column; justify-content: center; min-height: 9.5in; text-align: center; }
+  .cover .brand { color: #b8860b; letter-spacing: 4px; font-family: Arial; font-size: 13px; font-weight: bold; text-transform: uppercase; }
+  .cover h1 { font-size: 34px; margin: 18px 0 8px; }
+  .cover .sub { font-size: 15px; color: #475569; }
+  .cover .box { margin: 40px auto 0; border: 2px solid #0f2a4a; padding: 22px 34px; display: inline-block; text-align: left; font-size: 13px; }
+  .sig { margin-top: 40px; display: flex; gap: 60px; }
+  .sig div { flex: 1; border-top: 1px solid #333; padding-top: 6px; font-size: 11px; text-align: center; }
+  ol li, ul li { margin: 4px 0 4px 18px; }
+  .guide { background: #10331f; color: #eafbf0; }
+  .guide h1, .guide h2 { color: #ffd97a; border-color: #ffd97a; }
+  .guide p, .guide li { color: #d9f2e2; font-size: 13px; }
+  .guide code { background: rgba(255,255,255,.12); padding: 1px 6px; border-radius: 4px; }
+  .printbtn { position: fixed; top: 16px; right: 16px; background: #b8860b; color: #fff; border: none; font: bold 14px Arial; padding: 12px 22px; border-radius: 8px; cursor: pointer; box-shadow: 0 4px 14px rgba(0,0,0,.25); }
+  @media print {
+    body { background: #fff; }
+    .page { box-shadow: none; margin: 0; padding: 0.55in 0.6in; min-height: auto; page-break-after: always; }
+    .guide, .printbtn { display: none !important; }
+    .fill { border: 1px dashed #b8860b; }
+  }
+</style>
+</head>
+<body>
+<button class="printbtn" onclick="window.print()">🖨️ Imprimir / Guardar PDF</button>
+
+<!-- ═══════════ GUÍA EN ESPAÑOL (no se imprime) ═══════════ -->
+<div class="page guide">
+  <h1>📘 Guía rápida (esta página NO se imprime)</h1>
+  <p style="margin-top:10px">Este es tu <strong>Construction Loan Package</strong> — el documento que presentas al banco para pedir un préstamo de construcción. Está en <strong>inglés</strong> porque va dirigido a bancos de EE.UU. (Dalhart Federal, ANB, Happy State Bank).</p>
+  <h2>Antes de presentarlo, completa los campos amarillos</h2>
+  <ul>
+    <li>Los campos marcados <code>[ ... ]</code> en amarillo son datos que solo tú conoces: valores de tus propiedades, saldos de hipoteca, monto exacto a pedir, datos del terreno y del builder.</li>
+    <li>Los números del proyecto de ejemplo (casa 3/2 de ~1,550 sqft, ~$248K total) son <strong>realistas para Dalhart/Dumas en 2026</strong> — ajústalos a tu proyecto real.</li>
+    <li>El Rent Roll ya tiene tus datos REALES: 121 Oak Ave y 812 NE 2nd (Dumas), $1,200/mes cada una, contratos activos hasta 2027.</li>
+  </ul>
+  <h2>Cómo usarlo</h2>
+  <ol>
+    <li>Completa los campos amarillos (puedes editar el archivo o escribir a mano tras imprimir).</li>
+    <li>Pulsa <code>🖨️ Imprimir / Guardar PDF</code> → "Guardar como PDF".</li>
+    <li>Adjunta los documentos del checklist final (tax returns, bank statements, licencia del builder, planos).</li>
+    <li>Entrégalo en persona al loan officer — pide reunión, no lo mandes solo por email.</li>
+  </ol>
+  <h2>A quién presentarlo primero</h2>
+  <ul>
+    <li><strong>Dalhart Federal S&amp;L</strong> — (806) 249-8561 · Cristie Childress</li>
+    <li><strong>Amarillo National Bank</strong> — (806) 358-3008</li>
+    <li><strong>Happy State Bank</strong> — 800-447-2265 (pregunta por el Builder Affinity Program: $3,000 de crédito)</li>
+  </ul>
+</div>
+
+<!-- ═══════════ PÁGINA 1 · PORTADA ═══════════ -->
+<div class="page">
+  <div class="cover">
+    <div class="brand">Ross House Rentals LLC</div>
+    <h1>Construction Loan<br>Request Package</h1>
+    <div class="sub">Single-Family New Construction · Construction-to-Permanent Financing</div>
+    <div class="box">
+      <strong>Borrower:</strong> Yoandy Ross / Ross House Rentals LLC<br>
+      <strong>Loan Type:</strong> Construction-to-Permanent (One-Time Close)<br>
+      <strong>Amount Requested:</strong> <span class="fill">[$198,400 — ajustar]</span><br>
+      <strong>Project Location:</strong> <span class="fill">[Dirección del lote · Dalhart/Dumas, TX]</span><br>
+      <strong>Prepared:</strong> June 2026<br>
+      <strong>Contact:</strong> yoandyross@gmail.com · <span class="fill">[teléfono]</span><br>
+      <strong>Web:</strong> rosshouserentals.com
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ PÁGINA 2 · EXECUTIVE SUMMARY ═══════════ -->
+<div class="page">
+  <h2>1. Executive Summary</h2>
+  <p>
+    Ross House Rentals LLC respectfully requests a <strong>construction-to-permanent loan</strong> to build a new
+    single-family rental home in the Texas Panhandle. The borrower is an established local landlord and property
+    manager operating a <strong>100% occupied rental portfolio in Dumas, TX</strong>, supported by a proprietary
+    property-management technology platform (rosshouserentals.com) that handles digital leases, automated rent
+    collection (ACH/card via Stripe), maintenance ticketing, and tenant screening.
+  </p>
+  <div class="kpi-row">
+    <div class="kpi"><div class="v">100%</div><div class="l">Portfolio Occupancy</div></div>
+    <div class="kpi"><div class="v">$2,400</div><div class="l">Current Monthly Rental Income</div></div>
+    <div class="kpi"><div class="v">80%</div><div class="l">LTC Requested</div></div>
+    <div class="kpi"><div class="v">1.31x</div><div class="l">Projected DSCR (new build)</div></div>
+  </div>
+  <h3>The Request</h3>
+  <table>
+    <tr><th>Item</th><th>Detail</th></tr>
+    <tr><td>Loan product</td><td>Construction-to-Permanent, single close (12-month construction phase, converting to 30-year amortizing mortgage)</td></tr>
+    <tr><td>Amount requested</td><td><span class="fill">[$198,400]</span> (80% loan-to-cost)</td></tr>
+    <tr><td>Borrower equity</td><td><span class="fill">[$49,600]</span> — via <span class="fill">[cash / owned land equity]</span></td></tr>
+    <tr><td>Interest reserve</td><td>Requested to be financed within the loan (est. <span class="fill">[$8,900]</span>)</td></tr>
+    <tr><td>Repayment source</td><td>Conversion to permanent mortgage serviced by rental income (see Section 6)</td></tr>
+    <tr><td>Collateral</td><td>First lien on subject property (land + improvements)</td></tr>
+  </table>
+  <h3>Why This Loan Performs</h3>
+  <ul>
+    <li><strong>Proven operator:</strong> borrower self-manages an occupied portfolio with digital rent collection and full payment audit trail.</li>
+    <li><strong>Housing shortage:</strong> Dalhart/Dumas have persistent rental scarcity driven by agricultural and dairy industry employment.</li>
+    <li><strong>Conservative underwriting:</strong> budget includes a 10% construction contingency plus cash reserves held outside the project.</li>
+    <li><strong>Clear exit:</strong> single-close structure removes refinance risk; lease-up expected within 30-60 days of completion based on current local demand.</li>
+  </ul>
+</div>
+
+<!-- ═══════════ PÁGINA 3 · BORROWER PROFILE ═══════════ -->
+<div class="page">
+  <h2>2. Borrower Profile</h2>
+  <table>
+    <tr><th>Field</th><th>Information</th></tr>
+    <tr><td>Borrower</td><td>Yoandy Ross — Ross House Rentals LLC <span class="fill">[confirmar entidad / EIN]</span></td></tr>
+    <tr><td>Location</td><td>Dumas, TX 79029</td></tr>
+    <tr><td>Occupation</td><td>Real estate investor &amp; property manager; founder of Ross House Rentals technology platform</td></tr>
+    <tr><td>Years in real estate</td><td><span class="fill">[X años]</span></td></tr>
+    <tr><td>Credit score</td><td><span class="fill">[###]</span></td></tr>
+    <tr><td>Annual income (all sources)</td><td><span class="fill">[$___]</span> — rental income + <span class="fill">[otras fuentes]</span></td></tr>
+    <tr><td>Liquid reserves</td><td><span class="fill">[$___]</span> (bank statements attached)</td></tr>
+    <tr><td>Debt-to-income ratio</td><td><span class="fill">[__%]</span></td></tr>
+  </table>
+  <h3>Operating Capabilities (competitive advantage)</h3>
+  <ul>
+    <li><strong>Proprietary management platform:</strong> web + iOS app with digital lease signing, Stripe autopay (ACH &amp; card), late-fee automation, maintenance ticketing, and utility tracking.</li>
+    <li><strong>Direct tenant pipeline:</strong> SMS/email marketing system and local waitlist producing lease-up without realtor fees.</li>
+    <li><strong>In-house maintenance network:</strong> local contractor directory across the Panhandle.</li>
+  </ul>
+
+  <h2>3. Current Portfolio — Rent Roll (as of June 2026)</h2>
+  <table>
+    <tr><th>Property</th><th>Type</th><th>Status</th><th>Monthly Rent</th><th>Lease Term</th></tr>
+    <tr><td>121 Oak Ave, Dumas, TX</td><td>SFR · 2 bed / 2 bath</td><td><span class="badge">RENTED</span></td><td>$1,200</td><td>Jul 2026 – Jun 2027</td></tr>
+    <tr><td>812 NE 2nd St, Dumas, TX</td><td>SFR · 2 bed / 1 bath</td><td><span class="badge">RENTED</span></td><td>$1,200</td><td>Jul 2026 – Jun 2027</td></tr>
+    <tr class="total"><td colspan="3">TOTAL CURRENT RENTAL INCOME</td><td>$2,400 / mo</td><td>$28,800 / yr</td></tr>
+  </table>
+  <table>
+    <tr><th>Property</th><th>Est. Market Value</th><th>Mortgage Balance</th><th>Equity</th></tr>
+    <tr><td>121 Oak Ave</td><td><span class="fill">[$___]</span></td><td><span class="fill">[$___]</span></td><td><span class="fill">[$___]</span></td></tr>
+    <tr><td>812 NE 2nd St</td><td><span class="fill">[$___]</span></td><td><span class="fill">[$___]</span></td><td><span class="fill">[$___]</span></td></tr>
+  </table>
+  <div class="note">Leases are executed digitally and rent is collected through the borrower's Stripe-integrated platform, providing the lender with a verifiable, timestamped payment history.</div>
+</div>
+
+<!-- ═══════════ PÁGINA 4 · THE PROJECT ═══════════ -->
+<div class="page">
+  <h2>4. The Project</h2>
+  <table>
+    <tr><th>Item</th><th>Detail</th></tr>
+    <tr><td>Address / lot</td><td><span class="fill">[Dirección legal del lote]</span></td></tr>
+    <tr><td>Lot status</td><td><span class="fill">[Owned free &amp; clear / bajo contrato a $___]</span></td></tr>
+    <tr><td>Home design</td><td>3 bed / 2 bath, ~1,550 sq ft, slab-on-grade, brick + hardie exterior <span class="fill">[ajustar]</span></td></tr>
+    <tr><td>Builder</td><td><span class="fill">[Nombre del builder — licencia, seguro y referencias adjuntas]</span></td></tr>
+    <tr><td>Contract type</td><td>Fixed-price construction contract <span class="fill">[adjuntar]</span></td></tr>
+    <tr><td>Timeline</td><td>9 months construction + 60-day lease-up buffer (within 12-month construction phase)</td></tr>
+    <tr><td>Permits</td><td><span class="fill">[Estado de permisos]</span></td></tr>
+  </table>
+  <h3>Construction Budget (Sources &amp; Uses)</h3>
+  <table>
+    <tr><th>Use of Funds</th><th>Amount</th><th>% of Total</th></tr>
+    <tr><td>Land acquisition / land value credit</td><td>$25,000</td><td>10.1%</td></tr>
+    <tr><td>Site prep, utilities &amp; foundation</td><td>$32,000</td><td>12.9%</td></tr>
+    <tr><td>Framing, roof &amp; dry-in</td><td>$62,000</td><td>25.0%</td></tr>
+    <tr><td>MEP (plumbing, electrical, HVAC)</td><td>$38,000</td><td>15.3%</td></tr>
+    <tr><td>Interior finishes &amp; fixtures</td><td>$46,000</td><td>18.5%</td></tr>
+    <tr><td>Flatwork, landscaping &amp; final</td><td>$14,000</td><td>5.6%</td></tr>
+    <tr><td>Permits, insurance &amp; soft costs</td><td>$8,500</td><td>3.4%</td></tr>
+    <tr><td><strong>Contingency (10%)</strong></td><td>$22,500</td><td>9.1%</td></tr>
+    <tr class="total"><td>TOTAL PROJECT COST</td><td>$248,000</td><td>100%</td></tr>
+  </table>
+  <table>
+    <tr><th>Source of Funds</th><th>Amount</th><th>%</th></tr>
+    <tr><td>Construction loan (this request)</td><td>$198,400</td><td>80% LTC</td></tr>
+    <tr><td>Borrower equity (cash and/or land)</td><td>$49,600</td><td>20%</td></tr>
+    <tr class="total"><td>TOTAL SOURCES</td><td>$248,000</td><td>100%</td></tr>
+  </table>
+  <div class="note"><strong>Note:</strong> sample budget reflects 2026 Panhandle build costs (~$144/sq ft turnkey). Final line items to be confirmed with executed builder contract. — <span class="fill">Ajusta estas cifras a tu presupuesto real</span></div>
+</div>
+
+<!-- ═══════════ PÁGINA 5 · PROJECTIONS & EXIT ═══════════ -->
+<div class="page">
+  <h2>5. Post-Completion Valuation</h2>
+  <table>
+    <tr><th>Metric</th><th>Value</th><th>Basis</th></tr>
+    <tr><td>Projected appraised value (completed)</td><td>$285,000 <span class="fill">[confirmar con comps]</span></td><td>Comparable new 3/2 homes, Dalhart/Dumas</td></tr>
+    <tr><td>Total project cost</td><td>$248,000</td><td>Budget above</td></tr>
+    <tr><td>Built-in equity at completion</td><td>$37,000</td><td>Value minus cost</td></tr>
+    <tr><td>Loan-to-value at conversion</td><td>69.6%</td><td>$198,400 / $285,000</td></tr>
+  </table>
+
+  <h2>6. Debt Service &amp; Cash Flow (Permanent Phase)</h2>
+  <table>
+    <tr><th>Line Item</th><th>Monthly</th><th>Annual</th></tr>
+    <tr><td>Market rent — new 3/2 home</td><td>$1,650 <span class="fill">[confirmar]</span></td><td>$19,800</td></tr>
+    <tr><td>Vacancy allowance (5%)</td><td>($83)</td><td>($990)</td></tr>
+    <tr><td>Taxes &amp; insurance (est.)</td><td>($395)</td><td>($4,740)</td></tr>
+    <tr><td>Maintenance reserve (5%)</td><td>($83)</td><td>($990)</td></tr>
+    <tr><td>Management</td><td>$0 (self-managed in-house)</td><td>$0</td></tr>
+    <tr class="total"><td>NET OPERATING INCOME</td><td>$1,089</td><td>$13,068</td></tr>
+    <tr><td>Debt service — $198,400 @ 7.25%, 30-yr</td><td>($1,353 P&amp;I incl. T&amp;I above → P&amp;I only $958)</td><td>($11,496)</td></tr>
+    <tr class="total"><td>DSCR (NOI + T&amp;I / P&amp;I+T&amp;I)</td><td colspan="2">≈ 1.31x — above the 1.20-1.25x standard</td></tr>
+  </table>
+  <p style="font-size:11px;color:#64748b">Combined with existing portfolio income of $2,400/mo, total rental income after completion: <strong>$4,050/mo ($48,600/yr)</strong>.</p>
+
+  <h2>7. Exit Strategy</h2>
+  <ol>
+    <li><strong>Primary:</strong> single-close conversion to 30-year permanent mortgage at certificate of occupancy; property leased through the borrower's existing tenant waitlist (target lease-up: 30-60 days).</li>
+    <li><strong>Secondary:</strong> sale of completed home at projected $285,000 (13-15% margin over cost) — new construction in this submarket historically sells within 90 days.</li>
+    <li><strong>Tertiary:</strong> DSCR refinance with national investor lenders (Kiavi, Visio) at up to 80% LTV, independent of personal income documentation.</li>
+  </ol>
+
+  <h2>8. Risk Mitigation</h2>
+  <ul>
+    <li>Fixed-price builder contract with licensed, insured contractor (references attached).</li>
+    <li>10% contingency inside budget + liquid reserves outside the project.</li>
+    <li>Interest reserve financed within the loan — no cash-flow strain during construction.</li>
+    <li>Builder's risk insurance in place from ground-breaking <span class="fill">[adjuntar póliza]</span>.</li>
+  </ul>
+</div>
+
+<!-- ═══════════ PÁGINA 6 · CHECKLIST & FIRMA ═══════════ -->
+<div class="page">
+  <h2>9. Enclosed Documents Checklist</h2>
+  <table>
+    <tr><th>#</th><th>Document</th><th>Status</th></tr>
+    <tr><td>1</td><td>Personal tax returns — last 2 years</td><td><span class="fill">[ ]</span></td></tr>
+    <tr><td>2</td><td>Bank statements — last 90 days</td><td><span class="fill">[ ]</span></td></tr>
+    <tr><td>3</td><td>Current leases (121 Oak Ave &amp; 812 NE 2nd St) + rent payment ledger (Stripe)</td><td><span class="fill">[ ]</span></td></tr>
+    <tr><td>4</td><td>Personal financial statement (assets &amp; liabilities)</td><td><span class="fill">[ ]</span></td></tr>
+    <tr><td>5</td><td>Executed fixed-price builder contract</td><td><span class="fill">[ ]</span></td></tr>
+    <tr><td>6</td><td>Builder license, insurance certificate &amp; 3 project references</td><td><span class="fill">[ ]</span></td></tr>
+    <tr><td>7</td><td>Final blueprints &amp; specifications</td><td><span class="fill">[ ]</span></td></tr>
+    <tr><td>8</td><td>Itemized construction budget &amp; draw schedule</td><td><span class="fill">[ ]</span></td></tr>
+    <tr><td>9</td><td>Lot deed / purchase contract &amp; survey</td><td><span class="fill">[ ]</span></td></tr>
+    <tr><td>10</td><td>LLC formation documents &amp; EIN (if closing in entity name)</td><td><span class="fill">[ ]</span></td></tr>
+  </table>
+
+  <h2>10. Requested Terms Summary</h2>
+  <table>
+    <tr><th>Term</th><th>Request</th></tr>
+    <tr><td>Structure</td><td>Construction-to-permanent, one-time close</td></tr>
+    <tr><td>Construction phase</td><td>12 months, interest-only on drawn funds, interest reserve financed</td></tr>
+    <tr><td>Permanent phase</td><td>30-year amortization, fixed rate (rate-lock at closing if available)</td></tr>
+    <tr><td>Draws</td><td>Standard milestone schedule with lender inspections</td></tr>
+    <tr><td>Prepayment</td><td>No penalty preferred</td></tr>
+  </table>
+
+  <p style="margin-top:24px">We welcome the opportunity to discuss this request in person and provide any additional documentation required by your underwriting team.</p>
+
+  <div class="sig">
+    <div>Yoandy Ross — Borrower<br>Ross House Rentals LLC</div>
+    <div>Date</div>
+  </div>
+
+  <p style="margin-top:50px;font-size:10px;color:#94a3b8;text-align:center">
+    Ross House Rentals LLC · Dumas, TX · rosshouserentals.com · yoandyross@gmail.com<br>
+    Prepared June 2026 · Figures marked as estimates are subject to final appraisal and executed contracts.
+  </p>
+</div>
+
+</body>
+</html>

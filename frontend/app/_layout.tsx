@@ -1,44 +1,58 @@
-import 'react-native-get-random-values';
 import React from 'react';
 import { Stack } from 'expo-router';
-import { AuthProvider } from '../contexts/AuthContext';
-import { ThemeProvider } from '../contexts/ThemeContext';
-import { NotificationProvider } from '../contexts/NotificationContext';
-import { ReferralProvider } from '../contexts/ReferralContext';
 import { StatusBar } from 'expo-status-bar';
-import { VersionChecker } from '../components/VersionChecker';
-import '../i18n/config';
-import { enableScreens } from 'react-native-screens';
+import { AuthProvider } from '../src/contexts/AuthContext';
+import { ThemeProvider, useTheme } from '../src/theme/ThemeContext';
+import StripeWrapper from '../src/components/StripeWrapper';
+import '../src/i18n';
 
-// CRITICAL FIX: Disable native screens to prevent SIGABRT crash on iOS 18.3+
-// The crash occurs in RNSScreen setViewToSnapshot during unmountChildComponentView
-// This is a known issue with react-native-screens 4.x and iOS 18+ SDK
-// Disabling screens uses JS-based navigation which is more stable
-enableScreens(false);
+function ThemedStack() {
+  const { colors, isDark } = useTheme();
+  return (
+    <>
+      <StatusBar style={isDark ? 'light' : 'dark'} />
+      <Stack
+        screenOptions={{
+          headerShown: false,
+          contentStyle: { backgroundColor: colors.bg },
+          animation: 'slide_from_right',
+        }}
+      >
+        <Stack.Screen name="index" />
+        <Stack.Screen name="(auth)" />
+        <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="market-detail" options={{ headerShown: false }} />
+        <Stack.Screen name="maintenance" />
+        <Stack.Screen name="pay" />
+        <Stack.Screen name="onboarding" options={{ headerShown: false, gestureEnabled: false }} />
+        <Stack.Screen name="add-property" options={{ headerShown: false }} />
+        <Stack.Screen name="my-listings" options={{ headerShown: false }} />
+        <Stack.Screen name="owner-dashboard" options={{ headerShown: false }} />
+        <Stack.Screen name="admin-dashboard" options={{ headerShown: false }} />
+        <Stack.Screen name="signing-center" options={{ headerShown: false }} />
+        <Stack.Screen name="property-detail" options={{ headerShown: false }} />
+        <Stack.Screen name="documents" />
+        <Stack.Screen name="emergency" />
+        <Stack.Screen name="legal" />
+        <Stack.Screen name="notifications" options={{ headerShown: false }} />
+        <Stack.Screen name="chat" options={{ headerShown: false }} />
+        <Stack.Screen name="payment-methods" options={{ headerShown: false }} />
+        <Stack.Screen name="edit-profile" options={{ headerShown: false }} />
+        <Stack.Screen name="forgot-password" options={{ headerShown: false }} />
+        <Stack.Screen name="change-password" options={{ headerShown: false }} />
+      </Stack>
+    </>
+  );
+}
 
 export default function RootLayout() {
   return (
     <ThemeProvider>
-      <AuthProvider>
-        <NotificationProvider>
-          <ReferralProvider>
-            {/* StatusBar style eliminado - se maneja en cada layout individual */}
-            <VersionChecker />
-            <Stack
-              screenOptions={{
-                headerShown: false,
-                // CRITICAL FIX: Disable animations to prevent REASwizzledUIManager crash
-                // react-native-screens 4.16 + reanimated causes SIGABRT during unmount
-                animation: 'none',
-                animationTypeForReplace: 'push',
-                detachInactiveScreens: false,
-                freezeOnBlur: false,
-                gestureEnabled: false,
-              }}
-            />
-          </ReferralProvider>
-        </NotificationProvider>
-      </AuthProvider>
+      <StripeWrapper>
+        <AuthProvider>
+          <ThemedStack />
+        </AuthProvider>
+      </StripeWrapper>
     </ThemeProvider>
   );
 }

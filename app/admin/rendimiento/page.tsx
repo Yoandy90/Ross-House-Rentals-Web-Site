@@ -14,6 +14,7 @@ import {
 } from 'recharts';
 
 const fmt = (n: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 }).format(n);
+const axisFmt = (v: number) => Math.abs(v) >= 10000 ? `$${(v / 1000).toFixed(0)}k` : `$${Math.round(v).toLocaleString()}`;
 const COLORS = ['#06b6d4', '#8b5cf6', '#f59e0b', '#10b981', '#ef4444', '#3b82f6', '#ec4899', '#14b8a6'];
 
 export default function RendimientoPage() {
@@ -66,7 +67,7 @@ export default function RendimientoPage() {
   }));
 
   const expByCategory = (exp.by_category || []).map((c: any) => ({
-    name: c.category_name || c._id || 'Otro',
+    name: c.label || c.category_name || c._id || 'Otro',
     value: c.total || 0,
   }));
 
@@ -128,7 +129,7 @@ export default function RendimientoPage() {
               <BarChart data={monthlyData} barGap={4}>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
                 <XAxis dataKey="name" tick={{ fill: '#6b7280', fontSize: 11 }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fill: '#6b7280', fontSize: 11 }} axisLine={false} tickLine={false} tickFormatter={v => `$${(v/1000).toFixed(0)}k`} />
+                <YAxis tick={{ fill: '#6b7280', fontSize: 11 }} axisLine={false} tickLine={false} width={58} tickFormatter={axisFmt} />
                 <Tooltip
                   contentStyle={{ backgroundColor: '#1a1a2e', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12, fontSize: 12, color: '#fff' }}
                   formatter={(v: number) => [fmt(v), '']}
@@ -195,7 +196,7 @@ export default function RendimientoPage() {
               </defs>
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
               <XAxis dataKey="name" tick={{ fill: '#6b7280', fontSize: 11 }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fill: '#6b7280', fontSize: 11 }} axisLine={false} tickLine={false} tickFormatter={v => `$${(v/1000).toFixed(0)}k`} />
+              <YAxis tick={{ fill: '#6b7280', fontSize: 11 }} axisLine={false} tickLine={false} width={58} tickFormatter={axisFmt} />
               <Tooltip contentStyle={{ backgroundColor: '#1a1a2e', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12, fontSize: 12, color: '#fff' }}
                 formatter={(v: number) => [fmt(v), 'Neto']} />
               <Area type="monotone" dataKey="neto" stroke="#818cf8" fill="url(#netGrad)" strokeWidth={2.5} />

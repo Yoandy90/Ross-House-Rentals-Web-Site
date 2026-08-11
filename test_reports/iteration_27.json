@@ -1,0 +1,98 @@
+{
+  "summary": "Ross House Rentals — Expo mobile app deep QA in viewport 390x844 for ALL 5 profiles as requested (tenant con datos, admin en la app, tenant sin contrato, guest, buyer). Onboarding + email login flow validated. TENANT CON DATOS (yosbelgarrido26): dashboard shows Yandisleydis / $1,100 / 121 Oak Ave / 25 dias restantes / quick actions all render. Tabs Inicio/Propiedades/Mercado/Pagos/Perfil all navigate and load real data (Propiedades muestra 812 NE 2nd $1,200, Mercado 'Explora el Mercado' city filter Dumas TX, Pagos $1,100 balance/Sep 1/Pagar Renta, Perfil muestra Yandisleydis Ross Sanchez con badge Inquilino y opciones Editar Perfil/Metodos de Pago/Mis Servicios/Mis Contratos/Historial de Pagos). Edit profile screen abre con datos correctos y se puede cerrar sin guardar. Documents screen lista Contrato de Renta + Recibo de Pago Aug 2026. Invoices screen muestra Renta mensual Aug 2026 $1,100 pagado con PDF. Contracts screen muestra el contrato activo 121 Oak ave 1 ago 2026 - 31 jul 2027 $1,100/mes. Maintenance FLOW E2E VALIDADO: creada solicitud 'TEST QA — ignorar, prueba automatizada' via /maintenance/new (categoria default, prioridad Normal), aparece en /maintenance como 'Abierto', y aparece en admin-maintenance como Pendiente asociada a Yandisleydis Ross Sanchez / 121 Oak ave — confirmando el flujo tenant->admin end-to-end. Chat de soporte: se abrio /chat-support tras fix (ver bugs), se escribio 'TEST QA mensaje de prueba' y se envio (input se limpio, indicativo de envio, aunque backend chat AI retorna 404 en history/suggestions). ADMIN EN LA APP (yoandyross@gmail.com / admin123, SIN 2FA en app): login exitoso, home muestra 'Panel de Admin — Ross House Rentals LLC' con quick actions. Todas las 8 pantallas admin cargan sin crash: admin-dashboard (KPIs $1,100 ingresos, 50% ocupado, 100% cobrado, 4 tenants activos, 1 contrato, 1 pago, 1 mantenimiento, portafolio $288,000 NOI $13,190 CAP 4.6%), admin-tenants (4 inquilinos: TEST Inquilino QA / Yandisleydis / Yoandy Ross / Anaelis Ballestero — todos activos), admin-properties (2 propiedades: 812 NE 2nd Disponible y 121 Oak Ave Ocupado), admin-contracts (1 contrato Yandisleydis $1,100), admin-payments (endpoint 404 — pantalla vacia con '0 pagos'), admin-maintenance (3 solicitudes: la TEST QA Pendiente + 2 cancelled), admin-messages (19 sin leer, 10 App + 0 Web, muestra 8+ conversaciones), admin-settings (notificaciones + procesadores Stripe Activo Prod / Square Prod / Clover Sandbox + 3DS toggles). TENANT SIN CONTRATO (test.inquilino.qa): login exitoso, home muestra 'Sin contrato activo' con CTA 'Explorar Propiedades'. Todas 4 tabs cargan con empty states correctos (Pagos $0 renta / 0 completados). GUEST (test.invitado.qa): login OK, home 'Bienvenido a Ross House / Explora propiedades disponibles', 4 quick actions (Propiedades/Mercado/Contactar/Perfil), bottom tabs 4 items (Inicio/Propiedades/Mercado/Perfil — SIN tab Pagos, comportamiento correcto). BUYER (test.comprador.qa): login OK, home con quick actions Propiedades/En Venta/Contactar/Perfil, tab Propiedades muestra el catalogo con filtros En Renta/En Venta/Casa/Apartamento/Duplex/Section 8. FIXED IN-FLIGHT: 2 critical crash bugs — /credit-builder y /chat-support tenian ReferenceError 'useColors is not defined' (red screen). Fix aplicado (import faltante desde ../src/constants/theme). Post-fix ambas pantallas renderizan correctamente: credit-builder muestra onboarding wizard ('Tu Renta Puede Construir Tu Futuro / +40 puntos promedio en 6 meses'), chat-support muestra 'Ross Assistant Soporte 24/7 — ¡Hola! Soy tu asistente'. LIMPIEZA: la solicitud TEST QA de mantenimiento NO se pudo cancelar via app porque admin-maintenance es READ-ONLY (los cards no son tappables y no hay menu de acciones). El mensaje TEST QA en chat quedo (backend AI 404 impidio ver la respuesta pero el user message se envio). Advertencias amarillas conocidas (shadow*/pointerEvents/expo-notifications) IGNORADAS por instruccion.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "GET /api/admin/payments", "issue": "Returns 404 desde la app admin. La pantalla admin-payments muestra 'No hay pagos registrados / $0 recibido' aunque el dashboard reporta 1 pago del mes ($1,100). Endpoint parece no existir o diferente ruta esperada por la app."},
+      {"endpoint": "GET /api/chat/ai/global-status", "issue": "Returns 404. Consumido por admin-messages para mostrar el toggle 'Asistente IA Automatico Inactivo'. Toggle se muestra como inactivo por defecto sin llamada real de estado."},
+      {"endpoint": "GET /api/tenant/chat/history y /api/tenant/chat/suggestions", "issue": "Both return 404 en chat-support del tenant. La pantalla carga pero sin historial ni preguntas frecuentes sugeridas. El envio de mensaje del user aparentemente funciona (input se limpia) pero no hay respuesta AI visible."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "app/credit-builder.tsx", "issue": "ReferenceError: useColors is not defined en line 66 y 380 (red screen crash). Faltaba el import. FIXED en esta iteracion agregando 'import { useColors } from ../src/constants/theme'.", "testID": "n/a", "priority": "CRITICAL_FIXED"},
+      {"component": "app/chat-support.tsx", "issue": "ReferenceError: useColors is not defined en line 39 (red screen crash). Faltaba el import. FIXED en esta iteracion agregando 'import { useColors } from ../src/constants/theme'.", "testID": "n/a", "priority": "CRITICAL_FIXED"},
+      {"component": "app/admin-maintenance.tsx", "issue": "Pantalla es solo lectura. Los cards de solicitudes de mantenimiento no son tappables (no navegan a detalle), y no hay opcion inline para cancelar/completar/eliminar la solicitud desde admin. QA no pudo cumplir el paso de limpieza pedido por el user via la app.", "testID": "n/a", "priority": "MEDIUM"}
+    ],
+    "integration_issues": [
+      {"flow": "Chat de soporte tenant AI", "issue": "El chat abre y permite escribir/enviar mensaje pero los endpoints backend /api/tenant/chat/history y /api/tenant/chat/suggestions responden 404. Usuario no recibe respuesta AI visible. Historial no persiste entre sesiones.", "affected_testIDs": []},
+      {"flow": "Admin payments listing", "issue": "admin-payments.tsx consume GET /api/admin/payments que retorna 404. La pantalla siempre muestra vacio aun cuando existen pagos (admin-dashboard KPI muestra 1 pago = $1,100).", "affected_testIDs": []}
+    ],
+    "design_issues": [
+      {"screen": "Login screen (email mode)", "issues": ["Inputs sin testID — QA depende de placeholder='Email' y placeholder='Contraseña' (fragil ante cambios i18n). Recomendar testID='login-email-input', testID='login-password-input', testID='login-submit-btn'."]},
+      {"screen": "Bottom tab bar", "issues": ["Tabs sin testID — QA depende de text selector .last (fragil). Recomendar testID='tab-inicio', 'tab-propiedades', 'tab-mercado', 'tab-pagos', 'tab-perfil'."]},
+      {"screen": "Maintenance new + admin-maintenance", "issues": ["Formulario /maintenance/new: inputs sin testID (title/description). Botones 'Enviar Solicitud' sin testID.", "admin-maintenance: no hay action buttons (cancelar/eliminar/completar) — solo listado."]}
+    ],
+    "react_native_issues": [
+      {"component": "expo-notifications on web", "issue": "Warning conocido, ya reportado en iteration_25. Sigue emitiendo '[expo-notifications] Listening to push token changes is not yet fully supported on web'."},
+      {"component": "shadow* / pointerEvents style props", "issue": "Warnings conocidos deprecados. Sigue emitiendo 'shadow* style props are deprecated. Use boxShadow'."},
+      {"component": "Package version drift", "issue": "Expo doctor sigue reportando ~15 paquetes fuera del rango esperado de Expo 54 (async-storage 3.0.2 vs 2.2.0, netinfo 12.0.1 vs 11.4.1, stripe 0.65.0 vs 0.50.3, expo 54.0.34 vs 54.0.36, expo-device 55.0.16 vs 8.0.10, expo-router 6.0.23 vs 6.0.24, react-native-svg 15.15.5 vs 15.12.1, etc.). Recomendar 'npx expo install --fix'."}
+    ]
+  },
+  "test_report_links": [
+    "/app/test_reports/iter27_screens/01_after_skip.png",
+    "/app/test_reports/iter27_screens/02_email_mode.png",
+    "/app/test_reports/iter27_screens/04_after_login.png",
+    "/app/test_reports/iter27_screens/tenant_tab_Propiedades.png",
+    "/app/test_reports/iter27_screens/tenant_tab_Mercado.png",
+    "/app/test_reports/iter27_screens/tenant_tab_Pagos.png",
+    "/app/test_reports/iter27_screens/tenant_tab_Perfil.png",
+    "/app/test_reports/iter27_screens/tenant_edit_profile.png",
+    "/app/test_reports/iter27_screens/tenant_credit_builder.png",
+    "/app/test_reports/iter27_screens/tenant_credit_builder_after_fix.png",
+    "/app/test_reports/iter27_screens/tenant_documents.png",
+    "/app/test_reports/iter27_screens/tenant_invoices.png",
+    "/app/test_reports/iter27_screens/tenant_contracts.png",
+    "/app/test_reports/iter27_screens/tenant_chat_support.png",
+    "/app/test_reports/iter27_screens/tenant_chat_support_after_fix.png",
+    "/app/test_reports/iter27_screens/tenant_chat_after_send.png",
+    "/app/test_reports/iter27_screens/tenant_maintenance_list.png",
+    "/app/test_reports/iter27_screens/tenant_maint_new_form.png",
+    "/app/test_reports/iter27_screens/tenant_maint_filled.png",
+    "/app/test_reports/iter27_screens/tenant_maint_after_submit.png",
+    "/app/test_reports/iter27_screens/tenant_maint_list.png",
+    "/app/test_reports/iter27_screens/admin_landing.png",
+    "/app/test_reports/iter27_screens/admin_dashboard.png",
+    "/app/test_reports/iter27_screens/admin_tenants.png",
+    "/app/test_reports/iter27_screens/admin_properties.png",
+    "/app/test_reports/iter27_screens/admin_contracts.png",
+    "/app/test_reports/iter27_screens/admin_payments.png",
+    "/app/test_reports/iter27_screens/admin_maintenance.png",
+    "/app/test_reports/iter27_screens/admin_messages.png",
+    "/app/test_reports/iter27_screens/admin_settings.png",
+    "/app/test_reports/iter27_screens/admin_maint_before_cleanup.png",
+    "/app/test_reports/iter27_screens/admin_maint_detail.png",
+    "/app/test_reports/iter27_screens/tenant_nc_home.png",
+    "/app/test_reports/iter27_screens/guest_home.png",
+    "/app/test_reports/iter27_screens/buyer_home.png"
+  ],
+  "action_items": [
+    "HIGH — Verificar y arreglar backend endpoint GET /api/admin/payments (retorna 404 en Railway prod). La pantalla admin-payments queda vacia aunque hay pagos.",
+    "MEDIUM — Verificar backend endpoints /api/tenant/chat/history y /api/tenant/chat/suggestions y /api/chat/ai/global-status (todos 404). El chat AI de soporte no responde y el toggle de admin queda sin estado real.",
+    "MEDIUM — Agregar interactividad a admin-maintenance.tsx: cards tappables para ver detalle, y action buttons para cancelar/completar/eliminar solicitudes. Actualmente es solo lectura, imposible hacer cleanup desde la app.",
+    "MEDIUM — CLEANUP PENDIENTE: la solicitud de mantenimiento 'TEST QA — ignorar, prueba automatizada' (creada por Yandisleydis en 121 Oak Ave, prioridad Baja, status Pendiente) NO pudo ser cancelada via app. Recomendado: cancelar/eliminar via API o Mongo directo, o (mejor) agregar la accion en el admin UI segun item anterior.",
+    "LOW — Agregar testID en pantallas criticas: login (login-email, login-password, login-submit), bottom tabs (tab-inicio, tab-propiedades, tab-mercado, tab-pagos, tab-perfil), maintenance form (maint-title, maint-description, maint-submit), admin action buttons.",
+    "LOW — Ejecutar 'npx expo install --fix' en /app/rosslending-app para alinear 15+ paquetes al rango esperado de Expo 54.",
+    "LOW — Ya reportado antes: migrar shadow* → boxShadow, pointerEvents prop → style.pointerEvents, gatear expo-notifications listeners con Platform.OS !== 'web'."
+  ],
+  "critical_code_review_comments": [
+    "credit-builder.tsx y chat-support.tsx tenian el bug clasico de usar useColors() sin import. Fix aplicado. Recomendado agregar un linter rule/ESLint para no-undef en el proyecto Expo — hubiera detectado esto antes de merge.",
+    "admin-maintenance.tsx es una lista solo-lectura sin navegacion a detalle ni acciones inline. En una app admin real esto es un anti-patron — el admin necesita poder tomar acciones desde el listado.",
+    "Backend endpoints /api/admin/payments y /api/tenant/chat/* devuelven 404, indicando rutas mal wired o ausentes en ross-house-backend (Railway). Reforzar tests de integracion cliente-servidor para app admin y chat.",
+    "El flujo E2E tenant->admin de mantenimiento SI FUNCIONA: crear via /api/tenant/maintenance-requests (o similar) desde el tenant aparece inmediatamente en admin-maintenance. Buena senal.",
+    "Login de admin en la app NO exige 2FA (a diferencia del panel web /admin) — comportamiento consistente con test_credentials.md. Verificado."
+  ],
+  "updated_files": [
+    "/app/rosslending-app/app/credit-builder.tsx (added import { useColors } from '../src/constants/theme')",
+    "/app/rosslending-app/app/chat-support.tsx (added import { useColors } from '../src/constants/theme')"
+  ],
+  "success_rate": {
+    "backend": "n/a (per user request — solo frontend Expo)",
+    "frontend": "5/5 profiles PASS. Todas las pantallas de tenant/admin/guest/buyer cargan sin crash tras fix de useColors. 3 endpoints backend con 404 documentados (no bloquean UI pero degradan funcionalidad)."
+  },
+  "seed_data_creation": "Creada por tenant Yandisleydis (yosbelgarrido26): 1 solicitud de mantenimiento titulada 'TEST QA — ignorar, prueba automatizada' con descripcion 'Prueba automatizada QA — favor ignorar y cerrar.', categoria default (Plomeria) y prioridad Normal. Aparece en admin-maintenance como Pendiente asociada a 121 Oak Ave. NO SE PUDO CANCELAR via la app (admin-maintenance es read-only). El mensaje 'TEST QA mensaje de prueba' quedo en la conversacion chat-support del tenant (chat AI backend responde 404, pero user message se envio). NO se creo ningun otro registro. NO se ejecutaron pagos ni firmas. NO se enviaron drips ni newsletters ni Lob letters. NO se borraron cuentas TEST QA existentes.",
+  "retest_needed": true,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Iteration 27 valido la app Expo mobile (viewport 390x844) para los 5 perfiles pedidos. Fix aplicado: import faltante de useColors en credit-builder.tsx y chat-support.tsx (ambos causaban red screen). Ambos post-fix funcionan. Los 3 endpoints con 404 (/api/admin/payments, /api/chat/ai/global-status, /api/tenant/chat/history y /suggestions) siguen sin arreglarse — necesitan investigacion en ross-house-backend Railway. Pendiente limpieza de la solicitud de mantenimiento TEST QA por main agent (via API o Mongo directo). Login de admin en la app confirmado SIN 2FA. Frontend Expo esta en /app/rosslending-app supervisado como 'expo' en puerto 3000, expuesto via https://banking-filter-hub.preview.emergentagent.com. Backend real es Railway (no /app/backend). Warnings shadow*/pointerEvents/expo-notifications son conocidos y no bloquean.",
+  "rca_of_issue": "Root cause del red screen en credit-builder y chat-support: refactor de tema en fecha anterior movio useColors de un import global a un import explicito desde '../src/constants/theme' pero estos dos archivos no fueron actualizados. La referencia sobrevivio al type-check (probablemente por 'any' o alias) pero fallo en runtime. Fix: agregar el import faltante. Prevencion: activar ESLint rule 'no-undef' en el proyecto Expo, y correr lint como parte de CI antes de merge."
+}

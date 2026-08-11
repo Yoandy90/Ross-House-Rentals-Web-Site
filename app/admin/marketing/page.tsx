@@ -6,6 +6,8 @@ import {
   Mail, Send, Users, Trash2, RefreshCw, Search, Megaphone,
   CheckCircle2, XCircle, Clock, Sparkles,
 } from 'lucide-react';
+import DripPanel from '../../components/admin/DripPanel';
+import NewsletterHealthPanel from '../../components/admin/NewsletterHealthPanel';
 
 const AUDIENCES = [
   { v: 'newsletter', l: '📬 Suscriptores del newsletter' },
@@ -19,12 +21,15 @@ const SOURCE_LABEL: Record<string, string> = {
 
 export default function MarketingPage() {
   const { headers } = useAdminAuth();
-  const [tab, setTab] = useState<'subs' | 'camps'>('subs');
+  const [tab, setTab] = useState<'subs' | 'camps' | 'drip' | 'health'>('subs');
   const [subs, setSubs] = useState<any[]>([]);
   const [stats, setStats] = useState<any>(null);
   const [camps, setCamps] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [subPage, setSubPage] = useState(1);
+  const [subTotal, setSubTotal] = useState(0);
+  const SUBS_PER_PAGE = 50;
 
   // Campaign composer
   const [subject, setSubject] = useState('');
@@ -35,11 +40,17 @@ export default function MarketingPage() {
 
   const fetchSubs = useCallback(async () => {
     try {
-      const res = await fetch(`/api/admin/newsletter/subscribers${search ? `?search=${encodeURIComponent(search)}` : ''}`, { headers: headers() });
-      if (res.ok) { const d = await res.json(); setSubs(d.subscribers || []); setStats(d.stats || null); }
+      const p = new URLSearchParams({ limit: String(SUBS_PER_PAGE), skip: String((subPage - 1) * SUBS_PER_PAGE) });
+      if (search) p.set('search', search);
+      const res = await fetch(`/api/admin/newsletter/subscribers?${p}`, { headers: headers() });
+      if (res.ok) {
+        const d = await res.json();
+        setSubs(d.subscribers || []); setStats(d.stats || null);
+        setSubTotal(d.filtered_total ?? (d.subscribers || []).length);
+      }
     } catch (e) { console.error(e); }
     setLoading(false);
-  }, [headers, search]);
+  }, [headers, search, subPage]);
 
   const fetchCamps = useCallback(async () => {
     try {
@@ -119,14 +130,20 @@ export default function MarketingPage() {
       <div className="flex gap-2">
         <button onClick={() => setTab('subs')} className={`px-4 py-2 rounded-lg text-sm font-semibold transition ${tab === 'subs' ? 'bg-cyan-500/15 text-cyan-400 border border-cyan-500/30' : 'text-gray-500 border border-white/[0.06] hover:bg-white/[0.03]'}`}>📬 Suscriptores</button>
         <button onClick={() => setTab('camps')} className={`px-4 py-2 rounded-lg text-sm font-semibold transition ${tab === 'camps' ? 'bg-pink-500/15 text-pink-400 border border-pink-500/30' : 'text-gray-500 border border-white/[0.06] hover:bg-white/[0.03]'}`}>📣 Campañas</button>
+        <button onClick={() => setTab('drip')} data-testid="tab-drip" className={`px-4 py-2 rounded-lg text-sm font-semibold transition ${tab === 'drip' ? 'bg-violet-500/15 text-violet-400 border border-violet-500/30' : 'text-gray-500 border border-white/[0.06] hover:bg-white/[0.03]'}`}>🤖 Drip AI & Blog</button>
+        <button onClick={() => setTab('health')} data-testid="tab-health" className={`px-4 py-2 rounded-lg text-sm font-semibold transition ${tab === 'health' ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30' : 'text-gray-500 border border-white/[0.06] hover:bg-white/[0.03]'}`}>📊 Salud de la lista</button>
       </div>
+
+      {tab === 'health' && <NewsletterHealthPanel headers={headers} />}
+
+      {tab === 'drip' && <DripPanel headers={headers} />}
 
       {tab === 'subs' && (
         <>
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
             <input
-              type="text" value={search} onChange={e => setSearch(e.target.value)}
+              type="text" value={search} onChange={e => { setSearch(e.target.value); setSubPage(1); }}
               placeholder="Buscar por email o nombre..."
               className="w-full pl-10 pr-4 py-2.5 bg-[#0C1220]/60 border border-white/[0.08] rounded-xl text-sm text-white focus:border-cyan-500 focus:outline-none placeholder:text-gray-600"
             />
@@ -172,6 +189,20 @@ export default function MarketingPage() {
                     ))}
                   </tbody>
                 </table>
+              </div>
+            </div>
+          )}
+          {subTotal > SUBS_PER_PAGE && (
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] text-gray-500">
+                Mostrando {(subPage - 1) * SUBS_PER_PAGE + 1}–{Math.min(subPage * SUBS_PER_PAGE, subTotal)} de {subTotal}
+              </span>
+              <div className="flex items-center gap-2">
+                <button onClick={() => setSubPage(p => Math.max(1, p - 1))} disabled={subPage === 1}
+                  className="px-3 py-1.5 rounded-lg text-xs font-bold border border-white/[0.08] text-gray-400 hover:bg-white/[0.04] disabled:opacity-30 transition">← Anterior</button>
+                <span className="text-xs text-gray-400 font-bold">{subPage} / {Math.ceil(subTotal / SUBS_PER_PAGE)}</span>
+                <button onClick={() => setSubPage(p => Math.min(Math.ceil(subTotal / SUBS_PER_PAGE), p + 1))} disabled={subPage >= Math.ceil(subTotal / SUBS_PER_PAGE)}
+                  className="px-3 py-1.5 rounded-lg text-xs font-bold border border-white/[0.08] text-gray-400 hover:bg-white/[0.04] disabled:opacity-30 transition">Siguiente →</button>
               </div>
             </div>
           )}

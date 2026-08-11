@@ -7,7 +7,7 @@ import {
   CheckCircle, AlertCircle, Wrench, Send, ChevronDown,
   ChevronUp, Phone, MapPin, User, CreditCard,
   ArrowRight, Shield, Smartphone, Building, Banknote,
-  Copy, ExternalLink, Check, X, Info
+  Copy, ExternalLink, Check, X, Info, Zap
 } from 'lucide-react'
 import Link from 'next/link'
 import { AppHeroCard } from '../../components/AppPromoBanner'
@@ -63,6 +63,26 @@ export default function TenantDashboard() {
   const [payConfig, setPayConfig] = useState<PaymentConfig | null>(null)
   const [selectedMethod, setSelectedMethod] = useState('')
   const [payStep, setPayStep] = useState<'select' | 'instructions' | 'confirm' | 'success'>('select')
+  const [cardLoading, setCardLoading] = useState(false)
+
+  const payWithCard = async () => {
+    const token = getToken()
+    if (!token) return
+    setCardLoading(true)
+    try {
+      const res = await fetch(`${API_URL}/tenant/create-checkout-payment`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ hosted: true, late_fee: 0 }),
+      })
+      const d = await res.json()
+      if (res.ok && d.url) { window.location.href = d.url; return }
+      alert(d.detail || 'No se pudo iniciar el pago con tarjeta')
+    } catch {
+      alert('Error de conexión')
+    }
+    setCardLoading(false)
+  }
   const [payForm, setPayForm] = useState({ reference_number: '', notes: '', amount: 0, include_late_fee: false })
   const [submittingPay, setSubmittingPay] = useState(false)
   const [payError, setPayError] = useState('')
@@ -283,6 +303,14 @@ export default function TenantDashboard() {
                 <t.icon className="w-4 h-4" /> {t.label}
               </button>
             ))}
+            <Link href="/tenant/proveedores"
+              className="flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 border-transparent text-white/40 hover:text-white/60 hover:border-white/[0.08] transition-all whitespace-nowrap">
+              <Shield className="w-4 h-4" /> Services
+            </Link>
+            <Link href="/tenant/utilities"
+              className="flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 border-transparent text-white/40 hover:text-white/60 hover:border-white/[0.08] transition-all whitespace-nowrap">
+              <Zap className="w-4 h-4" /> Utilities
+            </Link>
           </div>
         </div>
       </header>
@@ -445,7 +473,22 @@ export default function TenantDashboard() {
                 {/* Step 1: Select Payment Method */}
                 {payStep === 'select' && (
                   <div className="space-y-4">
-                    <h3 className="font-bold text-charcoal text-lg">Choose Payment Method</h3>
+                    {/* Card payment via active processor (Stripe/Square/Clover hosted checkout) */}
+                    <button onClick={payWithCard} disabled={cardLoading}
+                      className="w-full bg-gradient-to-r from-primary to-primary-dark text-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all text-left flex items-center gap-4 disabled:opacity-60">
+                      <div className="w-12 h-12 rounded-xl bg-white/15 flex items-center justify-center shrink-0">
+                        {cardLoading
+                          ? <div className="w-5 h-5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                          : <CreditCard className="w-6 h-6 text-white" />}
+                      </div>
+                      <div className="flex-1">
+                        <h4 className="font-display font-bold text-lg">Pay with Card — Debit/Credit</h4>
+                        <p className="text-white/70 text-sm mt-0.5">Secure online payment · instant receipt</p>
+                      </div>
+                      <ArrowRight className="w-5 h-5 text-white/70" />
+                    </button>
+
+                    <h3 className="font-bold text-charcoal text-lg">Or Choose Another Method</h3>
                     <div className="grid sm:grid-cols-2 gap-4">
                       {payConfig && Object.entries(payConfig.payment_methods)
                         .filter(([, v]) => v.enabled)

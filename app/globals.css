@@ -30,116 +30,236 @@
    classes look correct in light mode without touching each file.
    Only applied when data-theme is NOT 'dark'.
    ────────────────────────────────────────────────────────────────── */
-html[data-theme="light"] .bg-\[\#050810\],
-html[data-theme="light"] .bg-\[\#060910\],
-html[data-theme="light"] .bg-\[\#080d18\],
-html[data-theme="light"] .bg-\[\#080d18\]\/50,
-html[data-theme="light"] .bg-\[\#080d18\]\/95,
-html[data-theme="light"] .bg-\[\#0A0A0C\],
-html[data-theme="light"] .bg-\[\#0A0A0C\]\/80,
-html[data-theme="light"] .bg-\[\#0C0C0E\] {
+/* Light theme scope: solo el panel admin (.admin-shell). Las páginas
+   públicas conservan su diseño original independiente del tema. */
+html[data-theme="light"] .admin-shell { background-color: #F8FAFC; }
+
+html[data-theme="light"] .admin-shell .bg-\[\#050810\],
+html[data-theme="light"] .admin-shell .bg-\[\#060910\],
+html[data-theme="light"] .admin-shell .bg-\[\#070B14\],
+html[data-theme="light"] .admin-shell .bg-\[\#0d1017\],
+html[data-theme="light"] .admin-shell .bg-\[\#080d18\],
+html[data-theme="light"] .admin-shell .bg-\[\#080d18\]\/50,
+html[data-theme="light"] .admin-shell .bg-\[\#080d18\]\/85,
+html[data-theme="light"] .admin-shell .bg-\[\#080d18\]\/95,
+html[data-theme="light"] .admin-shell .bg-\[\#0A0A0C\],
+html[data-theme="light"] .admin-shell .bg-\[\#0A0A0C\]\/80,
+html[data-theme="light"] .admin-shell .bg-\[\#0C0C0E\],
+html[data-theme="light"] .admin-shell .bg-slate-950,
+html[data-theme="light"] .admin-shell .bg-slate-950\/75 {
   background-color: #F8FAFC !important;
 }
-html[data-theme="light"] .bg-\[\#0b1220\],
-html[data-theme="light"] .bg-\[\#0d1526\],
-html[data-theme="light"] .bg-\[\#0d1526\]\/80,
-html[data-theme="light"] .bg-\[\#0f172a\],
-html[data-theme="light"] .bg-\[\#17171A\],
-html[data-theme="light"] .bg-\[\#1F1F23\] {
+html[data-theme="light"] .admin-shell .bg-slate-900,
+html[data-theme="light"] .admin-shell .bg-slate-900\/60,
+html[data-theme="light"] .admin-shell .bg-gray-900,
+html[data-theme="light"] .admin-shell .bg-gray-900\/60,
+html[data-theme="light"] .admin-shell .bg-gray-900\/85,
+html[data-theme="light"] .admin-shell .bg-\[\#0b1220\],
+html[data-theme="light"] .admin-shell .bg-\[\#0c1220\],
+html[data-theme="light"] .admin-shell .bg-\[\#0C1220\],
+html[data-theme="light"] .admin-shell .bg-\[\#0C1220\]\/60,
+html[data-theme="light"] .admin-shell .bg-\[\#0c1222\],
+html[data-theme="light"] .admin-shell .bg-\[\#0c1222\]\/80,
+html[data-theme="light"] .admin-shell .bg-\[\#0a1020\],
+html[data-theme="light"] .admin-shell .bg-\[\#0a1020\]\/40,
+html[data-theme="light"] .admin-shell .bg-\[\#0a1020\]\/50,
+html[data-theme="light"] .admin-shell .bg-\[\#0a1020\]\/60,
+html[data-theme="light"] .admin-shell .bg-\[\#0a1020\]\/80,
+html[data-theme="light"] .admin-shell .bg-\[\#0a1020\]\/95,
+html[data-theme="light"] .admin-shell .bg-\[\#111827\],
+html[data-theme="light"] .admin-shell .bg-\[\#141414\],
+html[data-theme="light"] .admin-shell .bg-\[\#0d1526\],
+html[data-theme="light"] .admin-shell .bg-\[\#0d1526\]\/80,
+html[data-theme="light"] .admin-shell .bg-\[\#0f172a\],
+html[data-theme="light"] .admin-shell .bg-\[\#17171A\],
+html[data-theme="light"] .admin-shell .bg-\[\#1F1F23\] {
   background-color: #FFFFFF !important;
   color: #0F172A;
 }
 /* Text — primary + opacity variants */
-html[data-theme="light"] .text-white:not([class*="hover:"]):not([class*="group-hover:"]) { color: #0F172A; }
-html[data-theme="light"] .text-white\/90,
-html[data-theme="light"] .text-white\/80,
-html[data-theme="light"] .text-white\/70 { color: #1E293B; }
-html[data-theme="light"] .text-white\/60,
-html[data-theme="light"] .text-white\/50 { color: #475569; }
-html[data-theme="light"] .text-white\/40,
-html[data-theme="light"] .text-white\/30 { color: #64748B; }
-html[data-theme="light"] .text-white\/20,
-html[data-theme="light"] .text-white\/10 { color: #94A3B8; }
-html[data-theme="light"] .text-gray-100,
-html[data-theme="light"] .text-gray-200,
-html[data-theme="light"] .text-gray-300 { color: #334155; }
-html[data-theme="light"] .text-gray-400 { color: #475569; }
-html[data-theme="light"] .text-gray-500 { color: #64748B; }
-html[data-theme="light"] .text-gray-600 { color: #94A3B8; }
+html[data-theme="light"] .admin-shell .text-white { color: #0F172A; }
+/* …but keep white text on colored solid surfaces (buttons, hero cards) */
+html[data-theme="light"] .admin-shell .text-white[class*="bg-"]:not([class*="bg-white"]):not([class*="bg-transparent"]):not([class*="bg-black/2"]):not([class*="bg-black/3"]):not([class*="bg-[#0"]):not([class*="bg-[#1"]):not([class*="bg-gradient"]):not([class*="bg-slate-9"]):not([class*="bg-gray-9"]) {
+  color: #FFFFFF;
+}
+/* Gradients: only strong shades (600/700 sólidos, sin opacidad) keep white text;
+   tinted gradients (from-x-600/20) get dark text via the base rule */
+html[data-theme="light"] .admin-shell .text-white[class*="bg-gradient"][class*="-600"]:not([class*="-600/"]):not([class*="-700/"]),
+html[data-theme="light"] .admin-shell .text-white[class*="bg-gradient"][class*="-700"]:not([class*="-600/"]):not([class*="-700/"]),
+html[data-theme="light"] .admin-shell .text-white[class*="from-primary"],
+html[data-theme="light"] .admin-shell [class*="bg-gradient"][class*="-600"]:not([class*="-600/"]):not([class*="-700/"]) .text-white,
+html[data-theme="light"] .admin-shell [class*="bg-gradient"][class*="-700"]:not([class*="-600/"]):not([class*="-700/"]) .text-white,
+html[data-theme="light"] .admin-shell [class*="from-primary"] .text-white {
+  color: #FFFFFF;
+}
+html[data-theme="light"] .admin-shell .hover\:text-white:hover { color: #0F172A; }
+html[data-theme="light"] .admin-shell .hover\:text-white[class*="hover:bg-"]:not([class*="hover:bg-white"]):hover { color: #FFFFFF; }
+html[data-theme="light"] .admin-shell .text-white\/90,
+html[data-theme="light"] .admin-shell .text-white\/85,
+html[data-theme="light"] .admin-shell .text-white\/80,
+html[data-theme="light"] .admin-shell .text-white\/70 { color: #1E293B; }
+html[data-theme="light"] .admin-shell .text-white\/60,
+html[data-theme="light"] .admin-shell .text-white\/50 { color: #475569; }
+html[data-theme="light"] .admin-shell .text-white\/40,
+html[data-theme="light"] .admin-shell .text-white\/30 { color: #64748B; }
+html[data-theme="light"] .admin-shell .text-white\/20,
+html[data-theme="light"] .admin-shell .text-white\/10 { color: #94A3B8; }
+html[data-theme="light"] .admin-shell .text-gray-100,
+html[data-theme="light"] .admin-shell .text-gray-200,
+html[data-theme="light"] .admin-shell .text-gray-300 { color: #334155; }
+html[data-theme="light"] .admin-shell .text-gray-400 { color: #475569; }
+html[data-theme="light"] .admin-shell .text-gray-500 { color: #64748B; }
+/* Accent text — the -200/-300/-400 shades are made for dark bg; darken on light */
+html[data-theme="light"] .admin-shell .text-emerald-200, html[data-theme="light"] .admin-shell .text-emerald-300, html[data-theme="light"] .admin-shell .text-emerald-400 { color: #059669; }
+html[data-theme="light"] .admin-shell .text-red-200, html[data-theme="light"] .admin-shell .text-red-300, html[data-theme="light"] .admin-shell .text-red-400 { color: #DC2626; }
+html[data-theme="light"] .admin-shell .text-rose-200, html[data-theme="light"] .admin-shell .text-rose-300, html[data-theme="light"] .admin-shell .text-rose-400 { color: #E11D48; }
+html[data-theme="light"] .admin-shell .text-amber-200, html[data-theme="light"] .admin-shell .text-amber-300, html[data-theme="light"] .admin-shell .text-amber-400 { color: #D97706; }
+html[data-theme="light"] .admin-shell .text-cyan-200, html[data-theme="light"] .admin-shell .text-cyan-300, html[data-theme="light"] .admin-shell .text-cyan-400 { color: #0891B2; }
+html[data-theme="light"] .admin-shell .text-sky-200, html[data-theme="light"] .admin-shell .text-sky-300, html[data-theme="light"] .admin-shell .text-sky-400 { color: #0284C7; }
+html[data-theme="light"] .admin-shell .text-blue-200, html[data-theme="light"] .admin-shell .text-blue-300, html[data-theme="light"] .admin-shell .text-blue-400 { color: #2563EB; }
+html[data-theme="light"] .admin-shell .text-indigo-200, html[data-theme="light"] .admin-shell .text-indigo-300, html[data-theme="light"] .admin-shell .text-indigo-400 { color: #4F46E5; }
+html[data-theme="light"] .admin-shell .text-violet-200, html[data-theme="light"] .admin-shell .text-violet-300, html[data-theme="light"] .admin-shell .text-violet-400 { color: #7C3AED; }
+html[data-theme="light"] .admin-shell .text-purple-200, html[data-theme="light"] .admin-shell .text-purple-300, html[data-theme="light"] .admin-shell .text-purple-400 { color: #9333EA; }
+html[data-theme="light"] .admin-shell .text-teal-200, html[data-theme="light"] .admin-shell .text-teal-300, html[data-theme="light"] .admin-shell .text-teal-400 { color: #0D9488; }
+html[data-theme="light"] .admin-shell .text-green-200, html[data-theme="light"] .admin-shell .text-green-300, html[data-theme="light"] .admin-shell .text-green-400 { color: #16A34A; }
+html[data-theme="light"] .admin-shell .text-lime-200, html[data-theme="light"] .admin-shell .text-lime-300, html[data-theme="light"] .admin-shell .text-lime-400 { color: #65A30D; }
+html[data-theme="light"] .admin-shell .text-yellow-200, html[data-theme="light"] .admin-shell .text-yellow-300, html[data-theme="light"] .admin-shell .text-yellow-400 { color: #CA8A04; }
+html[data-theme="light"] .admin-shell .text-orange-200, html[data-theme="light"] .admin-shell .text-orange-300, html[data-theme="light"] .admin-shell .text-orange-400 { color: #EA580C; }
+html[data-theme="light"] .admin-shell .text-pink-200, html[data-theme="light"] .admin-shell .text-pink-300, html[data-theme="light"] .admin-shell .text-pink-400 { color: #DB2777; }
+html[data-theme="light"] .admin-shell .text-fuchsia-200, html[data-theme="light"] .admin-shell .text-fuchsia-300, html[data-theme="light"] .admin-shell .text-fuchsia-400 { color: #C026D3; }
+/* Accent text with opacity modifiers (text-x-300/80, etc.) */
+html[data-theme="light"] .admin-shell .text-emerald-300\/90, html[data-theme="light"] .admin-shell .text-emerald-300\/80,
+html[data-theme="light"] .admin-shell .text-emerald-400\/80, html[data-theme="light"] .admin-shell .text-emerald-400\/30,
+html[data-theme="light"] .admin-shell .text-emerald-200\/70 { color: #059669; }
+html[data-theme="light"] .admin-shell .text-cyan-500\/40, html[data-theme="light"] .admin-shell .text-cyan-500\/30,
+html[data-theme="light"] .admin-shell .text-cyan-400\/80, html[data-theme="light"] .admin-shell .text-cyan-100\/70,
+html[data-theme="light"] .admin-shell .text-cyan-50\/90 { color: #0891B2; }
+html[data-theme="light"] .admin-shell .text-amber-500\/90, html[data-theme="light"] .admin-shell .text-amber-400\/80,
+html[data-theme="light"] .admin-shell .text-amber-300\/90, html[data-theme="light"] .admin-shell .text-amber-300\/80,
+html[data-theme="light"] .admin-shell .text-amber-200\/90 { color: #D97706; }
+html[data-theme="light"] .admin-shell .text-violet-300\/80, html[data-theme="light"] .admin-shell .text-violet-200\/80 { color: #7C3AED; }
+html[data-theme="light"] .admin-shell .text-red-300\/70, html[data-theme="light"] .admin-shell .text-red-200\/80 { color: #DC2626; }
+html[data-theme="light"] .admin-shell .text-purple-400\/80 { color: #9333EA; }
+html[data-theme="light"] .admin-shell .text-orange-300\/70 { color: #EA580C; }
+html[data-theme="light"] .admin-shell .text-indigo-400\/80 { color: #4F46E5; }
+html[data-theme="light"] .admin-shell .text-green-500\/80 { color: #16A34A; }
+html[data-theme="light"] .admin-shell .text-blue-400\/80, html[data-theme="light"] .admin-shell .text-blue-400\/70 { color: #2563EB; }
+html[data-theme="light"] .admin-shell .text-slate-100,
+html[data-theme="light"] .admin-shell .text-slate-200,
+html[data-theme="light"] .admin-shell .text-slate-300 { color: #334155; }
+html[data-theme="light"] .admin-shell .text-slate-400 { color: #475569; }
+html[data-theme="light"] .admin-shell .text-slate-500 { color: #64748B; }
 /* Surface remaps for translucent whites (common in cards) */
-html[data-theme="light"] .bg-white\/\[0\.02\],
-html[data-theme="light"] .bg-white\/\[0\.03\],
-html[data-theme="light"] .bg-white\/\[0\.04\],
-html[data-theme="light"] .bg-white\/\[0\.05\],
-html[data-theme="light"] .bg-white\/\[0\.06\],
-html[data-theme="light"] .bg-white\/\[0\.08\],
-html[data-theme="light"] .bg-white\/5,
-html[data-theme="light"] .bg-white\/\[0\.02\]:not(:hover),
-html[data-theme="light"] .bg-white\/\[0\.03\]:not(:hover) {
+html[data-theme="light"] .admin-shell .bg-white\/\[0\.02\],
+html[data-theme="light"] .admin-shell .bg-white\/\[0\.03\],
+html[data-theme="light"] .admin-shell .bg-white\/\[0\.04\],
+html[data-theme="light"] .admin-shell .bg-white\/\[0\.05\],
+html[data-theme="light"] .admin-shell .bg-white\/\[0\.06\],
+html[data-theme="light"] .admin-shell .bg-white\/\[0\.07\],
+html[data-theme="light"] .admin-shell .bg-white\/\[0\.08\],
+html[data-theme="light"] .admin-shell .bg-white\/\[0\.09\],
+html[data-theme="light"] .admin-shell .bg-white\/\[0\.01\],
+html[data-theme="light"] .admin-shell .bg-white\/5 {
   background-color: #FFFFFF !important;
   box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03), 0 0 0 1px rgba(15, 23, 42, 0.03);
 }
-html[data-theme="light"] .bg-white\/10 { background-color: #F1F5F9 !important; }
-html[data-theme="light"] .bg-white\/15 { background-color: #E2E8F0 !important; }
-html[data-theme="light"] .bg-white\/20 { background-color: #E2E8F0 !important; }
+html[data-theme="light"] .admin-shell .bg-white\/\[0\.1\],
+html[data-theme="light"] .admin-shell .bg-white\/\[0\.12\],
+html[data-theme="light"] .admin-shell .bg-white\/\[0\.15\],
+html[data-theme="light"] .admin-shell .bg-white\/10 { background-color: #F1F5F9 !important; }
+html[data-theme="light"] .admin-shell .bg-white\/15 { background-color: #E2E8F0 !important; }
+html[data-theme="light"] .admin-shell .bg-white\/20,
+html[data-theme="light"] .admin-shell .bg-white\/30 { background-color: #E2E8F0 !important; }
 /* Borders */
-html[data-theme="light"] .border-white\/\[0\.04\],
-html[data-theme="light"] .border-white\/\[0\.05\],
-html[data-theme="light"] .border-white\/\[0\.06\],
-html[data-theme="light"] .border-white\/\[0\.08\],
-html[data-theme="light"] .border-white\/10,
-html[data-theme="light"] .border-white\/15 { border-color: #E2E8F0 !important; }
-html[data-theme="light"] .border-white\/20,
-html[data-theme="light"] .border-white\/25 { border-color: #CBD5E1 !important; }
-html[data-theme="light"] .divide-white\/\[0\.04\] > * + *,
-html[data-theme="light"] .divide-white\/\[0\.05\] > * + *,
-html[data-theme="light"] .divide-white\/\[0\.06\] > * + *,
-html[data-theme="light"] .divide-white\/10 > * + * { border-color: #E2E8F0 !important; }
+html[data-theme="light"] .admin-shell .border-white\/\[0\.03\],
+html[data-theme="light"] .admin-shell .border-white\/\[0\.04\],
+html[data-theme="light"] .admin-shell .border-white\/\[0\.05\],
+html[data-theme="light"] .admin-shell .border-white\/\[0\.06\],
+html[data-theme="light"] .admin-shell .border-white\/\[0\.07\],
+html[data-theme="light"] .admin-shell .border-white\/\[0\.08\],
+html[data-theme="light"] .admin-shell .border-white\/5,
+html[data-theme="light"] .admin-shell .border-white\/10,
+html[data-theme="light"] .admin-shell .border-white\/15 { border-color: #E2E8F0 !important; }
+html[data-theme="light"] .admin-shell .border-white\/\[0\.1\],
+html[data-theme="light"] .admin-shell .border-white\/\[0\.10\],
+html[data-theme="light"] .admin-shell .border-white\/\[0\.12\],
+html[data-theme="light"] .admin-shell .border-white\/\[0\.2\],
+html[data-theme="light"] .admin-shell .border-white\/20,
+html[data-theme="light"] .admin-shell .border-white\/25,
+html[data-theme="light"] .admin-shell .border-white\/30 { border-color: #CBD5E1 !important; }
+html[data-theme="light"] .admin-shell .ring-white\/\[0\.08\],
+html[data-theme="light"] .admin-shell .ring-white\/10,
+html[data-theme="light"] .admin-shell .ring-white\/30 { --tw-ring-color: #CBD5E1 !important; }
+/* Dark slate/gray surfaces & borders used by some dashboards */
+html[data-theme="light"] .admin-shell .bg-slate-800,
+html[data-theme="light"] .admin-shell .bg-slate-800\/50,
+html[data-theme="light"] .admin-shell .bg-slate-700,
+html[data-theme="light"] .admin-shell .bg-gray-700 { background-color: #E2E8F0 !important; color: #0F172A; }
+html[data-theme="light"] .admin-shell .border-slate-950,
+html[data-theme="light"] .admin-shell .border-slate-900,
+html[data-theme="light"] .admin-shell .border-slate-800,
+html[data-theme="light"] .admin-shell .border-slate-700,
+html[data-theme="light"] .admin-shell .border-slate-700\/50,
+html[data-theme="light"] .admin-shell .border-gray-700 { border-color: #E2E8F0 !important; }
+/* Decorative DARK gradients (stops -900/-950) become light surfaces */
+html[data-theme="light"] .admin-shell [class*="bg-gradient"][class*="-900"],
+html[data-theme="light"] .admin-shell [class*="bg-gradient"][class*="-950"] {
+  background-image: none !important;
+  background-color: #F1F5F9 !important;
+}
+html[data-theme="light"] .admin-shell .bg-slate-900\/70,
+html[data-theme="light"] .admin-shell .bg-slate-900\/50,
+html[data-theme="light"] .admin-shell .bg-emerald-950\/40 { background-color: #F1F5F9 !important; }
+html[data-theme="light"] .admin-shell .divide-white\/\[0\.04\] > * + *,
+html[data-theme="light"] .admin-shell .divide-white\/\[0\.05\] > * + *,
+html[data-theme="light"] .admin-shell .divide-white\/\[0\.06\] > * + *,
+html[data-theme="light"] .admin-shell .divide-white\/10 > * + * { border-color: #E2E8F0 !important; }
 /* Modals & overlays */
-html[data-theme="light"] .bg-black\/70 { background-color: rgba(15, 23, 42, 0.45) !important; }
-html[data-theme="light"] .bg-black\/60 { background-color: rgba(15, 23, 42, 0.35) !important; }
-html[data-theme="light"] .bg-black\/50 { background-color: rgba(15, 23, 42, 0.3) !important; }
-html[data-theme="light"] .bg-black\/40 { background-color: rgba(15, 23, 42, 0.25) !important; }
+html[data-theme="light"] .admin-shell .bg-black\/70 { background-color: rgba(15, 23, 42, 0.45) !important; }
+html[data-theme="light"] .admin-shell .bg-black\/60 { background-color: rgba(15, 23, 42, 0.35) !important; }
+html[data-theme="light"] .admin-shell .bg-black\/50 { background-color: rgba(15, 23, 42, 0.3) !important; }
+html[data-theme="light"] .admin-shell .bg-black\/40 { background-color: rgba(15, 23, 42, 0.25) !important; }
+html[data-theme="light"] .admin-shell .bg-black\/30, html[data-theme="light"] .admin-shell .bg-black\/20 { background-color: #F1F5F9 !important; }
 /* Hover states preserve subtle contrast in light */
-html[data-theme="light"] .hover\:bg-white\/5:hover,
-html[data-theme="light"] .hover\:bg-white\/\[0\.03\]:hover,
-html[data-theme="light"] .hover\:bg-white\/\[0\.05\]:hover { background-color: #F1F5F9 !important; box-shadow: none; }
-html[data-theme="light"] .hover\:bg-white\/10:hover,
-html[data-theme="light"] .hover\:bg-white\/20:hover { background-color: #E2E8F0 !important; }
+html[data-theme="light"] .admin-shell .hover\:bg-white\/5:hover,
+html[data-theme="light"] .admin-shell .hover\:bg-white\/\[0\.03\]:hover,
+html[data-theme="light"] .admin-shell .hover\:bg-white\/\[0\.05\]:hover { background-color: #F1F5F9 !important; box-shadow: none; }
+html[data-theme="light"] .admin-shell .hover\:bg-white\/10:hover,
+html[data-theme="light"] .admin-shell .hover\:bg-white\/20:hover { background-color: #E2E8F0 !important; }
 /* Placeholder text */
-html[data-theme="light"] .placeholder-gray-500::placeholder,
-html[data-theme="light"] .placeholder-gray-400::placeholder { color: #94A3B8; }
+html[data-theme="light"] .admin-shell .placeholder-gray-500::placeholder,
+html[data-theme="light"] .admin-shell .placeholder-gray-400::placeholder { color: #94A3B8; }
 /* Inputs with dark backgrounds */
-html[data-theme="light"] input.bg-white\/5,
-html[data-theme="light"] input.bg-white\/\[0\.02\],
-html[data-theme="light"] input.bg-white\/\[0\.03\],
-html[data-theme="light"] input.bg-\[\#0a1020\]\/60,
-html[data-theme="light"] textarea.bg-white\/5,
-html[data-theme="light"] textarea.bg-white\/\[0\.02\],
-html[data-theme="light"] textarea.bg-white\/\[0\.03\],
-html[data-theme="light"] textarea.bg-\[\#0a1020\]\/60,
-html[data-theme="light"] select.bg-white\/5,
-html[data-theme="light"] select.bg-white\/\[0\.02\],
-html[data-theme="light"] select.bg-white\/\[0\.03\],
-html[data-theme="light"] select.bg-\[\#0a1020\]\/60 {
+html[data-theme="light"] .admin-shell input.bg-white\/5,
+html[data-theme="light"] .admin-shell input.bg-white\/\[0\.02\],
+html[data-theme="light"] .admin-shell input.bg-white\/\[0\.03\],
+html[data-theme="light"] .admin-shell input.bg-\[\#0a1020\]\/60,
+html[data-theme="light"] .admin-shell textarea.bg-white\/5,
+html[data-theme="light"] .admin-shell textarea.bg-white\/\[0\.02\],
+html[data-theme="light"] .admin-shell textarea.bg-white\/\[0\.03\],
+html[data-theme="light"] .admin-shell textarea.bg-\[\#0a1020\]\/60,
+html[data-theme="light"] .admin-shell select.bg-white\/5,
+html[data-theme="light"] .admin-shell select.bg-white\/\[0\.02\],
+html[data-theme="light"] .admin-shell select.bg-white\/\[0\.03\],
+html[data-theme="light"] .admin-shell select.bg-\[\#0a1020\]\/60 {
   background-color: #FFFFFF !important;
   border-color: #CBD5E1 !important;
   color: #0F172A !important;
   box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04) inset;
 }
 /* Backdrop blurs on light look nicer with translucent white */
-html[data-theme="light"] .backdrop-blur-xl.bg-\[\#080d18\]\/95,
-html[data-theme="light"] .backdrop-blur-xl.bg-\[\#080d18\]\/50 { background-color: rgba(255,255,255,0.85) !important; }
+html[data-theme="light"] .admin-shell .backdrop-blur-xl.bg-\[\#080d18\]\/95,
+html[data-theme="light"] .admin-shell .backdrop-blur-xl.bg-\[\#080d18\]\/50 { background-color: rgba(255,255,255,0.85) !important; }
 /* Gradient tenant/investor cards preserve primary but soften */
-html[data-theme="light"] .bg-gradient-to-r.from-primary,
-html[data-theme="light"] .bg-gradient-to-br.from-primary { color: #FFFFFF; }
+html[data-theme="light"] .admin-shell .bg-gradient-to-r.from-primary,
+html[data-theme="light"] .admin-shell .bg-gradient-to-br.from-primary { color: #FFFFFF; }
 /* Text on primary gradient stays white */
-html[data-theme="light"] .from-primary ~ *, 
-html[data-theme="light"] [class*="from-primary"] * { color: inherit; }
+html[data-theme="light"] .admin-shell .from-primary ~ *, 
+html[data-theme="light"] .admin-shell [class*="from-primary"] * { color: inherit; }
 /* Shadows more subtle in light */
-html[data-theme="light"] .shadow-2xl { box-shadow: 0 20px 40px -12px rgba(15, 23, 42, 0.15), 0 0 1px rgba(15, 23, 42, 0.08) !important; }
-html[data-theme="light"] .shadow-xl { box-shadow: 0 12px 24px -8px rgba(15, 23, 42, 0.1), 0 0 1px rgba(15, 23, 42, 0.06) !important; }
-html[data-theme="light"] .shadow-lg { box-shadow: 0 8px 16px -4px rgba(15, 23, 42, 0.08) !important; }
+html[data-theme="light"] .admin-shell .shadow-2xl { box-shadow: 0 20px 40px -12px rgba(15, 23, 42, 0.15), 0 0 1px rgba(15, 23, 42, 0.08) !important; }
+html[data-theme="light"] .admin-shell .shadow-xl { box-shadow: 0 12px 24px -8px rgba(15, 23, 42, 0.1), 0 0 1px rgba(15, 23, 42, 0.06) !important; }
+html[data-theme="light"] .admin-shell .shadow-lg { box-shadow: 0 8px 16px -4px rgba(15, 23, 42, 0.08) !important; }
 
 * {
   margin: 0;
@@ -161,22 +281,25 @@ body {
 }
 
 /* ──────────────────────────────────────────────────────────────────
-   Native <select> dropdown options — fix readability on dark themes
-   iOS Safari / Chrome render <option> with system colors, so we
-   force a dark background + white text globally for the admin shell.
+   Native <select> dropdown options — theme-aware colors.
+   iOS Safari / Chrome render <option> with system colors.
    ────────────────────────────────────────────────────────────────── */
-select {
-  color-scheme: dark;
-}
-select option,
-select optgroup {
+html[data-theme="dark"] select { color-scheme: dark; }
+html[data-theme="dark"] select option,
+html[data-theme="dark"] select optgroup {
   background-color: #0f172a !important;  /* slate-900 */
   color: #f8fafc !important;             /* slate-50  */
 }
-select option:checked,
-select option:hover {
+html[data-theme="dark"] select option:checked,
+html[data-theme="dark"] select option:hover {
   background-color: #1e293b !important;  /* slate-800 */
   color: #ffffff !important;
+}
+html[data-theme="light"] .admin-shell select { color-scheme: light; }
+html[data-theme="light"] .admin-shell select option,
+html[data-theme="light"] .admin-shell select optgroup {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
 }
 
 @keyframes fade-in-up {

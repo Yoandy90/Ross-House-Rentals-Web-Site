@@ -23,6 +23,8 @@ type BankTx = {
 
 const fmt = (n: number) => `$${Math.abs(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
 
+const PAGE_SIZE = 50;
+
 function ConnectButton({ linkToken, onSuccess }: { linkToken: string; onSuccess: (t: string, name: string) => void }) {
   const { open, ready } = usePlaidLink({
     token: linkToken,
@@ -43,6 +45,8 @@ export default function BancoPage() {
   const [txs, setTxs] = useState<BankTx[]>([]);
   const [counts, setCounts] = useState<Record<string, number>>({});
   const [filter, setFilter] = useState('');
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
   const [linkToken, setLinkToken] = useState('');
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState('');
@@ -54,13 +58,13 @@ export default function BancoPage() {
     try {
       const [ra, rt] = await Promise.all([
         fetch('/api/admin/plaid/accounts', { headers: headers() }),
-        fetch(`/api/admin/plaid/transactions?limit=150${f ? `&status=${f}` : ''}`, { headers: headers() }),
+        fetch(`/api/admin/plaid/transactions?limit=${PAGE_SIZE}&skip=${(page - 1) * PAGE_SIZE}${f ? `&status=${f}` : ''}`, { headers: headers() }),
       ]);
       if (ra.ok) { const d = await ra.json(); setItems(d.items || []); setEnv(d.env); }
-      if (rt.ok) { const d = await rt.json(); setTxs(d.transactions || []); setCounts(d.counts || {}); }
+      if (rt.ok) { const d = await rt.json(); setTxs(d.transactions || []); setCounts(d.counts || {}); setTotal(d.total || 0); }
     } catch { /* noop */ }
     setLoading(false);
-  }, [headers, filter]);
+  }, [headers, filter, page]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -205,7 +209,7 @@ export default function BancoPage() {
         <div className="flex flex-wrap items-center gap-2">
           <div className="px-3 py-1.5 rounded-full bg-white/[0.03] border border-white/[0.06] text-xs font-bold text-white">{pct}% conciliado</div>
           {[['', `Todas ${totalTx}`], ['matched', `✅ Conciliadas ${counts.matched || 0}`], ['unmatched', `⏳ Pendientes ${counts.unmatched || 0}`], ['ignored', `🚫 Ignoradas ${counts.ignored || 0}`]].map(([v, l]) => (
-            <button key={v} onClick={() => setFilter(v)}
+            <button key={v} onClick={() => { setFilter(v); setPage(1); }}
               className={`px-3 py-1.5 rounded-full text-xs font-bold border transition ${filter === v ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30' : 'bg-white/[0.03] text-gray-500 border-white/[0.06] hover:text-white'}`}>{l}</button>
           ))}
         </div>
@@ -268,6 +272,22 @@ export default function BancoPage() {
               )}
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Paginación */}
+      {!loading && total > PAGE_SIZE && (
+        <div className="flex items-center justify-between">
+          <span className="text-[11px] text-gray-500">
+            Mostrando {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, total)} de {total}
+          </span>
+          <div className="flex items-center gap-2">
+            <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}
+              className="px-3 py-1.5 rounded-lg text-xs font-bold border border-white/[0.08] text-gray-400 hover:bg-white/[0.04] disabled:opacity-30 transition">← Anterior</button>
+            <span className="text-xs text-gray-400 font-bold">{page} / {Math.ceil(total / PAGE_SIZE)}</span>
+            <button onClick={() => setPage(p => Math.min(Math.ceil(total / PAGE_SIZE), p + 1))} disabled={page >= Math.ceil(total / PAGE_SIZE)}
+              className="px-3 py-1.5 rounded-lg text-xs font-bold border border-white/[0.08] text-gray-400 hover:bg-white/[0.04] disabled:opacity-30 transition">Siguiente →</button>
+          </div>
         </div>
       )}
     </div>

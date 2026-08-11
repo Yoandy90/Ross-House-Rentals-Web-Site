@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import {
   CreditCard, Key, Shield, CheckCircle2, AlertTriangle, RefreshCw,
   Save, Zap, Copy, Hash, Link2, Power, ShieldCheck, FlaskConical, Rocket,
+  TrendingDown, DollarSign, Receipt, BarChart3,
 } from 'lucide-react';
 
 type ProcName = 'stripe' | 'square' | 'clover';
@@ -53,6 +54,16 @@ export default function ProcesadoresPago({ headers }: { headers: () => Record<st
   const [busy, setBusy] = useState('');
   const [msg, setMsg] = useState<Record<string, { ok: boolean; text: string }>>({});
   const [copied, setCopied] = useState('');
+  const [fees, setFees] = useState<any>(null);
+
+  const loadFees = useCallback(async () => {
+    try {
+      const res = await fetch('/api/admin/payment-processors/fee-comparison', { headers: headers() });
+      if (res.ok) setFees(await res.json());
+    } catch { /* noop */ }
+  }, [headers]);
+
+  useEffect(() => { loadFees(); }, [loadFees]);
 
   const applyData = (d: any) => {
     setData(d);
@@ -161,6 +172,85 @@ export default function ProcesadoresPago({ headers }: { headers: () => Record<st
           y puedes cambiar de entorno o de procesador cuando quieras.
         </p>
       </div>
+
+      {/* ═══ COMPARADOR DE COMISIONES ═══ */}
+      {fees && fees.tx_count_12m > 0 && (
+        <div className="bg-[#0d1526]/80 border border-white/[0.08] rounded-2xl p-5">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 rounded-xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center">
+              <BarChart3 className="w-5 h-5 text-cyan-400" />
+            </div>
+            <div className="flex-1">
+              <h3 className="text-white font-bold">Comparador de Comisiones</h3>
+              <p className="text-xs text-gray-500">Estimado con tu volumen real de rentas de los últimos {fees.months_with_data} {fees.months_with_data === 1 ? 'mes' : 'meses'}</p>
+            </div>
+            <button onClick={loadFees} className="p-2 border border-white/[0.08] rounded-lg text-gray-400 hover:bg-white/[0.04]"><RefreshCw className="w-3.5 h-3.5" /></button>
+          </div>
+
+          {/* Volumen real */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
+            {[
+              { label: 'Volumen cobrado', value: `$${fees.volume_12m.toLocaleString('en-US', { minimumFractionDigits: 2 })}`, icon: DollarSign, color: 'text-emerald-400' },
+              { label: 'Transacciones', value: fees.tx_count_12m, icon: Receipt, color: 'text-blue-400' },
+              { label: 'Promedio mensual', value: `$${fees.monthly_avg_volume.toLocaleString('en-US', { minimumFractionDigits: 2 })}`, icon: BarChart3, color: 'text-cyan-400' },
+              { label: 'Ticket promedio', value: `$${fees.avg_ticket.toLocaleString('en-US', { minimumFractionDigits: 2 })}`, icon: CreditCard, color: 'text-purple-400' },
+            ].map((s, i) => (
+              <div key={i} className="p-3 bg-[#0a1020]/60 border border-white/[0.06] rounded-xl">
+                <div className="flex items-center gap-1.5 text-[10px] text-gray-500 font-bold uppercase tracking-wider"><s.icon className={`w-3 h-3 ${s.color}`} /> {s.label}</div>
+                <div className={`text-lg font-bold mt-1 ${s.color}`}>{s.value}</div>
+              </div>
+            ))}
+          </div>
+
+          {/* Comparación por procesador */}
+          <div className="space-y-2">
+            {fees.comparison.map((c: any) => {
+              const maxFee = Math.max(...fees.comparison.map((x: any) => x.fee_annual));
+              const pct = maxFee > 0 ? (c.fee_annual / maxFee) * 100 : 0;
+              const isCheapest = c.processor === fees.cheapest;
+              return (
+                <div key={c.processor} className={`p-3 rounded-xl border ${isCheapest ? 'border-emerald-500/35 bg-emerald-500/[0.05]' : 'border-white/[0.06] bg-[#0a1020]/60'}`}>
+                  <div className="flex items-center gap-2 flex-wrap mb-2">
+                    <span className="text-sm font-bold text-white">{c.label}</span>
+                    <span className="text-[11px] text-gray-500">{c.rate_label} por transacción</span>
+                    {isCheapest && (
+                      <span className="flex items-center gap-1 px-2 py-0.5 bg-emerald-500/15 border border-emerald-500/30 rounded-full text-[10px] font-bold text-emerald-400 uppercase tracking-wider">
+                        <TrendingDown className="w-3 h-3" /> Más barato
+                      </span>
+                    )}
+                    {c.is_active && (
+                      <span className="px-2 py-0.5 bg-green-500/15 border border-green-500/30 rounded-full text-[10px] font-bold text-green-400 uppercase tracking-wider">Activo</span>
+                    )}
+                    <div className="ml-auto text-right">
+                      <span className={`text-base font-bold ${isCheapest ? 'text-emerald-400' : 'text-white'}`}>${c.fee_annual.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                      <span className="text-[11px] text-gray-500"> /12m · {c.effective_pct}% efectivo · ~${c.fee_monthly_avg.toLocaleString('en-US', { minimumFractionDigits: 2 })}/mes</span>
+                    </div>
+                  </div>
+                  <div className="h-2 rounded-full bg-white/[0.05] overflow-hidden">
+                    <div className={`h-full rounded-full ${isCheapest ? 'bg-gradient-to-r from-emerald-500 to-emerald-400' : c.is_active ? 'bg-gradient-to-r from-blue-500 to-blue-400' : 'bg-gradient-to-r from-gray-600 to-gray-500'}`} style={{ width: `${pct}%` }} />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Recomendación */}
+          {fees.savings_annual_vs_active > 0 ? (
+            <div className="mt-3 flex items-center gap-2.5 p-3 bg-emerald-500/[0.06] border border-emerald-500/25 rounded-xl">
+              <TrendingDown className="w-4 h-4 text-emerald-400 shrink-0" />
+              <p className="text-xs text-emerald-300">
+                Con <b className="capitalize">{fees.cheapest}</b> ahorrarías <b>${fees.savings_annual_vs_active.toLocaleString('en-US', { minimumFractionDigits: 2 })}</b> al año vs tu procesador activo con este volumen.
+              </p>
+            </div>
+          ) : (
+            <div className="mt-3 flex items-center gap-2.5 p-3 bg-blue-500/[0.06] border border-blue-500/20 rounded-xl">
+              <CheckCircle2 className="w-4 h-4 text-blue-400 shrink-0" />
+              <p className="text-xs text-blue-300">Tu procesador activo ya está entre los más baratos para tu volumen. 👍</p>
+            </div>
+          )}
+          <p className="text-[10px] text-gray-600 mt-2">{fees.note}</p>
+        </div>
+      )}
 
       {/* ═══ 3D SECURE ═══ */}
       <div className="bg-[#0d1526]/80 border border-white/[0.08] rounded-2xl p-5">

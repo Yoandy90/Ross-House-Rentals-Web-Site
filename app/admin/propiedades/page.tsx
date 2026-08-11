@@ -7,6 +7,7 @@ import {
   Edit3, Trash2, Eye, RefreshCw, CheckCircle2, Wrench, Clock,
   X, ChevronDown, ChevronUp, Save, Image as ImageIcon,
   Building2, Shield, Calendar as CalIcon, AlertTriangle, Layers,
+  LayoutGrid, List,
 } from 'lucide-react';
 import UnitsManager from '../../components/admin/UnitsManager';
 
@@ -34,6 +35,14 @@ export default function PropiedadesPage() {
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<any>(null);
   const [saving, setSaving] = useState(false);
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  useEffect(() => {
+    try { const v = localStorage.getItem('rhr_props_view'); if (v === 'list' || v === 'grid') setViewMode(v); } catch { /* noop */ }
+  }, []);
+  const changeView = (v: 'grid' | 'list') => {
+    setViewMode(v);
+    try { localStorage.setItem('rhr_props_view', v); } catch { /* noop */ }
+  };
   const [form, setForm] = useState({ name: '', address: '', city: 'Dumas', state: 'TX', zip: '', type: 'house', bedrooms: '3', bathrooms: '2', sqft: '', rent_amount: '', deposit_amount: '', description: '', status: 'available', owner_id: '', section8_accepted: false, section8_pha: '', section8_pha_contact: '', section8_last_inspection: '', section8_next_inspection: '', section8_notes: '' });
 
   // ─── Owners list (for the assign-owner dropdown in form) ───
@@ -274,6 +283,22 @@ export default function PropiedadesPage() {
           </div>
         </div>
         <div className="flex gap-2">
+          <div className="flex rounded-lg border border-white/[0.08] overflow-hidden">
+            <button
+              onClick={() => changeView('grid')}
+              title="Vista de cuadrícula"
+              className={`flex items-center gap-1.5 px-3 py-2 text-xs transition ${viewMode === 'grid' ? 'bg-cyan-500/15 text-cyan-400' : 'text-gray-500 hover:bg-white/[0.04]'}`}
+            >
+              <LayoutGrid className="w-3.5 h-3.5" /> <span className="hidden sm:inline">Cuadrícula</span>
+            </button>
+            <button
+              onClick={() => changeView('list')}
+              title="Vista de lista"
+              className={`flex items-center gap-1.5 px-3 py-2 text-xs transition border-l border-white/[0.08] ${viewMode === 'list' ? 'bg-cyan-500/15 text-cyan-400' : 'text-gray-500 hover:bg-white/[0.04]'}`}
+            >
+              <List className="w-3.5 h-3.5" /> <span className="hidden sm:inline">Lista</span>
+            </button>
+          </div>
           <button onClick={fetchProps} className="flex items-center gap-2 px-3 py-2 border border-white/[0.08] rounded-lg text-xs text-gray-400 hover:bg-white/[0.04] transition"><RefreshCw className="w-3.5 h-3.5" /></button>
           <button onClick={() => { resetForm(); setShowForm(true); }} className="flex items-center gap-2 px-4 py-2 bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 rounded-lg text-sm hover:bg-cyan-500/20 transition font-semibold"><Plus className="w-4 h-4" /> Nueva</button>
         </div>
@@ -673,9 +698,93 @@ export default function PropiedadesPage() {
         </div>
       )}
 
-      {/* Properties Grid */}
+      {/* Properties Grid / List */}
       {filtered.length === 0 ? (
         <div className="text-center py-12"><div className="w-16 h-16 mx-auto bg-cyan-500/10 rounded-2xl flex items-center justify-center mb-4"><Home className="w-8 h-8 text-cyan-400" /></div><p className="text-gray-400 text-sm">No hay propiedades aún</p></div>
+      ) : viewMode === 'list' ? (
+        <div className="bg-white/[0.02] rounded-2xl border border-white/[0.06] overflow-hidden">
+          {/* Table header (desktop) */}
+          <div className="hidden md:grid grid-cols-[56px_1fr_150px_110px_110px_110px] gap-3 items-center px-4 py-2.5 border-b border-white/[0.06] bg-white/[0.02]">
+            <span />
+            <span className="text-[10px] uppercase tracking-wider text-gray-500 font-bold">Propiedad</span>
+            <span className="text-[10px] uppercase tracking-wider text-gray-500 font-bold">Detalles</span>
+            <span className="text-[10px] uppercase tracking-wider text-gray-500 font-bold">Estado</span>
+            <span className="text-[10px] uppercase tracking-wider text-gray-500 font-bold text-right">Renta</span>
+            <span className="text-[10px] uppercase tracking-wider text-gray-500 font-bold text-right">Acciones</span>
+          </div>
+          {filtered.map(p => {
+            const st = STATUS_MAP[p.status] || STATUS_MAP.available;
+            const photoPath = p.photos?.[0] || '';
+            const cleanPath = photoPath.replace('ross-rentals/', '');
+            const photoUrl = cleanPath ? `/api/public/property-file/${cleanPath}` : '';
+            return (
+              <div key={p._id} className="grid grid-cols-[56px_1fr] md:grid-cols-[56px_1fr_150px_110px_110px_110px] gap-3 items-center px-4 py-3 border-b border-white/[0.04] last:border-b-0 hover:bg-cyan-500/[0.03] transition">
+                {/* Thumbnail */}
+                <div className="w-14 h-11 rounded-lg overflow-hidden bg-gradient-to-br from-cyan-500/10 to-blue-500/5 flex items-center justify-center shrink-0">
+                  {photoUrl ? (
+                    <img
+                      src={photoUrl}
+                      alt={p.address || 'Propiedad'}
+                      className="w-full h-full object-cover"
+                      onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                    />
+                  ) : (
+                    <Home className="w-4 h-4 text-cyan-500/40" />
+                  )}
+                </div>
+                {/* Name + address */}
+                <div className="min-w-0">
+                  <div className="flex items-center gap-1.5">
+                    <h3 className="font-bold text-sm text-white truncate">{p.name}</h3>
+                    {p.section8_accepted && (
+                      <span className="text-[9px] px-1.5 py-0.5 rounded-full font-bold bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 shrink-0" title={p.section8_pha ? `Section 8 — ${p.section8_pha}` : 'Section 8 aceptada'}>S8</span>
+                    )}
+                    {p.is_multi_unit && (
+                      <span className="text-[9px] px-1.5 py-0.5 rounded-full font-bold bg-cyan-500/15 text-cyan-300 border border-cyan-500/30 shrink-0 flex items-center gap-0.5" title={`${p.units_rented || 0} de ${p.units_count || 0} unidades ocupadas`}>
+                        <Layers className="w-2.5 h-2.5" /> {p.units_rented || 0}/{p.units_count || 0}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-[11px] text-gray-500 flex items-center gap-1 truncate"><MapPin className="w-3 h-3 shrink-0" /> {p.address}{p.city ? `, ${p.city}` : ''}</p>
+                  {/* Mobile-only: details + status + rent + actions */}
+                  <div className="md:hidden flex items-center gap-3 mt-1.5 flex-wrap">
+                    <span className="flex items-center gap-1 text-[11px] text-gray-500"><Bed className="w-3 h-3" /> {p.bedrooms || 0}</span>
+                    <span className="flex items-center gap-1 text-[11px] text-gray-500"><Bath className="w-3 h-3" /> {p.bathrooms || 0}</span>
+                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${st.bg} ${st.color}`}>{st.label}</span>
+                    <span className="text-sm font-bold text-cyan-400">{fmt(p.rent_amount || 0)}<span className="text-[10px] text-gray-600 font-normal">/mes</span></span>
+                    <span className="flex gap-1 ml-auto">
+                      <button onClick={() => setUnitsProp(p)} title="Unidades" className="p-1.5 rounded-lg hover:bg-cyan-500/10 text-gray-500 hover:text-cyan-400 transition"><Layers className="w-3.5 h-3.5" /></button>
+                      <button onClick={() => startEdit(p)} title="Editar" className="p-1.5 rounded-lg hover:bg-white/[0.06] text-gray-500 hover:text-cyan-400 transition"><Edit3 className="w-3.5 h-3.5" /></button>
+                      <button onClick={() => handleDelete(p._id)} title="Eliminar" className="p-1.5 rounded-lg hover:bg-red-500/10 text-gray-500 hover:text-red-400 transition"><Trash2 className="w-3.5 h-3.5" /></button>
+                    </span>
+                  </div>
+                </div>
+                {/* Details (desktop) */}
+                <div className="hidden md:flex items-center gap-3 text-[11px] text-gray-500">
+                  <span className="flex items-center gap-1"><Bed className="w-3 h-3" /> {p.bedrooms || 0}</span>
+                  <span className="flex items-center gap-1"><Bath className="w-3 h-3" /> {p.bathrooms || 0}</span>
+                  {p.sqft > 0 && <span className="flex items-center gap-1"><Square className="w-3 h-3" /> {p.sqft}</span>}
+                </div>
+                {/* Status (desktop) */}
+                <div className="hidden md:block">
+                  <span className={`text-[10px] px-2 py-1 rounded-full font-bold ${st.bg} ${st.color} inline-flex items-center gap-1`}>
+                    <st.Icon className="w-3 h-3" /> {st.label}
+                  </span>
+                </div>
+                {/* Rent (desktop) */}
+                <div className="hidden md:block text-right text-base font-bold text-cyan-400">
+                  {fmt(p.rent_amount || 0)}<span className="text-[10px] text-gray-600 font-normal">/mes</span>
+                </div>
+                {/* Actions (desktop) */}
+                <div className="hidden md:flex gap-1 justify-end">
+                  <button onClick={() => setUnitsProp(p)} title="Unidades (multi-unidad)" className="p-1.5 rounded-lg hover:bg-cyan-500/10 text-gray-500 hover:text-cyan-400 transition"><Layers className="w-3.5 h-3.5" /></button>
+                  <button onClick={() => startEdit(p)} title="Editar" className="p-1.5 rounded-lg hover:bg-white/[0.06] text-gray-500 hover:text-cyan-400 transition"><Edit3 className="w-3.5 h-3.5" /></button>
+                  <button onClick={() => handleDelete(p._id)} title="Eliminar" className="p-1.5 rounded-lg hover:bg-red-500/10 text-gray-500 hover:text-red-400 transition"><Trash2 className="w-3.5 h-3.5" /></button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
       ) : (
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {filtered.map(p => {

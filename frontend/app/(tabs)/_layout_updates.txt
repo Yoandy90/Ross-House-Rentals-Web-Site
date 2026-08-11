@@ -1,8 +1,0 @@
-Headers to hide in _layout.tsx:
-
-1. documents - headerShown: false
-2. profile - headerShown: false (Ya está)
-3. notifications - headerShown: false
-4. kyc - headerShown: false
-5. education - headerShown: false
-6. tax-returns - headerShown: false

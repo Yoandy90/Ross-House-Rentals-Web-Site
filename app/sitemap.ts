@@ -44,6 +44,24 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     lastModified: now,
   }))
 
+  // Blog / Noticias
+  let blogEntries: MetadataRoute.Sitemap = []
+  try {
+    const res = await fetch(`${BASE}/api/public/blog/posts?limit=50`, { next: { revalidate: 86400 } })
+    if (res.ok) {
+      const data = await res.json()
+      blogEntries = [
+        { url: `${BASE}/noticias`, changeFrequency: 'weekly' as const, priority: 0.9, lastModified: now },
+        ...(data.posts || []).map((p: { slug: string; published_at?: string }) => ({
+          url: `${BASE}/noticias/${p.slug}`,
+          changeFrequency: 'monthly' as const,
+          priority: 0.7,
+          lastModified: p.published_at ? new Date(p.published_at) : now,
+        })),
+      ]
+    }
+  } catch { /* ignore */ }
+
   // Tenant portal entry (login)
   const tenantEntries: MetadataRoute.Sitemap = [
     { url: `${BASE}/tenant`,         changeFrequency: 'monthly', priority: 0.6, lastModified: now },
@@ -58,5 +76,5 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${BASE}/faq`,               changeFrequency: 'monthly', priority: 0.5, lastModified: now },
   ]
 
-  return [...marketing, ...propertyEntries, ...tenantEntries, ...legal]
+  return [...marketing, ...propertyEntries, ...blogEntries, ...tenantEntries, ...legal]
 }

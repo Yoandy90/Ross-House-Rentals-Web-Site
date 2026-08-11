@@ -10,7 +10,7 @@ load_dotenv()
 # MongoDB connection
 mongo_url = os.environ['MONGO_URL']
 client = AsyncIOMotorClient(mongo_url)
-db = client[os.environ.get('DB_NAME', 'taxportal')]
+db = client[os.environ['DB_NAME']]
 
 def get_database():
     """Get database instance for dependency injection"""

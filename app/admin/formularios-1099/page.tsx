@@ -35,8 +35,41 @@ export default function Formularios1099Page() {
   const [payerModal, setPayerModal] = useState(false);
   const [payerForm, setPayerForm] = useState<Payer>({ name: '', ein: '', address: '', city: '', state: '', zip: '', phone: '' });
   const [busy, setBusy] = useState('');
+  const [autoCopyB, setAutoCopyB] = useState<boolean | null>(null);
 
   const notify = (msg: string, ok = true) => { setToast({ msg, ok }); setTimeout(() => setToast(null), 4500); };
+
+  const loadCopyBConfig = useCallback(async () => {
+    try {
+      const res = await fetch('/api/admin/1099/copyb-config', { headers: headers() });
+      if (res.ok) setAutoCopyB((await res.json()).auto_send_copyb);
+    } catch { /* noop */ }
+  }, [headers]);
+
+  useEffect(() => { loadCopyBConfig(); }, [loadCopyBConfig]);
+
+  const toggleAutoCopyB = async () => {
+    const next = !autoCopyB;
+    setAutoCopyB(next);
+    const res = await fetch('/api/admin/1099/copyb-config', {
+      method: 'PUT', headers: { 'Content-Type': 'application/json', ...headers() },
+      body: JSON.stringify({ auto_send_copyb: next }),
+    });
+    if (res.ok) notify(next ? '✅ Envío automático activado — Copy B se emailea el 15 de enero' : 'Modo manual: usa "Enviar Copy B ahora"');
+    else { setAutoCopyB(!next); notify('Error al guardar', false); }
+  };
+
+  const sendCopyBBatch = async () => {
+    if (!confirm(`¿Enviar ahora la Copy B ${year} por email a todos los contratistas con $600+ y W-9 completo? (los ya enviados se saltan)`)) return;
+    setBusy('copyb-batch');
+    try {
+      const res = await fetch(`/api/admin/1099/copyb/send-batch?year=${year}`, { method: 'POST', headers: headers() });
+      const d = await res.json();
+      if (res.ok) notify(`📧 ${d.sent} enviadas · ${d.no_email} sin email · ${d.no_w9} sin W-9 · ${d.already_sent} ya enviadas — revisa tu inbox para el resumen`);
+      else notify(d.detail || 'Error', false);
+    } catch { notify('Error de red', false); }
+    setBusy('');
+  };
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -112,6 +145,17 @@ export default function Formularios1099Page() {
     setBusy('');
   };
 
+  const requestW9 = async (r: Row) => {
+    if (!confirm(`¿Enviar a ${r.email} el link del W-9 digital para que lo complete desde su teléfono?`)) return;
+    setBusy(`w9req-${r.provider_id}`);
+    const res = await fetch(`/api/admin/1099/providers/${r.provider_id}/request-w9`, {
+      method: 'POST', headers: headers(),
+    });
+    const d = await res.json();
+    notify(res.ok ? `📩 ${d.message}` : (d.detail || 'Error'), res.ok);
+    setBusy('');
+  };
+
   const exportCsv = async () => {
     const res = await fetch(`/api/admin/1099/export/csv?year=${year}`, { headers: headers() });
     const blob = await res.blob();
@@ -119,6 +163,21 @@ export default function Formularios1099Page() {
     const a = document.createElement('a');
     a.href = url; a.download = `1099-NEC-${year}.csv`; a.click();
     URL.revokeObjectURL(url);
+  };
+
+  const downloadAnnualReport = async () => {
+    setBusy('annual-report');
+    try {
+      const res = await fetch(`/api/admin/reports/annual-tax?year=${year}`, { headers: headers() });
+      if (!res.ok) { notify('No se pudo generar el reporte', false); setBusy(''); return; }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = `Reporte-Fiscal-${year}.pdf`; a.click();
+      URL.revokeObjectURL(url);
+      notify(`📊 Reporte fiscal ${year} descargado — listo para tu contador`);
+    } catch { notify('Error de red', false); }
+    setBusy('');
   };
 
   const years = Array.from({ length: 4 }, (_, i) => new Date().getFullYear() - i);
@@ -139,6 +198,10 @@ export default function Formularios1099Page() {
             {years.map(y => <option key={y} value={y} className="bg-[#0d1526]">{y}</option>)}
           </select>
           <button onClick={exportCsv} className="flex items-center gap-1.5 px-3 py-2 bg-white/[0.04] border border-white/[0.08] rounded-xl text-xs font-bold text-gray-300 hover:text-white transition"><Download className="w-3.5 h-3.5" /> CSV e-file</button>
+          <button onClick={downloadAnnualReport} disabled={busy === 'annual-report'} data-testid="annual-tax-report-btn"
+            className="flex items-center gap-1.5 px-3 py-2 bg-violet-500/15 text-violet-300 border border-violet-500/30 rounded-xl text-xs font-bold hover:bg-violet-500/25 transition disabled:opacity-50">
+            {busy === 'annual-report' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FileBarChart className="w-3.5 h-3.5" />} Reporte anual (contador)
+          </button>
           <button onClick={() => { if (payer) setPayerForm(payer); setPayerModal(true); }} className="flex items-center gap-1.5 px-3 py-2 bg-lime-500/15 text-lime-300 border border-lime-500/30 rounded-xl text-xs font-bold hover:bg-lime-500/25 transition"><Building2 className="w-3.5 h-3.5" /> Mi LLC (pagador)</button>
         </div>
       </div>
@@ -148,6 +211,30 @@ export default function Formularios1099Page() {
           <AlertTriangle className="w-4 h-4 shrink-0" /> Falta el EIN de tu LLC — configúralo en &quot;Mi LLC (pagador)&quot; para que los formularios sean válidos.
         </div>
       )}
+
+      {/* Envío automático de Copy B */}
+      <div className="flex flex-wrap items-center justify-between gap-3 p-4 bg-white/[0.03] border border-cyan-500/20 rounded-2xl">
+        <div>
+          <div className="text-sm font-bold text-white">📧 Envío de Copy B a contratistas</div>
+          <div className="text-[11px] text-gray-500 mt-0.5">
+            {autoCopyB
+              ? 'Automático: el 15 de enero se emailea la Copy B a cada contratista con $600+, W-9 completo y email. Recibirás un resumen con los pendientes de correo postal.'
+              : 'Manual: usa el botón cuando quieras enviarlas. También te llega el resumen con los pendientes.'}
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <button onClick={toggleAutoCopyB} data-testid="copyb-auto-toggle" disabled={autoCopyB === null}
+            className={`relative w-12 h-6 rounded-full transition ${autoCopyB ? 'bg-cyan-500' : 'bg-white/[0.1]'} disabled:opacity-40`}>
+            <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white transition-all ${autoCopyB ? 'left-6' : 'left-0.5'}`} />
+          </button>
+          <span className={`text-[11px] font-bold ${autoCopyB ? 'text-cyan-300' : 'text-gray-500'}`}>{autoCopyB ? 'Automático (15 ene)' : 'Manual'}</span>
+          <button onClick={sendCopyBBatch} disabled={busy === 'copyb-batch'} data-testid="copyb-send-batch"
+            className="flex items-center gap-1.5 px-3 py-2 bg-cyan-500/15 text-cyan-300 border border-cyan-500/30 rounded-xl text-xs font-bold hover:bg-cyan-500/25 transition disabled:opacity-50">
+            {busy === 'copyb-batch' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Mail className="w-3.5 h-3.5" />}
+            Enviar Copy B ahora
+          </button>
+        </div>
+      </div>
 
       <div className="grid grid-cols-3 gap-3">
         <div className="p-4 bg-white/[0.03] border border-white/[0.06] rounded-2xl"><div className="text-2xl font-bold text-lime-400">{totals.providers_needing_1099 ?? 0}</div><div className="text-[10px] text-gray-500 uppercase font-bold mt-1">Requieren 1099 ({year})</div></div>
@@ -178,6 +265,12 @@ export default function Formularios1099Page() {
                 ? <span className="flex items-center gap-1 text-[10px] text-emerald-400 font-bold"><CheckCircle2 className="w-3 h-3" /> W-9 {r.w9.tin_masked}</span>
                 : <span className="flex items-center gap-1 text-[10px] text-amber-400 font-bold"><AlertTriangle className="w-3 h-3" /> Falta W-9</span>}
               <div className="flex-1" />
+              {!r.w9_complete && r.email && (
+                <button onClick={() => requestW9(r)} disabled={busy === `w9req-${r.provider_id}`} data-testid={`request-w9-${r.provider_id}`}
+                  className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-bold bg-amber-500/15 text-amber-300 border border-amber-500/30 hover:bg-amber-500/25 transition disabled:opacity-40">
+                  {busy === `w9req-${r.provider_id}` ? <RefreshCw className="w-3 h-3 animate-spin" /> : <Mail className="w-3 h-3" />} Pedir W-9
+                </button>
+              )}
               <button onClick={() => openW9(r)} className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-bold bg-white/[0.04] border border-white/[0.08] text-gray-300 hover:text-white transition"><Pencil className="w-3 h-3" /> W-9</button>
               <button onClick={() => download(r)} disabled={busy === `pdf-${r.provider_id}`} className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-bold bg-cyan-500/15 text-cyan-300 border border-cyan-500/30 hover:bg-cyan-500/25 transition disabled:opacity-40">
                 {busy === `pdf-${r.provider_id}` ? <RefreshCw className="w-3 h-3 animate-spin" /> : <Download className="w-3 h-3" />} PDF

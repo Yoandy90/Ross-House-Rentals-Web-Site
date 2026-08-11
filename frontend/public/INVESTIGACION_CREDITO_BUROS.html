@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Investigación: Screening de Crédito + Reporte a Burós — Ross House Rentals</title>
+<style>
+  body { font-family: system-ui, -apple-system, sans-serif; max-width: 900px; margin: 0 auto; padding: 24px; color: #1e293b; line-height: 1.6; }
+  h1 { color: #0f172a; border-bottom: 3px solid #C8102E; padding-bottom: 8px; }
+  h2 { color: #C8102E; margin-top: 36px; }
+  h3 { color: #0f172a; margin-top: 24px; }
+  table { border-collapse: collapse; width: 100%; margin: 16px 0; font-size: 14px; }
+  th, td { border: 1px solid #cbd5e1; padding: 8px 10px; text-align: left; vertical-align: top; }
+  th { background: #f1f5f9; }
+  .rec { background: #ecfdf5; border-left: 4px solid #10b981; padding: 12px 16px; border-radius: 6px; margin: 16px 0; }
+  .warn { background: #fffbeb; border-left: 4px solid #f59e0b; padding: 12px 16px; border-radius: 6px; margin: 16px 0; }
+  .step { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px 16px; margin: 8px 0; }
+  code { background: #f1f5f9; padding: 2px 6px; border-radius: 4px; font-size: 13px; }
+  .badge { display: inline-block; background: #C8102E; color: white; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 99px; }
+</style>
+</head>
+<body>
+<h1>🏦 Investigación: Crédito de Aplicantes + Reporte a Burós</h1>
+<p><b>Ross House Rentals LLC</b> · Junio 2026 · Documento interno</p>
+
+<h2>PARTE A — Screening de crédito de APLICANTES (antes de rentar)</h2>
+
+<h3>Opciones evaluadas</h3>
+<table>
+<tr><th>Servicio</th><th>Modelo</th><th>Costo</th><th>Integración API</th><th>Notas</th></tr>
+<tr><td><b>TransUnion SmartMove</b> <span class="badge">RECOMENDADO</span></td>
+<td>El aplicante autoriza y paga él mismo (no manejas SSN)</td>
+<td>$25–$43/aplicante (3 niveles). Sin mensualidad ni setup</td>
+<td>API de partner + webhooks vía programa "Partner With Us" (mysmartmove.com/partner-with-us)</td>
+<td>Crédito + antecedentes penales + historial de desalojos. Estándar de la industria para landlords pequeños/medianos</td></tr>
+<tr><td><b>SingleKey</b></td><td>API pública de tenant screening</td><td>~$25/reporte</td><td>API REST documentada, fácil de integrar</td><td>Buena alternativa si SmartMove demora en aprobar el partnership</td></tr>
+<tr><td><b>RentSpree</b></td><td>Link de invitación, aplicante paga</td><td>~$30-40</td><td>Parcial (widgets/links)</td><td>Popular con agentes</td></tr>
+<tr><td><b>Findigs</b></td><td>Screening completo enterprise</td><td>Cotización</td><td>API completa</td><td>Orientado a portafolios grandes</td></tr>
+</table>
+
+<h3>Cómo lo implementamos en el Admin Panel</h3>
+<div class="step"><b>1. Solicitar partnership</b> — Aplicar en <code>mysmartmove.com/partner-with-us</code> (datos de la LLC, volumen estimado). Te dan credenciales del portal de partner + API keys + webhooks.</div>
+<div class="step"><b>2. Módulo Aplicaciones</b> — Botón <b>"Solicitar Screening"</b> en cada aplicación: envía al aplicante un link de SmartMove por email/SMS. Él consiente y paga ($25-43).</div>
+<div class="step"><b>3. Webhook de resultado</b> — Cuando el reporte está listo, SmartMove nos notifica → guardamos estado y mostramos en el admin: score de crédito (ResidentScore), income insights, antecedentes, desalojos.</div>
+<div class="step"><b>4. Decisión asistida</b> — Semáforo automático con TUS criterios fijos (ej: score ≥ 620, ingreso ≥ 3x renta, sin desalojos 5 años) aplicados igual a todos.</div>
+<div class="step"><b>5. Adverse Action automática</b> — Si rechazas por crédito, el sistema genera y envía la carta legal requerida por FCRA (buró usado + derecho a copia gratis + a disputar).</div>
+
+<div class="warn"><b>⚖️ Cumplimiento legal (FCRA + Fair Housing + Texas):</b><br>
+✅ Consentimiento escrito del aplicante ANTES de consultar (SmartMove lo captura por ti)<br>
+✅ Adverse Action Notice por escrito si rechazas o pides depósito extra por el crédito<br>
+✅ Criterios idénticos para todos los aplicantes (score mínimo, income ratio) — documentados<br>
+✅ Texas no limita el application fee; típico $35-50<br>
+❌ Nunca criterios distintos por raza, origen, religión, familia, discapacidad (Fair Housing Act)</div>
+
+<h2>PARTE B — REPORTAR pagos de renta a burós (Credit Builder real)</h2>
+<p>Hoy el "Credit Builder" de la app está <b>simulado (MOCKED)</b>. Para reportar de verdad hay 2 caminos:</p>
+
+<h3>Camino 1: Ser "Data Furnisher" directo ❌ NO recomendado</h3>
+<p>Registrarse directamente con Experian RentBureau / TransUnion / Equifax: requiere credencialización, acuerdos de datos, políticas de cumplimiento formales, archivos <b>Metro 2</b> por SFTP, manejo de disputas FCRA, y Experian recomienda 50+ registros. Demasiada carga regulatoria para un portafolio pequeño.</p>
+
+<h3>Camino 2: Servicio intermediario con API ✅ RECOMENDADO</h3>
+<table>
+<tr><th>Servicio</th><th>Burós</th><th>Precio</th><th>API</th><th>Notas</th></tr>
+<tr><td><b>Boom (boompay.app)</b> <span class="badge">RECOMENDADO</span></td><td>Experian + Equifax + TransUnion (los 3)</td><td><b>$2/inquilino/mes</b>, sin setup fee</td><td>API + CSV + integraciones PMS, white-label</td><td>Reporta también historial retroactivo (hasta 24 meses, costo extra único). Ellos manejan disputas y cumplimiento Metro 2</td></tr>
+<tr><td><b>Esusu</b></td><td>Los 3</td><td>Por unidad/mes (cotización)</td><td>Sí (enterprise)</td><td>Popular con institucionales</td></tr>
+<tr><td><b>CredHub</b></td><td>Los 3</td><td>~$1-2/unidad/mes</td><td>Sí</td><td>Enfocado en cumplimiento de leyes estatales de rent reporting</td></tr>
+<tr><td><b>PayScore</b></td><td>No confirma los 3</td><td>$10/reporte</td><td>Sí</td><td>Más orientado a verificación de ingresos</td></tr>
+</table>
+
+<h3>Qué debemos hacer para empezar a reportar (plan concreto)</h3>
+<div class="step"><b>1. Abrir cuenta partner en Boom</b> (boompay.app) — registro de la LLC, sin costo inicial. Obtener API keys.</div>
+<div class="step"><b>2. Consentimiento del inquilino</b> — La pantalla Credit Builder de la app ya existe: agregar el consentimiento escrito (checkbox + firma electrónica) requerido para reportar. Guardarlo en su expediente.</div>
+<div class="step"><b>3. Conectar los datos que YA tenemos</b> — Nuestros registros de pagos (Stripe + pagos manuales) tienen fecha, monto y estado. El backend enviará a Boom cada mes: inquilino, renta, fecha de pago, on-time/late.</div>
+<div class="step"><b>4. Reporte retroactivo (opcional)</b> — Boom permite reportar hasta 24 meses de historial pasado: gran gancho de venta para inquilinos con buen historial.</div>
+<div class="step"><b>5. Modelo de negocio</b> — Opciones: (a) incluirlo gratis como amenidad (retención), (b) cobrar $5-10/mes al inquilino (Boom cuesta $2 → margen), (c) gratis para quien paga puntual (incentivo de puntualidad).</div>
+<div class="step"><b>6. Dashboard en Admin</b> — Estado de reporte por inquilino, meses reportados, consentimientos, y toggle activar/desactivar.</div>
+
+<div class="warn"><b>⚖️ Cumplimiento al reportar:</b> consentimiento escrito previo · exactitud de datos (FCRA) · corregir/disputar errores rápido (Boom lo gestiona) · ojo: reportar pagos TARDÍOS puede dañar el crédito del inquilino — decide si reportas solo positivos o todo (Boom permite solo-positivo).</div>
+
+<h2>💰 Resumen de costos e impacto</h2>
+<table>
+<tr><th>Concepto</th><th>Costo para ti</th><th>Quién paga</th><th>Beneficio</th></tr>
+<tr><td>Screening SmartMove</td><td>$0 (setup gratis)</td><td>El aplicante ($25-43)</td><td>Menos riesgo de impago/desalojo; decisión documentada y legal</td></tr>
+<tr><td>Rent reporting Boom</td><td>$2/inquilino/mes (~$20/mes con 10 unidades)</td><td>Tú o el inquilino ($5-10/mes)</td><td>Amenidad diferenciadora, incentiva pago puntual, posible ingreso extra</td></tr>
+</table>
+
+<div class="rec"><b>✅ Recomendación final:</b> (1) Aplicar HOY al partner program de SmartMove y a Boom (ambos gratis). (2) Mientras aprueban, yo construyo el flujo de screening en el módulo Aplicaciones y conecto el Credit Builder real con la API de Boom. (3) Con 10 inquilinos reportando a $7/mes cobrado al inquilino, el Credit Builder se paga solo y genera ~$50/mes de margen.</div>
+
+<p style="margin-top:32px;color:#64748b;font-size:12px;">Fuentes: mysmartmove.com, transunion.com/data-reporting, experian.com/rental-property-solutions/rentbureau, boompay.app, rentreportingcenter.org, connectapi.experian.com. Investigación generada Jun 2026.</p>
+</body>
+</html>

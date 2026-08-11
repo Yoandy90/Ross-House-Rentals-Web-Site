@@ -6,7 +6,6 @@ import { Menu, X, Phone, Globe, ChevronDown } from 'lucide-react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { useLanguage } from '../i18n/LanguageContext'
-import ThemeToggle from './ThemeToggle'
 
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false)
@@ -54,21 +53,21 @@ export default function Navbar() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
         <div className="flex items-center justify-between gap-3">
 
-          {/* LOGO — compact */}
-          <Link href="/" className="flex items-center gap-2.5 group flex-shrink-0 focus:outline-none focus:ring-2 focus:ring-primary rounded-lg">
+          {/* LOGO */}
+          <Link href="/" className="flex items-center gap-2 group flex-shrink-0 focus:outline-none focus:ring-2 focus:ring-primary rounded-lg">
             <Image
               src="/logo.jpg"
               alt="Ross House Rentals LLC"
-              width={64}
-              height={64}
+              width={72}
+              height={72}
               priority
-              className="rounded-xl object-contain w-12 h-12 lg:w-14 lg:h-14"
+              className="rounded-xl object-contain w-16 h-16 lg:w-14 lg:h-14"
             />
-            <div className="hidden sm:block leading-tight">
-              <div className={`font-display font-bold text-base xl:text-lg transition-colors ${transparent ? 'text-white' : 'text-charcoal'}`}>
+            <div className="leading-tight">
+              <div className={`font-display font-bold text-base min-[400px]:text-lg xl:text-lg transition-colors ${transparent ? 'text-white' : 'text-charcoal'}`}>
                 Ross House Rentals
               </div>
-              <div className={`text-[10px] uppercase tracking-wider transition-colors hidden xl:block ${transparent ? 'text-white/70' : 'text-gray-500'}`}>
+              <div className={`text-[10px] uppercase tracking-wider transition-colors ${transparent ? 'text-white/70' : 'text-gray-500'}`}>
                 LLC · Dumas, Texas
               </div>
             </div>
@@ -167,9 +166,6 @@ export default function Navbar() {
               <span className="text-xs font-bold">{t.lang.label}</span>
             </button>
 
-            {/* Theme toggle */}
-            <ThemeToggle variant="icon-only" />
-
             {/* Phone CTA */}
             <a
               href="tel:+18069342018"
@@ -183,7 +179,6 @@ export default function Navbar() {
 
           {/* MOBILE — Hamburger */}
           <div className="flex items-center gap-1 lg:hidden flex-shrink-0">
-            <ThemeToggle variant="icon-only" />
             <button
               onClick={toggleLang}
               aria-label="Toggle language"

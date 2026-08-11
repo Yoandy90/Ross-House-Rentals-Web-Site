@@ -1,6 +1,6 @@
 {
   "cli": {
-    "version": ">= 13.0.0",
+    "version": ">= 12.0.0",
     "appVersionSource": "remote"
   },
   "build": {
@@ -9,47 +9,43 @@
       "distribution": "internal",
       "ios": {
         "simulator": true
+      },
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://ross-house-backend-production.up.railway.app"
       }
     },
     "preview": {
       "distribution": "internal",
       "ios": {
         "simulator": false
+      },
+      "android": {
+        "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://ross-house-backend-production.up.railway.app"
       }
     },
     "production": {
-      "autoIncrement": true,
       "ios": {
-        "resourceClass": "m-medium"
+        "autoIncrement": true
+      },
+      "android": {
+        "autoIncrement": true
       },
       "env": {
-        "EXPO_PUBLIC_BACKEND_URL": "https://app-nueva-production.up.railway.app",
-        "EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY": "pk_live_51PTofW04q9n6utOmWTyGMfSCw1H91ZV2BjEcC16qn6BdpIeflsYkJHaptkCdoCDhwODFzg4xrfEcn9insFmpYRYM00UWCVcmEz",
+        "EXPO_PUBLIC_API_URL": "https://ross-house-backend-production.up.railway.app",
         "EXPO_PUBLIC_GOOGLE_MAPS_KEY": "AIzaSyC-WxrBnY-gaCTr5tx2KI6uF_RhNOdfXuo",
-        "EXPO_UNSTABLE_TREE_SHAKING": "0"
-      }
-    },
-    "production-ios18-fix": {
-      "extends": "production",
-      "ios": {
-        "resourceClass": "m-medium",
-        "image": "macos-sequoia-15.3-xcode-16.2"
+        "EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY": "pk_live_51PTofW04q9n6utOmWTyGMfSCw1H91ZV2BjEcC16qn6BdpIeflsYkJHaptkCdoCDhwODFzg4xrfEcn9insFmpYRYM00UWCVcmEz"
       }
     }
   },
   "submit": {
     "production": {
       "ios": {
-        "appleId": "yoandyross@icloud.com",
-        "ascAppId": "6755496120",
-        "appleTeamId": "QMRW3Q2QSW",
-        "ascApiKeyPath": "./keys/AuthKey_975WHFWA6G.p8",
-        "ascApiKeyIssuerId": "9632351c-ec01-4c97-8947-0be6dd730321",
-        "ascApiKeyId": "975WHFWA6G"
-      },
-      "android": {
-        "serviceAccountKeyPath": "./google-play-service-account.json",
-        "track": "internal"
+        "appleId": "yoandyross@gmail.com",
+        "ascAppId": "6775734340",
+        "appleTeamId": "QMRW3Q2QSW"
       }
     }
   }

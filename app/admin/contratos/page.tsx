@@ -179,6 +179,9 @@ export default function ContratosPage() {
   const [signing, setSigning] = useState(false);
   const [isDrawing, setIsDrawing] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [savedAdminSig, setSavedAdminSig] = useState<string | null>(null);
+  const [saveAsDefault, setSaveAsDefault] = useState(false);
+  const [autoAdmin, setAutoAdmin] = useState(false);
 
   const openSignModal = (contract: any) => {
     const tenant = tenants.find(t => t._id === contract.tenant_id);
@@ -186,7 +189,14 @@ export default function ContratosPage() {
     setSignerName(tenant ? `${tenant.first_name || ''} ${tenant.last_name || ''}`.trim() : '');
     setSignerRole('tenant');
     setSignMode('canvas');
+    setSaveAsDefault(false);
+    setAutoAdmin(false);
     setShowSignModal(true);
+    // cargar la firma guardada del admin (configurada una sola vez)
+    fetch('/api/admin/admin-signature', { headers: headers() })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => setSavedAdminSig(d?.signature || null))
+      .catch(() => setSavedAdminSig(null));
   };
 
   const clearSignature = () => {
@@ -234,32 +244,58 @@ export default function ContratosPage() {
 
   const stopDrawing = () => setIsDrawing(false);
 
-  const submitOfficeSignature = async () => {
-    if (!signingContract || !signerName.trim()) {
+  const submitOfficeSignature = async (signatureOverride?: string, useSaved?: boolean) => {
+    if (!signingContract) return;
+    if (!useSaved && !signerName.trim()) {
       alert('Por favor ingrese el nombre del firmante');
       return;
     }
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    
+
+    // Firma: la del pad Topaz (override), la guardada del admin, o el canvas dibujado
+    let signature = signatureOverride || '';
+    if (!signature && !useSaved) {
+      const canvas = canvasRef.current;
+      if (!canvas) { alert('No hay firma para guardar'); return; }
+      // validar que el canvas no esté en blanco
+      const ctx = canvas.getContext('2d');
+      const blank = document.createElement('canvas');
+      blank.width = canvas.width; blank.height = canvas.height;
+      if (canvas.toDataURL() === blank.toDataURL()) {
+        alert('El canvas está vacío — dibuje la firma primero');
+        return;
+      }
+      signature = canvas.toDataURL('image/png');
+    }
+
     setSigning(true);
-    const signature = canvas.toDataURL('image/png');
-    
     try {
       const res = await fetch(`/api/admin/rental-contracts/${signingContract._id}/office-sign`, {
         method: 'POST',
         headers: headers(),
         body: JSON.stringify({
-          type: signMode,
-          signature,
+          type: signatureOverride ? 'topaz' : useSaved ? 'saved' : signMode,
+          signature: useSaved ? '' : signature,
           signer_name: signerName,
           signer_role: signerRole,
+          use_saved_admin: !!useSaved,
+          auto_admin: signerRole === 'tenant' && autoAdmin,
         }),
       });
-      
+
       if (res.ok) {
         const data = await res.json();
-        alert(`✅ Firma capturada exitosamente\nFirmante: ${signerName}\nTipo: ${signMode === 'topaz' ? 'Topaz Pad' : 'Canvas'}`);
+        // guardar como firma predeterminada del admin si lo pidió
+        if (saveAsDefault && signerRole === 'admin' && signature) {
+          try {
+            await fetch('/api/admin/admin-signature', {
+              method: 'PUT', headers: headers(),
+              body: JSON.stringify({ signature }),
+            });
+          } catch { /* noop */ }
+        }
+        alert(data.fully_signed
+          ? '✅ Contrato completamente firmado y ACTIVADO — se envió el PDF por email'
+          : `✅ Firma de ${signerRole === 'tenant' ? 'inquilino' : 'administrador'} guardada.\nFalta la firma ${data.new_status === 'pending_signature' ? 'del administrador' : 'del inquilino'} para activar el contrato.`);
         setShowSignModal(false);
         fetchAll();
       } else {
@@ -355,6 +391,15 @@ export default function ContratosPage() {
                       <DtI label="Depósito" value={fmt(c.deposit_amount || 0)} />
                       <DtI label="Día de Pago" value={`Día ${c.payment_day || 1}`} />
                       <DtI label="Cargo Tardío" value={fmt(c.late_fee || 25)} />
+                    </div>
+                    {/* Estado de firmas */}
+                    <div className="flex flex-wrap gap-2 mb-3" data-testid="sig-status">
+                      <span className={`text-[10px] px-2.5 py-1 rounded-full font-bold border ${c.tenant_signature ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-gray-500/10 text-gray-500 border-gray-500/20'}`}>
+                        {c.tenant_signature ? '✓ Inquilino firmó' : '○ Falta firma inquilino'}
+                      </span>
+                      <span className={`text-[10px] px-2.5 py-1 rounded-full font-bold border ${(c.admin_signature || c.landlord_signature) ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-gray-500/10 text-gray-500 border-gray-500/20'}`}>
+                        {(c.admin_signature || c.landlord_signature) ? '✓ Admin firmó' : '○ Falta firma admin'}
+                      </span>
                     </div>
                     <div className="flex flex-wrap gap-2">
                       <button onClick={() => downloadPdf(c._id)} className="flex items-center gap-1.5 text-xs px-3 py-1.5 bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded-lg hover:bg-blue-500/20 transition"><Download className="w-3 h-3" /> PDF</button>
@@ -475,6 +520,39 @@ export default function ContratosPage() {
                 />
               </div>
 
+              {/* Firma guardada del admin (1 clic) */}
+              {signerRole === 'admin' && savedAdminSig && (
+                <div className="p-3 bg-amber-500/5 border border-amber-500/20 rounded-xl space-y-2" data-testid="saved-sig-box">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-amber-300">✍️ Tu firma guardada</span>
+                    <button
+                      onClick={() => submitOfficeSignature(undefined, true)}
+                      disabled={signing}
+                      className="px-3 py-1.5 bg-amber-500/20 text-amber-300 border border-amber-500/30 rounded-lg text-xs font-bold hover:bg-amber-500/30 transition disabled:opacity-50"
+                      data-testid="use-saved-sig-btn"
+                    >
+                      {signing ? 'Firmando...' : 'Firmar con esta (1 clic)'}
+                    </button>
+                  </div>
+                  <div className="bg-white rounded-lg p-2 flex items-center justify-center">
+                    <img src={savedAdminSig} alt="Firma guardada" className="h-12 object-contain" />
+                  </div>
+                  <p className="text-[10px] text-gray-500">O dibuja una nueva abajo. Puedes cambiarla en Configuración → Firma Admin.</p>
+                </div>
+              )}
+              {signerRole === 'admin' && !savedAdminSig && (
+                <label className="flex items-center gap-2 text-xs text-gray-400 cursor-pointer select-none p-2 bg-white/[0.02] border border-white/[0.06] rounded-lg">
+                  <input type="checkbox" checked={saveAsDefault} onChange={e => setSaveAsDefault(e.target.checked)} className="accent-amber-500" />
+                  Guardar esta firma como mi firma predeterminada (no tendrás que firmar de nuevo)
+                </label>
+              )}
+              {signerRole === 'tenant' && savedAdminSig && (
+                <label className="flex items-center gap-2 text-xs text-gray-400 cursor-pointer select-none p-2 bg-emerald-500/5 border border-emerald-500/20 rounded-lg" data-testid="auto-admin-check">
+                  <input type="checkbox" checked={autoAdmin} onChange={e => setAutoAdmin(e.target.checked)} className="accent-emerald-500" />
+                  <span>Aplicar también <b className="text-emerald-300">mi firma guardada de administrador</b> — el contrato quedará completamente firmado y activo</span>
+                </label>
+              )}
+
               {/* Canvas */}
               {signMode === 'canvas' && (
                 <div className="relative">
@@ -503,22 +581,9 @@ export default function ContratosPage() {
                   signerName={signerName}
                   width={440}
                   height={150}
-                  onSignatureCapture={(imageBase64, sigData) => {
-                    // Update canvas with captured signature for preview
-                    const canvas = canvasRef.current;
-                    if (canvas) {
-                      const ctx = canvas.getContext('2d');
-                      if (ctx) {
-                        const img = new Image();
-                        img.onload = () => {
-                          ctx.clearRect(0, 0, canvas.width, canvas.height);
-                          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                        };
-                        img.src = imageBase64;
-                      }
-                    }
-                    // Submit the signature
-                    submitOfficeSignature();
+                  onSignatureCapture={(imageBase64: string) => {
+                    // Enviar la firma del pad DIRECTAMENTE (el canvas de preview no existe en modo Topaz)
+                    submitOfficeSignature(imageBase64);
                   }}
                   onError={(err) => {
                     console.error('Topaz error:', err);

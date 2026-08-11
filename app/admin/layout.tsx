@@ -13,9 +13,9 @@ import {
   LayoutDashboard, Home, Users, FileText, CreditCard, Wrench, CalendarDays,
   Settings, LogOut, ChevronLeft, ChevronRight, Menu, X,
   DollarSign, Building2, TrendingUp, Briefcase, Store, UserCog,
-  FileBarChart, MessageSquare, ClipboardCheck, Zap, ShieldAlert, ScanLine,
+  FileBarChart, MessageSquare, MessagesSquare, ClipboardCheck, Zap, ShieldAlert, ScanLine,
   Wallet, Repeat, Vault, ClipboardList, Heart, Brain, Globe, Smartphone, Share2, Mail, Megaphone,
-  Search, ChevronDown, Landmark, Star,
+  Search, ChevronDown, Landmark, Star, Target, Droplets, Music2,
 } from 'lucide-react';
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -84,10 +84,12 @@ const NAV_GROUPS = [
       { href: '/admin/baul', Icon: Vault, label: 'Baúl Seguro', desc: 'Tarjetas + Bancos PIN', color: 'amber' },
       { href: '/admin/gastos', Icon: DollarSign, label: 'Gastos', desc: 'Mantenimiento', color: 'red' },
       { href: '/admin/impuestos', Icon: Landmark, label: 'Impuestos', desc: 'Moore County · deuda real 🏛️', color: 'orange' },
+      { href: '/admin/servicios-ciudad', Icon: Droplets, label: 'City Dumas', desc: 'Agua/basura · saldos 💧', color: 'cyan' },
       { href: '/admin/formularios-1099', Icon: FileBarChart, label: '1099-NEC', desc: 'Contratistas · IRS 📋', color: 'lime' },
       { href: '/admin/banco', Icon: Landmark, label: 'Banco', desc: 'Conciliación Plaid 🏦', color: 'emerald' },
       { href: '/admin/rendimiento', Icon: TrendingUp, label: 'Rendimiento', desc: 'ROI & Analytics', color: 'indigo' },
       { href: '/admin/inversiones', Icon: Briefcase, label: 'Inversiones', desc: 'Comprar/Reparar/Vender', color: 'orange' },
+      { href: '/admin/oportunidades', Icon: Target, label: 'Oportunidades', desc: 'Radar off-market · Moore 🎯', color: 'orange' },
       { href: '/admin/propietarios', Icon: UserCog, label: 'Propietarios', desc: 'Gestión Owners', color: 'purple' },
       { href: '/admin/calendario', Icon: CalendarDays, label: 'Calendario', desc: 'Eventos & Fechas', color: 'teal' },
       { href: '/admin/reportes', Icon: FileBarChart, label: 'Reportes', desc: 'PDF & CSV Export', color: 'sky' },
@@ -105,11 +107,13 @@ const NAV_GROUPS = [
     items: [
       { href: '/admin/marketing', Icon: Mail, label: 'Newsletter', desc: 'Suscriptores & campañas 📬', color: 'pink' },
       { href: '/admin/marketing/social-poster', Icon: Share2, label: 'Social Poster', desc: 'AI · FB groups · leads 📣', color: 'blue' },
+      { href: '/admin/marketing/tiktok', Icon: Music2, label: 'TikTok', desc: 'Publicar videos 🎵', color: 'cyan' },
     ],
   },
   {
     label: 'SISTEMA',
     items: [
+      { href: '/admin/chat', Icon: MessagesSquare, label: 'Chat en Vivo', desc: 'Web (Rossy) & App 💬', color: 'emerald' },
       { href: '/admin/mensajes', Icon: MessageSquare, label: 'Mensajes', desc: 'SMS & Email', color: 'pink' },
       { href: '/admin/buzon', Icon: Mail, label: 'Buzón Email', desc: 'Recibir & enviar correos 📬', color: 'pink' },
       { href: '/admin/seguridad', Icon: ShieldAlert, label: 'Seguridad', desc: '2FA & Dispositivos', color: 'green' },
@@ -241,8 +245,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const loginWithToken = (newToken: string, newUser: any) => {
     setToken(newToken);
     setUser(newUser);
-    Cookies.set('rhr_admin_token', newToken, { expires: 7 });
-    Cookies.set('rhr_admin_user', JSON.stringify(newUser), { expires: 7 });
+    const opts = { expires: 7, secure: true, sameSite: 'strict' as const };
+    Cookies.set('rhr_admin_token', newToken, opts);
+    Cookies.set('rhr_admin_user', JSON.stringify(newUser), opts);
   };
 
   const headers = () => ({ Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' });
@@ -297,7 +302,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   return (
     <AdminAuthContext.Provider value={{ user, token, isLoading, login, loginWithToken, logout, headers }}>
-      <div className="dark flex min-h-screen bg-[#060910]">
+      <div className="admin-shell flex min-h-screen bg-[#060910]">
         {/* Mobile overlay */}
         {mobileOpen && <div className="fixed inset-0 bg-black/50 z-40 lg:hidden" onClick={() => setMobileOpen(false)} />}
 
@@ -512,7 +517,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </header>
 
           {/* Content */}
-          <main className="flex-1 p-4 sm:p-6 pb-20 lg:pb-6 overflow-auto">{children}</main>
+          <main className="flex-1 p-3 sm:p-4 pb-20 lg:pb-4 overflow-auto">{children}</main>
         </div>
 
         {/* Búsqueda global ⌘K */}

@@ -550,3 +550,670 @@ Ver /app/memory/test_credentials.md
 - Tests test_plaid.py 7/7 (test_07 mockea _send_via_sendgrid; nota: el sandbox importa
   >20 txs grandes → asserts tolerantes a múltiples tandas de alerta).
 - Deploys: Railway push OK, Vercel squash ec8411e63.
+
+## Radar de Oportunidades — Deal Finder Off-Market (Ago 6, 2026)
+- Requerimiento del usuario: módulo para detectar casas/terrenos en venta, remate o buenos
+  candidatos para contactar dueños y ofrecerles comprar. Alcance elegido: Moore + condados
+  vecinos (Sherman/Hartley/Potter), todos los tipos de propiedad, V1 aprobada.
+- Fuente V1: portal fiscal del condado de Moore (BIS eSearch, esearch.co.moore.tx.us).
+  Flujo scraping: GET /search/requestSessionToken → GET /search/result (meta search-token)
+  → POST /search/SearchResults (JSON {page,pageSize,isArb,searchToken}).
+  Sintaxis keywords: OwnerName:x / StreetName:x / Subdivision:x / Abstract:x (comillas si hay espacios).
+  Detalle: /Property/View/{id} → dirección postal del dueño + desglose de valores.
+  Impuestos atrasados: reusa fetch_account_tax_due de property_taxes_router.
+  ⚠️ Potter (PRAD) usa TrueProdigy SPA, Sherman/Hartley otras plataformas — registrados en
+  COUNTIES como inactive ("próximamente"); investigar sus APIs en V2.
+- BACKEND rental/deal_finder_router.py (registrado en server.py):
+  * POST /admin/deal-finder/scan {county, search_type, query, max_results≤100, only_delinquent}
+    → asyncio task _run_scan con progreso en deal_finder_scans (searching→enriching→done).
+    Excluye tipos MN (minerales) y A (autos). Pausas 0.5-0.8s para no saturar el portal.
+  * Señales heurísticas compute_signals(): tax_delinquent, absentee_owner (ciudad postal ≠
+    ciudad situs), out_of_state_owner, vacant_land (R sin mejora), low_improvement (<25% del
+    market), low_value (<$60k).
+  * GET /admin/deal-finder/leads (filtros status/signal/county/q, sort score|tax_due|value|recent)
+    · GET/PATCH/DELETE leads/{id} (pipeline: new→contacted→interested→offer_sent→negotiating→
+    acquired|discarded + notes) · GET stats · GET counties · GET scans, scan/{id}.
+  * AI (Claude sonnet-4-5 vía EMERGENT_LLM_KEY): POST leads/{id}/analyze → {ai_score 0-100,
+    veredicto, razones, estrategia, oferta_sugerida_pct}; POST leads/{id}/letter → carta de
+    oferta bilingüe EN/ES (sin mencionar problemas financieros del dueño).
+  * Colecciones: deal_finder_leads (upsert por county+property_id, preserva status/notes/AI
+    en re-scans), deal_finder_scans.
+- UI /admin/oportunidades (nav FINANZAS→después de Inversiones, icono Target naranja):
+  stats cards, panel de escaneo con barra de progreso (poll 4s), chips de filtro por señal,
+  lista de leads con badges, drawer con dueño+dirección postal, valores, deuda fiscal,
+  análisis AI, carta copiable EN/ES y pipeline de seguimiento con notas.
+- Tests tests/test_deal_finder.py 9/9 (parsers unit + scraping EN VIVO del portal + scan E2E
+  real de 5 propiedades + CRUD/auth). Verificado con datos reales: 424 S Birge debe
+  $10,080.44 (2021-2025), dueño en Amarillo, score AI 85/100, carta generada OK.
+- Deploys: ross-house-backend main 55d2ab4 → Railway; app vercel/main 18e39e480 → Vercel.
+
+## Radar Automático Nocturno + Dashboard compacto (Ago 6, 2026 - tarde)
+- Dashboard /admin rediseñado compacto/responsivo (page-client.tsx): welcome strip 1 línea,
+  tarjetas -30%, grids adaptativos, main padding p-3/p-4. Verificado en prod 1366x700.
+- deal_finder_cron.py (NUEVO, registrado en server.py lifespan):
+  * deal_finder_scan_loop cada DEAL_FINDER_SCAN_INTERVAL_HOURS (default 24h, delay 180s).
+  * run_auto_scan_batch: recorre TODO Moore County rotando prefijos StreetName:a..z0-9
+    (el portal BIS hace prefix-match — verificado: 'StreetName:a' → 831 resultados).
+    Lotes de max_per_run (default 200) propiedades/noche, cursor persistente en
+    app_settings {_id:'deal_finder_cron_state'} {letter_idx, page, cycles, last_run, last_result}.
+    Si el lote se llena a mitad de página, la repite (upserts idempotentes).
+  * Alerta email (SendGrid _send_via_sendgrid del buzón) a alert_email (default
+    yoandyross@gmail.com) cuando hay: nuevas oportunidades FUERTES (_is_strong:
+    tax_delinquent, o absentee+vacant_land/low_improvement) o propiedades que SE VOLVIERON
+    morosas (became_delinquent detectado en enrich_and_upsert comparando señales previas).
+  * Config app_settings {_id:'deal_finder_cron'} {enabled, max_per_run (clamp 20-500), alert_email}.
+- deal_finder_router refactor: enrich_and_upsert() extraído (compartido scan manual + cron),
+  ahora retorna (outcome, lead, became_delinquent).
+- Endpoints nuevos: GET/PATCH /admin/deal-finder/cron-config (+ state con next_letter,
+  coverage_pct, cycles, last_result, running) · POST /admin/deal-finder/cron-run-now
+  (lote manual en background, guard manual_running + guard scan manual activo).
+- UI: tarjeta "Radar automático nocturno" en /admin/oportunidades — badge Activo/Pausado/
+  Corriendo, botones Correr lote ahora / Pausar-Activar, barra de cobertura del ciclo A-Z.
+- Tests test_deal_finder.py 11/11 (nuevos: test_10 config endpoints con clamp, test_11 lote
+  real de 4 propiedades con email mockeado y restauración de estado).
+- Verificado en PRODUCCIÓN: cron-config responde en Railway; escaneo manual prod (calle
+  porter, 8 props) OK — el portal del condado no bloquea IPs de Railway.
+- Deploys: ross-house-backend b09bfde → Railway; app 98f875197 → Vercel main.
+
+## Carta imprimible (PDF) + Envío físico Lob (Ago 6, 2026 - tarde 2)
+- deal_finder_router.py:
+  * GET /admin/deal-finder/leads/{id}/letter.pdf?lang=en|es → PDF reportlab (US Letter):
+    remitente arriba-izq (Ross House Rentals, de _get_payer del 1099), dirección del dueño
+    en zona de ventana #10 (~2" desde arriba), fecha, cuerpo de offer_letter. Reemplaza
+    [TELÉFONO]/[EMAIL] con datos del payer.
+  * POST /admin/deal-finder/leads/{id}/mail → Lob: verifica dirección (us_verifications CASS,
+    rechaza no entregables 422), crea /v1/letters (HTML top_first_page, usps_first_class,
+    Idempotency-Key), guarda lead.mail {lob_id, mode, expected_delivery} + status=offer_sent.
+  * GET /admin/deal-finder/lob-status → {configured, mode test|live}.
+  * _lob_key() lee LOB_API_KEY del env; _lead_mail_parts() separa street de city/state/zip.
+- LOB_API_KEY en .env LOCAL = clave TEST (test_1578...). ⚠️ Usuario debe agregar LOB_API_KEY
+  en Railway (Variables) para producción — issue recurrente env vars. Usuario eligió TEST primero.
+  ⚠️ SEGURIDAD: usuario compartió ambas claves (test+live) en chat → recordarle rotar la LIVE.
+- UI oportunidades: en sección Carta de oferta → botones "Descargar PDF (imprimir)" (descarga
+  blob con auth header) y "Enviar por correo" (Lob, confirm dialog, badge test/live, deshabilita
+  si ya enviada), indicador lead.mail con fecha de entrega. Detección lobConfigured/lobMode.
+- Verificado: flujo Lob completo con test key OK (us_ver + ltr_ id + expected_delivery + preview
+  url). Test key NO verifica direcciones reales (Lob devuelve canned undeliverable — por diseño).
+  Tests test_deal_finder.py 14/14 (12 PDF, 13 lob-status, 14 mail sin key → 400).
+- Deploys: ross-house-backend 4f3f36d → Railway; app 2a770218d → Vercel.
+
+## Fix Firmas Topaz + Firma guardada del admin (Ago 6, 2026 - noche)
+- BUG 1 (Topaz no guardaba): en modo Topaz, onSignatureCapture llamaba submitOfficeSignature()
+  que leía canvasRef (solo existe en modo canvas) → return silencioso, firma nunca enviada.
+  FIX: submitOfficeSignature(signatureOverride?, useSaved?) — Topaz pasa el base64 directo.
+- BUG 2 (flujo 2 firmas roto): office_sign activaba el contrato si status=draft con UNA sola
+  firma. FIX: solo se activa cuando hay tenant_signature Y admin_signature; estados intermedios
+  pending_signature (falta admin) / pending_tenant. Al activarse: propiedad rented + tenant
+  vinculado + _email_signed_lease_pdf automático.
+- FEATURE firma guardada: ya existían endpoints GET/PUT/DELETE /admin/admin-signature y
+  colección admin_signatures {type:'landlord_default'} (configurable en /admin/configuracion
+  tab Firma Admin, usada como fallback en el PDF). Ahora integrada al flujo office-sign:
+  * use_saved_admin:true → firma admin en 1 clic con la guardada.
+  * auto_admin:true al firmar el inquilino → aplica también la firma guardada del admin
+    (contrato completamente firmado y activo en 1 paso).
+  * UI modal: caja "Tu firma guardada" + botón 1-clic (rol admin), checkbox guardar como
+    predeterminada, checkbox auto-admin (rol inquilino), badges "✓ Inquilino firmó / ✓ Admin
+    firmó" en la tarjeta expandida, validación de canvas vacío.
+- ⚠️ INCIDENTE RESUELTO: mi test sobrescribió admin_signatures.landlord_default con un pixel
+  1x1; restaurada con la firma real del contrato 6a719b7e34f736a274cddac4 (121 Oak Ave).
+  LECCIÓN: la DB local ES la de producción (mismo MONGO_URL) — nunca escribir datos de prueba
+  en colecciones de configuración sin backup/restore.
+- Verificado E2E local: tenant sign→pending_signature, admin saved sign→active fully_signed,
+  tenant+auto_admin→active en 1 paso. UI modal verificada con screenshot.
+- Deploys: ross-house-backend 267e434 → Railway; app d151c01e1 → Vercel main.
+
+## Drip Email AI + Blog público (Ago 6, 2026 - noche 2)
+- Usuario pidió: 100-200 plantillas de email para suscriptores, 3/semana. Acordado: bilingüe
+  ES+EN, 2/semana (mar y vie 9am CT, configurable 1/2/3), envío automático, 50 iniciales +
+  botón para generar más. También aprobó sección de noticias/blog en la web.
+- rental/drip_router.py (registrado en server.py):
+  * email_templates: {category (10: rentar/comprar/credito/mantenimiento/energia/dumas/
+    mudanza/seguros/inversion/derechos), subject_es/en, body_es/en, status active|draft|
+    archived, sent_at, sent_count, published_to_blog, slug, ai_generated}.
+  * POST /admin/drip/generate {count=objetivo TOTAL de biblioteca, categories?} — genera con
+    Claude en lotes de 5, "top-up" solo lo que falta por categoría, dedupe por subject.
+    CRÍTICO: LLM corre en hilo (asyncio.to_thread + asyncio.run) porque litellm bloquea el
+    event loop → sin esto el server queda inaccesible durante la generación.
+    Parser tolerante (strict=False + prompt "comillas simples dentro del texto") — la categoría
+    inversion fallaba por comillas sin escapar. Strip de ** markdown al insertar.
+  * GET /admin/drip/generation-status (poll) · GET/PATCH templates (+DELETE) ·
+    GET/PATCH /admin/drip/config {enabled, per_week 1|2|3, hour_ct} ·
+    POST /admin/drip/send-next (manual, usa send_template_now → reusa _run_campaign del
+    newsletter con unsubscribe) — registra en newsletter_campaigns type:'drip'.
+  * Blog público SIN auth: GET /public/blog/posts (+filtro category), /public/blog/posts/{slug}
+    — solo published_to_blog:true.
+- rental/drip_cron.py (lifespan): chequeo cada 30 min; días por per_week 1→[mar] 2→[mar,vie]
+  3→[lun,mié,vie]; hora >= hour_ct CT; idempotente por día (last_sent_at en app_settings drip).
+  Envía la plantilla activa más antigua sin enviar.
+- UI: /admin/marketing pestaña "🤖 Drip AI & Blog" (components/admin/DripPanel.tsx): motor con
+  stats (en cola/enviadas/suscriptores/semanas de contenido), próximo envío + Enviar ahora,
+  fábrica AI con progreso, filtros, editar modal ES/EN, toggle publicar al blog, eliminar.
+- Público: /noticias (grid con filtro por categoría) y /noticias/[slug] (toggle ES/EN + CTA a
+  propiedades). 1 post publicado de ejemplo (rentar primera casa).
+- Estado: 50 plantillas generadas (5×10 categorías) EN PRODUCCIÓN (misma DB), motor activo
+  2/semana. Tests tests/test_drip.py 6/6. NO se ha enviado ningún email aún (2 suscriptores);
+  el primer envío automático será el próximo martes/viernes 9am CT, o manual con "Enviar ahora".
+- Deploys: ross-house-backend 5b9355b → Railway (verificado config en prod); app 60c8b161d →
+  Vercel (verificado /noticias y /api/public/blog/posts en prod).
+
+## Blog Premium + Previews (Ago 7, 2026)
+- 3 emails de muestra enviados a yoandyross@gmail.com vía nuevo POST /admin/drip/templates/
+  {id}/preview {email} (usa _send_one+_campaign_html, no marca sent).
+- Comentarios blog: blog_comments collection; GET/POST /public/blog/posts/{slug}/comments
+  (anti-spam 3/hora por IP, name≤60, comment≤1000), DELETE /admin/blog/comments/{id}.
+- /noticias/[slug] premium: compartir WhatsApp/Facebook/X/copiar, sección comentarios con
+  avatar inicial, posts relacionados (misma categoría), CTA suscripción (POST /public/
+  newsletter/subscribe source:blog). /noticias: SubscribeBanner arriba del grid.
+- Verificado E2E con screenshot (comentario publicado y limpiado). Deploys: backend 83b38fc
+  → Railway; app 008b45e0d → Vercel (prod /noticias 200).
+
+## Blog poblado + Sitemap SEO (Ago 7, 2026)
+- Publicados 14 posts adicionales al blog (total 15 de 50 plantillas) directo en DB producción
+  (Atlas taxportal): published_to_blog:true + blog_published_at escalonado cada ~2 días
+  (11 jul → 6 ago 2026), mezcla de las 10 categorías (2× rentar/comprar/credito/dumas).
+  Verificado en prod: /api/public/blog/posts total:15 y screenshot de www.rosshouserentals.com/noticias.
+- SEO: app/sitemap.ts ahora incluye /noticias (prio 0.9) + cada /noticias/{slug} (prio 0.7,
+  lastModified = published_at) vía fetch a /api/public/blog/posts?limit=50 (revalidate 24h).
+  Commit b47ecdf64 → push railway/vercel-fix → Vercel auto-deploy.
+- Quedan 35 plantillas sin publicar (se pueden ir publicando 2-3/semana con el botón 🌐).
+
+## QA integral por perfil (Ago 7, 2026)
+- testing_agent iteration_25: 46 tests backend prod Railway (43 PASS, 3 skip por Turnstile en
+  registro público de proveedores — no es bug). Test file: /app/backend/tests/
+  test_ross_house_full_profiles.py.
+- Verificado por perfil: ADMIN (11 dashboards GET 200 + web 2FA gate OK), TENANT (API + app
+  Expo e2e login→dashboard→5 tabs OK), GUEST (registro + downgrade tenant→guest OK), BUYER,
+  LANDLORD (crear→login→dashboard→banking→delete OK), PROVEEDOR (admin CRUD OK; registro
+  público bloqueado por Turnstile en headless), PÚBLICO (blog 15 posts, comentarios,
+  suscripción, propiedades). Seguridad: anon y tokens de rol bajo → 401/403 en admin/*.
+- Datos TEST QA limpiados de DB prod (3 app_users, 4 newsletter) — DB queda 1 admin + 3 tenants.
+- Pendientes LOW del reporte: DELETE /admin/marketplace-users/{id} para limpieza QA; testIDs
+  en app Expo; warnings deprecación shadow*/pointerEvents/expo-notifications web;
+  npx expo install --fix (15+ paquetes drifted).
+
+## E2E como usuario real por perfil + fixes (Ago 7, 2026 - tarde)
+- Cuentas TEST QA creadas y CONSERVADAS (password TestQA2026!, ver test_credentials.md):
+  tenant test.inquilino.qa (INQ-2026-004), buyer test.comprador.qa, investor test.inversor.qa,
+  landlord test.dueno.qa (registrado vía web, pending_kyc), guest test.invitado.qa (vía app Expo),
+  provider TEST Proveedor QA (active), suscriptor test.suscriptor.qa.
+- testing_agent iteration_26 (UI Playwright, 8 perfiles): 7/8 PASS. Admin probado inyectando
+  cookies rhr_admin_token/rhr_admin_user (bypass OTP para QA) — 6 páginas admin OK con datos.
+- BUGS ARREGLADOS Y DESPLEGADOS:
+  1. /inversor login loop: tras login el layout no releía el token (router.push no remonta) →
+     window.location.assign en inversor/page.tsx. Verificado prod: dashboard inversor carga.
+  2. GET /tenant/payment-config 500 ("CORS" aparente): rental_config.payment_methods es lista
+     legacy ["card","cash"] y el código asumía dict → normalizado a {} si no es dict
+     (tenant_router.py). Verificado prod 200; Pay Rent web muestra "August 2026 — Paid".
+  3. Portal tenant web sin acceso a proveedores/utilities → tabs "Services" (Shield) y
+     "Utilities" (Zap) añadidas en tenant/dashboard/page.tsx.
+- Deploys: ross-house-backend 6944488 → Railway; app a4da032bc → vercel/main (+ railway/vercel-fix).
+- NO arreglado (LOW, decidido skip): _id en /admin/newsletter/subscribers (endpoint admin-only,
+  el UI usa el id para DELETE).
+
+## QA profundo app Expo por perfil + fixes (Ago 7, 2026 - noche)
+- testing_agent iteration_27 (app Expo, 5 perfiles): tenant con datos PASS (todas las tabs,
+  edit-profile, docs, invoices, contratos, chat, mantenimiento E2E tenant→admin), admin en app
+  PASS (8 pantallas), tenant sin contrato/guest/buyer PASS (empty states, guest/buyer solo 4 tabs).
+- Fixes del testing agent (revisados): imports useColors faltantes en credit-builder.tsx (red
+  screen) + lint menores en properties/admin-contract-detail.
+- FIXES MÍOS post-reporte:
+  1. admin-payments.tsx llamaba GET /admin/payments (404) → ahora /admin/rental-payments con
+     mapeo de campos (property_address→property_name, payment_method, stats). Verificado en app:
+     muestra $1,100 recibido, pago Zelle Yandisleydis.
+  2. Toggle AI global del chat (admin-messages) llamaba endpoints inexistentes → implementados
+     GET /chat/ai/global-status y POST /chat/ai/toggle-global en chat_router.py (app_settings
+     _id:'chat_ai'); _ai_auto_reply respeta el flag. Fix double-stringify del body en la app.
+     Verificado en Railway prod (200).
+  3. chat-support.tsx ELIMINADO (pantalla huérfana sin navegación que llamaba /ai-chat/*
+     inexistentes; el chat real es /chat → chat.tsx y funciona E2E con AI Brain).
+- Limpieza: solicitud mantenimiento 'TEST QA' eliminada de maintenance_requests.
+- Deploys: ross-house-backend 13e3644 → Railway (verificado). App Expo local (requiere build
+  para verse en dispositivos — no hay deploy OTA configurado).
+- Marketing drip: 50 plantillas, 0 enviadas, motor activo 2/semana mar-vie 9am CT, 3 suscriptores.
+  Primer envío automático: vie Ago 7 9am CT.
+
+## Importación de 790 clientes al newsletter (Ago 7, 2026)
+- CSV clientes_datos_bancarios.csv (1,026 filas): 790 emails válidos importados a
+  newsletter_subscribers en PROD (source: import_clientes_2026, lang es, nombre Title Case,
+  unsubscribe_token único c/u). Excluidos: 31 placeholders @temp.rosstax.com, 204 sin email
+  válido, 2 duplicados. TOTAL PROD: 793 suscriptores (792 activos tras test de baja).
+- Baja verificada E2E en prod: link "Cancelar suscripción" del footer (token) → GET
+  /api/public/newsletter/unsubscribe → unsubscribed:true → excluido de drip/campañas.
+  (test.suscriptor.qa quedó dado de baja como prueba).
+- perf: _send_one de newsletter_router ahora usa asyncio.to_thread (SDK SendGrid síncrono
+  bloqueaba el event loop ~5+ min con 790 destinatarios). Deploy Railway 358a4d7 verificado.
+- ⚠️ PENDIENTE VERIFICAR: límite del plan SendGrid del usuario (free tier = 100/día; el drip
+  enviará ~792 emails por plantilla). Revisar dashboard SendGrid tras el primer envío
+  (vie 9am CT) por fallos/bounces.
+
+## Panel "Salud de la lista" en /admin/marketing (Ago 7, 2026)
+- Backend: GET /admin/newsletter/health (newsletter_router.py) → kpis {total, active,
+  unsubscribed, unsub_rate, new_30d, unsub_30d, delivered_total, failed_total},
+  sends[] (últimas 25 campañas drip+manual con sent/failed/status) y
+  recent_unsubscribes[] (últimas 20 bajas). Deploy Railway 6ee334d.
+- Frontend: nueva pestaña "📊 Salud de la lista" (data-testid tab-health) en
+  /admin/marketing → components/admin/NewsletterHealthPanel.tsx: 6 KPIs, tabla historial
+  de envíos (badge Drip/Manual, entregados/fallidos, estado), tabla bajas recientes,
+  warning si failed_total>0 (límite SendGrid). Deploy vercel/main 95babcc71.
+- VERIFICADO EN PROD con cookie injection: 793 subs, 792 activos, 0.1% baja, 2 envíos
+  históricos listados, 1 baja reciente (test.suscriptor.qa).
+
+## Tracking de aperturas + muestras + plan SendGrid (Ago 7, 2026)
+- SendGrid plan: PAID 500,000 emails/mes (usados 2,961 · quedan 497,039 · reputación 99).
+  Open+Click tracking ya activo account-wide. Webhook legacy "rastreo" (app-nueva Railway /
+  Ross Tax) INTACTO; creado 2º webhook "ross-house-newsletter" (id ed2e95f8) →
+  https://ross-house-backend-production.up.railway.app/api/public/sendgrid/events.
+- Backend (Railway 19b1dbb): POST /public/sendgrid/events filtra categoría 'rhr-newsletter'
+  → colección email_events {email, event, timestamp, sg_message_id, url, useragent}.
+  _send_one añade Category('rhr-newsletter'). /admin/newsletter/health ahora incluye
+  opens_total, unique_openers, open_rate, clicks, bounces, opens_by_hour (hora
+  America/Chicago vía $hour timezone), best_hour_ct y recent_opens.
+- UI (vercel/main f526c3d5b): panel Salud con 10 KPIs, gráfico de barras "Mejor horario de
+  apertura (hora Central TX)" con badge 🏆 mejor hora, tabla "Aperturas recientes (quién y
+  cuándo)". VERIFICADO EN PROD: ya registró 5 aperturas reales de yoandyross@gmail.com.
+- Enviados 4 emails de muestra EXACTOS (mismo HTML, link de baja real con su token, tracking)
+  a yoandyross@gmail.com: rentar/credito/energia/comprar.
+
+## Rediseño branded de emails (Ago 7, 2026)
+- _campaign_html (newsletter_router.py) rediseñado con identidad del sitio: logo
+  https://www.rosshouserentals.com/logo.jpg circular con borde rojo, título charcoal #231F20,
+  subtítulo "LLC · DUMAS, TEXAS" rojo #ED1B33 letterspaced, barra acento gradiente
+  #ED1B33→#C41428, botón CTA rojo "Visita rosshouserentals.com", footer con tel/web en rojo,
+  link de baja gris centrado. Aplica a drip + campañas manuales + previews.
+- 2 muestras "[NUEVO DISEÑO]" enviadas a yoandyross@gmail.com (dumas, mudanza).
+- Deploy Railway 3a5a1f3 verificado (health 200).
+
+## Paginación + mejoras Oportunidades + 1099 oficial IRS (Ago 7, 2026 - noche 2)
+- PAGINACIÓN 50/pág (server-side skip/limit + total): /admin/banco (plaid transactions,
+  +total en response) y /admin/marketing suscriptores (+filtered_total). /admin/oportunidades
+  ya la tenía (15/pág). Otras páginas revisadas: colecciones pequeñas, no necesitan.
+- OPORTUNIDADES:
+  * Links por propiedad: 🗺️ Google Maps + 🏠 Zillow + 🔴 Realtor (zip page) en cada card
+    (spans stopPropagation) y en el drawer de detalle (anchors). Helpers mapsUrl/zillowUrl/
+    realtorUrl en page.tsx (situs incluye "CIUDAD TX zip").
+  * NUEVO CONDADO: Dallam (Dalhart) ACTIVO — esearch.dallamcad.org, misma plataforma BIS
+    eSearch. Verificado E2E en prod: scan StreetName:denver → 72 encontradas, 10 leads nuevas.
+    fetch_account_tax_due ahora acepta base= (multi-condado). Potter-Randall (esearch.prad.org)
+    y Hartley (esearch.hartleycad.org) usan plataforma DISTINTA (no BIS clásico) — quedan
+    inactivos, requieren scraper propio.
+  * FILTROS AVANZADOS: barra "Afinar" con condado, ciudad (regex address), deuda mínima
+    (min_tax), score mínimo (min_score) + min_value en backend. Verificado en prod.
+- 1099-NEC OFICIAL IRS: _build_1099_pdf reescrito — rellena assets/f1099nec.pdf (formulario
+  oficial Rev. Dec 2026, fillable AcroForm) páginas 3 (Copy B) + 4 (instrucciones) con pypdf.
+  Mapeo campos topmostSubform[0].CopyB[0]: f2_1 año(2díg), f2_2-9 payer, f2_10/11 TINs,
+  f2_12-18 recipient, f2_19 account, RightCol f2_20 box 1a importe. Verificado render local
+  (imagen perfecta). Endpoints download/email SIN cambios (ya existían). Sin datos reportables
+  2026 en prod aún para probar E2E con proveedor real.
+- Deploys: backend b337917 → Railway (verificado con curl) · app b8ea7caa4 → vercel/main
+  (verificado con screenshots: filtros+links y paginación 1-50/793 → 51-100).
+
+## Scraper Amarillo (Potter-Randall) + verificación Lob (Ago 7-8, 2026)
+- POTTER-RANDALL ACTIVO: plataforma TrueProdigy descifrada —
+  POST prod-container.trueprodigyapi.com/trueprodigy/cadpublic/auth/token {office:
+  "PotterRandall"} → token (header Authorization SIN "Bearer"); búsqueda POST
+  /public/property/searchfulltext?page&pageSize con body {pYear:{operator:"=",value},
+  fullTextSearch:{operator:"match",value}}. Respuesta trae TODO (fullSitus, displayName,
+  addrDeliveryLine/City/State/Zip, land/improvement/marketValue, lat/lng, geoID) — sin página
+  de detalle. Deuda fiscal NO disponible (CAD ≠ tax office) → tax_due_total=0, señales via
+  absentee/out_of_state/vacant/low_improvement/low_value.
+- Código: _tp_token/_tp_search/_tp_to_lead/_run_scan_trueprodigy en deal_finder_router.py;
+  start_scan branch por county.platform ("trueprodigy" → full-text, max 200). fullSitus
+  normalizado "…, AMARILLO, TX, 79101" → "… AMARILLO TX 79101" para _situs_city.
+  VERIFICADO PROD: scan "POLK ST" → 692 encontradas, 15 nuevas con señales correctas.
+- LOB VERIFICADO: /admin/deal-finder/lob-status mejorado — ahora hace GET real a
+  api.lob.com/v1/letters con el key y devuelve api_ok + recent_letters. PROD: mode live,
+  api_ok TRUE (key live válido, 0 cartas live enviadas aún). Key local .env es test_ (ok).
+- Deploy Railway 6b9e998 verificado.
+
+## Sistema de oferta PURL + QR (Ago 8, 2026)
+- Backend (deal_finder_router.py, Railway cf7cce0):
+  * POST /admin/deal-finder/leads/{id}/suggest-price → AI (SUGGEST_PRICE_PROMPT via _ai_json)
+    devuelve suggested_price/reasoning_es/pct_of_value (verificado prod: \$32,000 = 38%).
+  * POST /admin/deal-finder/leads/{id}/offer {mode: amount|ask, amount} → lead.offer {slug
+    (nombre+4 chars A-Z2-9 sin ambiguos), mode, amount, expires_at +30d, visits, response}.
+  * GET /public/oferta/{slug} → datos públicos + $inc visits (tracking de recepción).
+  * POST /public/oferta/{slug}/responder {action: accept|counter|call|reject, price, phone,
+    best_time, message} → guarda offer.response, status auto (accept→negotiating,
+    counter→interested, call→contacted, reject→discarded), email al admin vía SendGrid.
+  * QR (_offer_qr_png, lib qrcode==8.2 en requirements) embebido automáticamente en carta PDF
+    (bloque rojo con tabla reportlab) y en HTML de Lob (img base64) si lead.offer existe.
+  * _lead_out incluye "offer".
+- Frontend (vercel f077afa06):
+  * /oferta/[slug] página pública mobile-first branded: saludo personalizado, mapa Google
+    embed (keyless output=embed), card roja con monto + Aceptar, contraoferta, llámenme,
+    rechazar (doble tap), toggle ES/EN, estados expired/responded/notFound.
+  * Admin oportunidades drawer: sección "Oferta personalizada" — toggle modo, input monto,
+    botón Sugerir precio AI (muestra razonamiento), crear link+QR, copiar/abrir, visitas +
+    respuesta del dueño con badge.
+- VERIFICADO E2E EN PROD: sugerencia AI → crear oferta → visita pública (visits 1) →
+  contraoferta \$40k con teléfono → status 'interested' + email admin. Screenshots página OK.
+- Leads de prueba limpiados (GUEVARA restaurado a new, offers de prueba removidas).
+
+## Remitente de cartas + logo (Ago 8, 2026)
+- Decisión (recomendación aceptada): carta sale de YOANDY ROSS personal (mejor respuesta en
+  direct mail de adquisición), con "Ross House Rentals LLC" como 2ª línea del remitente y en
+  la firma. Logo pequeño y discreto arriba-derecha del PDF (assets/logo.jpg en repo backend)
+  + firma con logo circular en HTML Lob (img URL pública). _sender_info override name.
+- Verificado en prod Railway 893b195: letter.pdf 200 con Yoandy Ross + LLC + logo.
+
+## App móvil Expo — Admin Propiedades: gestión completa (Ago 9, 2026)
+- `/app/rosslending-app/app/admin-properties.tsx` reconstruido: ya NO es vista de inquilino.
+- Funciones: lista con búsqueda + filtros por estado (chips con contadores), crear propiedad
+  (modal bottom-sheet con nombre, dirección, ciudad/zip, recámaras, baños, ft², renta,
+  depósito, notas, estado), editar, eliminar (con confirmación; backend bloquea rentadas sin
+  ?force=true), y cambio rápido de estado Disponible/Rentada/Mantenimiento por chips en cada card.
+- APIs: GET/POST /api/admin/properties, PUT/DELETE /api/admin/properties/{id} (backend Railway prod).
+- Verificado con screenshot en localhost:3000/admin-properties (lista + modal crear OK).
+- Nota: Metro servía bundle viejo en cache; se resolvió reiniciando expo con limpieza de cache.
+- PENDIENTE USUARIO: rotar Lob API key live (aún expuesta, confirmado NO rotada Ago 9).
+
+## Integración TikTok Content Posting API (Ago 9, 2026)
+- Registro app TikTok Developers guiado: org Ross House Rentals LLC, app "Ross House Rentals" (type Other),
+  Login Kit + Content Posting API (Direct Post ON), scopes user.info.basic + video.publish + video.upload.
+- DNS TXT verificado en SiteGround (raíz @: tiktok-developers-site-verification=TUzHpNgRgMx9Tv37YEhZT6R8bzCZuwyA).
+- Backend: rental/tiktok_router.py — OAuth (connect/callback/disconnect, state en tiktok_oauth_states),
+  refresh automático de tokens (tiktok_account), creator-info, publish (PULL_FROM_URL con fallback
+  FILE_UPLOAD si url_ownership_unverified), publish-file (subida multipart desde teléfono/PC, chunking
+  50MB para >64MB, máx ~280MB), posts + status polling (tiktok_posts).
+- Frontend: /admin/marketing/tiktok (Next.js) — conexión, modos directo/borrador, fuente archivo/URL,
+  privacidad desde creator_info, consentimiento obligatorio, historial con refresh de estado.
+  File upload va directo a Railway vía NEXT_PUBLIC_BACKEND_URL (CORS ok) para evitar límites de proxy.
+- Credenciales: PRODUCCIÓN awo0khhr0b40si3a / jMLUUGCNMtlazxKLLQe2velDSupZLR43 (restaurar en Railway tras
+  aprobación de app review). SANDBOX sbawq36nc18fzh0hde (activas en Railway ahora).
+- Cuenta TikTok @rosshouserentals creada, PRIVADA (requisito de cliente no auditado), target user del sandbox.
+- VERIFICADO E2E EN PROD (sandbox): 2 publicaciones PUBLISH_COMPLETE (via URL-fallback y via publish-file).
+- PENDIENTE: usuario graba video demo (flujo completo en el panel) y hace Submit for review en TikTok.
+  Tras aprobación: restaurar credenciales de producción + audit para publicar PUBLIC_TO_EVERYONE.
+
+## App móvil — Módulo Marketing en Admin Dashboard (Ago 10, 2026)
+- /app/rosslending-app/app/admin-marketing.tsx: hub con 3 tabs (TikTok, Facebook, Newsletter).
+- TikTok: estado de conexión (+botón conectar via Linking), publicar video desde galería del
+  teléfono (expo-image-picker, permisos con canAskAgain + Open Settings), caption, privacidad
+  (creator_info), modo directo/borrador (Switch), consentimiento, historial con refresh de estado.
+  Upload: FormData a Config.API_URL /api/admin/marketing/tiktok/publish-file (Railway directo).
+- Facebook: métricas 30d, generador AI (intents + propiedad opcional, 5 variaciones con copiar
+  via expo-clipboard), lista de grupos con badge días-sin-publicar, abrir grupo, marcar publicado.
+- Newsletter: stats suscriptores/activos/leads + campañas recientes.
+- Entrada "Marketing" agregada al grid del admin-dashboard (icono megaphone, #22D3EE).
+- expo-clipboard@8.0.8 instalado.
+- VERIFICADO con screenshots (3 tabs) contra backend prod Railway.
+
+## Autopagos — CRUD completo en Panel Admin Web (Ago 10, 2026)
+- Backend /app/ross-house-backend/rental/stripe_pkg/autopay_router.py (commit d245d30, deployado a Railway ✅):
+  · GET /api/admin/autopay/tenants — inquilinos con stripe_customer_id + sus tarjetas guardadas.
+  · POST /api/admin/autopay/configs — crear/reemplazar autopago de un inquilino (upsert por user_id).
+  · PUT /api/admin/autopay/configs/{id} — editar día/tarjeta/enabled (activar-cancelar).
+  · DELETE /api/admin/autopay/configs/{id} — eliminar por completo.
+- Frontend /app/app/admin/autopagos/page.tsx (commit eeb632359, push a Vercel main ✅):
+  · Botón "Nuevo Autopago" (modal: selector inquilino → tarjetas Stripe → día 1-28 → toggle activo).
+  · Acciones por fila: Pausar/Activar (toggle enabled), Editar (modal), Eliminar (confirmación).
+- DATA: autopago de prueba huérfano (user_id 253aaf5d..., sin nombre/email) ELIMINADO de la BD prod
+  (Atlas taxportal). Quedan solo 2 reales: Yoandy Ross y Anaelis Ballestero.
+- VERIFICADO: CRUD e2e con curl contra backend local (misma BD Atlas) + producción Railway (count:2,
+  tenants:3). UI verificada con screenshots (localhost:3001 con cookies rhr_admin_token + rhr_admin_user).
+
+## Gastos — Escáner AI de Recibos (Ago 10, 2026)
+- Backend nuevo: /app/ross-house-backend/rental/receipt_scanner_router.py (commit d423cb2, Railway ✅):
+  · POST /api/admin/property-expenses/scan-receipt (multipart) — GPT-5.4 visión via EMERGENT_LLM_KEY
+    extrae vendor/fecha/monto/tax/items, clasifica en EXPENSE_CATEGORIES + IRS Schedule E,
+    sugiere property_id por dirección, detecta duplicados (monto+fecha), guarda imagen en
+    colección expense_receipts (JPEG comprimido ≤1600px).
+  · GET /api/admin/property-expenses/receipt/{id} — devuelve imagen del recibo (auth admin).
+  · finances_router.py: expenses ahora aceptan irs_category + receipt_id; property_id opcional (General).
+- Frontend /app/app/admin/gastos/page.tsx (commits 959f633f5, Vercel ✅): botón "Escanear Recibo"
+  (input capture=environment), banner AI con confianza+items, aviso duplicado, select Categoría IRS,
+  chip IRS + icono recibo en filas, visor modal de recibo.
+- VERIFICADO: e2e local y en PRODUCCIÓN Railway (Home Depot $63.75 → repair/repairs 97%).
+- Pendiente: agregar el escáner a la app móvil Expo (usuario eligió web primero).
+
+## Deployment Health Check fixes (Ago 10, 2026) — app Ross Tax (/app/frontend + /app/backend)
+- Arreglado: api.ts sin fallback localhost (solo EXPO_PUBLIC_BACKEND_URL), app.json sin extra.backendUrl,
+  babel → react-native-worklets/plugin, eas.json y keys/ ASC eliminados (¡usuario debe ROTAR la key ASC
+  975WHFWA6G en App Store Connect!), server.py JWT sin fallback, database.py DB_NAME sin fallback,
+  requirements.txt generado (pip freeze), yarn.lock generado.
+- .gitignore: reglas .env RESTAURADAS a propósito (backend/.env contiene secretos prod Atlas/SendGrid/Xcel;
+  los repos GitHub del usuario auto-deployan). El health check lo marca, pero es intencional por seguridad.
+- Pendiente decisión usuario: migrar push notifications de Firebase/Expo directo a Emergent-managed
+  (EMERGENT_PUSH_KEY) — es refactor grande del sistema push existente que ya funciona con Firebase.
+- Pendiente lint: usePushNotifications.ts usa removeNotificationSubscription (deprecado) — cambiar a .remove().
+
+## Gastos — Reporte Fiscal PDF + Escáner AI en app móvil (Ago 10, 2026)
+- Backend (commit 84b6ecb, Railway ✅): GET /api/admin/property-expenses/tax-report?year=YYYY
+  · PDF ReportLab: secciones por propiedad con gastos agrupados por línea IRS Schedule E + subtotales,
+    página final con resumen global y TOTAL GASTOS DEDUCIBLES. Fallback categoría→IRS con marca "*".
+- Web (commit b26bb0c64, Vercel ✅): botón "Reporte Fiscal" con selector de año en /admin/gastos.
+- App móvil (commit 4b94270, repo ross-house-app ✅): admin-create-expense.tsx renovado:
+  · Tarjeta "Escanear Recibo con AI" (Tomar Foto con permisos canAskAgain+openSettings / Galería),
+    upload FormData a Railway, prefill de todo el form, banner confianza+items, aviso duplicado,
+    chips IRS Schedule E, propiedad ahora opcional (General), fix categoría 'repairs'→'repair'.
+- VERIFICADO: PDF local+producción (extract ok), e2e móvil web preview con recibo Home Depot (97%, $63.75).
+
+## Pagos de Renta Multi-Procesador (Ago 10, 2026)
+- REQUERIMIENTO: web y app usan el procesador ACTIVO (stripe/square/clover) elegido en admin sin rebuild.
+- Backend payment_processors_router.py (commit 75f6132, Railway ✅):
+  · POST /api/tenant/create-checkout-payment {late_fee, hosted?}: decide en runtime —
+    stripe+app → {"processor":"stripe"} (flujo nativo); stripe+hosted(web) → Stripe Checkout Session;
+    square/clover → Hosted Checkout (create_hosted_checkout). Monto server-side del contrato,
+    guard anti-duplicado del mes, doc rental_payments status=pending_checkout.
+  · GET /api/tenant/checkout-payment-status/{id}: consulta Stripe Session/Square Order/Clover Checkout
+    + respaldo con processor_webhook_events; al confirmar → completed + receipt (STR-/SQR-/CLV-).
+  · Webhooks square/clover ahora COMPLETAN el rental_payment que coincida (payload_ids).
+- Web tenant dashboard (commit fa012b8d0, Vercel ✅): botón "Pay with Card" → hosted:true → redirect.
+- App móvil pay/index.tsx (commit 6d52d47): handleStripePayment consulta el procesador primero;
+  square/clover → expo-web-browser (instalado) + polling de estado; stripe → PaymentSheet nativo.
+  ⚠️ Requiere UN build nuevo para llevar esta lógica al teléfono; después los cambios de procesador
+  son 100% server-side sin rebuild.
+- VERIFICADO: los 3 caminos con tenant de prueba temporal (borrado): Square link real creado+borrado,
+  Stripe Checkout Session live creada+expirada, guard duplicados OK, estado not-completed OK.
+  Square ya tiene credenciales de PRODUCCIÓN configuradas en admin; procesador activo quedó en STRIPE.
+- Credencial tenant QA: yosbelgarrido26@gmail.com / sRUUSvEB4O (marketplace-login).
+
+## Comparador de Comisiones por Procesador (Ago 10, 2026)
+- Backend (commit b4a04c5, Railway ✅): GET /api/admin/payment-processors/fee-comparison
+  · Volumen real 12m de rental_payments (completed/paid), por mes, tx count, ticket promedio.
+  · Tarifas online estándar: Stripe/Square 2.9%+$0.30, Clover 3.5%+$0.10 → fee anual/mensual,
+    % efectivo, más barato, ahorro vs activo.
+- Web (commit 60114aba1, Vercel ✅): panel "Comparador de Comisiones" arriba del tab
+  Procesadores de Pago en /admin/configuracion — stats de volumen, barras comparativas,
+  badges MÁS BARATO/ACTIVO, recomendación de ahorro.
+- VERIFICADO: prod Railway (volume $1,100, cheapest stripe) + screenshot UI OK con token prod.
+- NOTA testing: el JWT admin local NO sirve contra Railway prod (secrets distintos) — para screenshots
+  del panel admin local (proxy→prod) hay que hacer login prod: marketplace-login admin123.
+
+## App Móvil — Pantalla Finanzas Admin (Ago 10, 2026)
+- Nueva /app/rosslending-app/app/admin-finanzas.tsx (commit pushed a ross-house-app):
+  · Reporte Fiscal: chips de año (actual-3) + Descargar PDF — web: blob download;
+    nativo: expo-file-system/legacy downloadAsync con Authorization header + expo-sharing share sheet.
+  · Comparador de Comisiones: consume /admin/payment-processors/fee-comparison — stats,
+    barras por procesador, badges MÁS BARATO/ACTIVO, recomendación de ahorro.
+- Registrada en admin-dashboard.tsx grid: "Finanzas" (stats-chart-outline, #14B8A6).
+- VERIFICADO: screenshot Expo web con login admin y datos reales de prod.
+
+## App Móvil — Modo Claro Premium (Ago 10, 2026)
+- PROBLEMA: 18 pantallas (todas las admin + onboarding + add-property) y 12 componentes
+  (ui/Input,Badge,Card,Button,ImageCarousel,GaugeChart,SignaturePad,PhotoPicker,
+  market/*, PaymentProcessorsAdmin) usaban la paleta oscura ESTÁTICA `Colors` → ilegibles en claro.
+- SOLUCIÓN (scripts /tmp/migrate_theme.py y /tmp/migrate_components.py):
+  · Patrón: `const Colors = useColors(); const styles = React.useMemo(() => createStyles(Colors), [Colors])`
+    con `const createStyles = (Colors: any) => StyleSheet.create({...})`.
+  · Heurística: estilos con bg de color (botones) conservan Colors.white; el resto white→textPrimary.
+  · Literales oscuros → tokens (rgba blancos → glass/glassBorder/etc, #0C0C0E → background).
+  · Iconos arrow-back/close JSX → Colors.textPrimary.
+  · Fixes manuales: Badge variantColors a factory, GaugeChart default params, swipe content bg
+    de admin-messages (#0a0e15 → themeColors.background), ringStyles labels grises estáticos.
+- VERIFICADO: screenshots claro (dashboard, finanzas, properties, payments, marketing,
+  create-expense, settings, messages) + regresión oscuro OK. Commit pushed a ross-house-app.
+
+## App Móvil — Modo Claro fase 2: textos invisibles (Ago 10, 2026)
+- Usuario reportó textos blancos invisibles en claro (ej. market-detail título/WhatsApp).
+- Barrido TOTAL (script /tmp/fix_light_texts.py): 150 entradas de estilo con texto blanco sin fondo
+  de color en 34 archivos → color adaptativo (textPrimary/textSecondary/textMuted), respetando
+  overlays (price/photo/carousel/etc) y botones de color.
+- Conversión completa a adaptativo de archivos que seguían estáticos: admin-inspections(+create/detail),
+  admin-energy, CompleteProfileModal. PremiumCharts (donut center, legend, ring track) adaptado.
+- credit-builder: gradientes de fondo '#1a1a1a'→'#0d0d0d' → [C.surfaceLight, C.background] (3 usos).
+- Iconos/placeholder JSX rgba blancos → C.textMuted; fix ReferenceError swipeStyles (actionBtnText).
+- Intencionalmente oscuros (no tocar): app/index.tsx (splash), FullscreenImageViewer, tarjeta de
+  payment-methods (gradiente), StripeCardInput (#1a1a2e — revisar si usuario lo pide).
+- VERIFICADO claro: market/market-detail, services (donut), credit-builder, inspections, chat, FAQ,
+  payment-methods + regresión oscuro OK. Pushed a ross-house-app.
+
+## Auditoría de Seguridad — Login/Registro + exposición de secretos (Ago 10, 2026)
+- Auditoría (security_audit_agent) encontró P0: bypass de contraseña.
+- FIXES (commit d5e5b19, Railway ✅ verificado en producción):
+  · SEC-001 P0: eliminado fallback de login por teléfono/últimos-4 dígitos en
+    /api/public/marketplace-login (rental/auth_router.py). Ahora SOLO email+password.
+    Camino legacy de tenants (token sin credencial) también cerrado — requiere password_hash.
+    NOTA: los 4 app_users y 3 tenants ya tienen password; 0 emails solo-tenant → nadie bloqueado.
+    El login por teléfono del app usa OTP SMS (flujo aparte, intacto).
+  · SEC-002 P2: error genérico único "Credenciales inválidas" para todos los fallos +
+    bcrypt de dummy hash (_DUMMY_HASH) para timing constante → sin enumeración de usuarios.
+  · Lockout: 5 intentos fallidos → 15 min bloqueado (failed_login_attempts/locked_until,
+    $inc atómico en Mongo cross-instancia).
+  · Reset code: find_one_and_update atómico con cap RESET_MAX_ATTEMPTS=5 (antes sin límite).
+  · SEC-003: /api/upload/image ahora SOLO acepta TENANT_JWT_SECRET (server.py) — quitado el
+    JWT_SECRET_KEY con default débil. Verificado: token con clave débil → 401.
+  · CORS seguro por defecto (server.py): allowlist prod + regex preview emergent; bloquea
+    orígenes arbitrarios salvo ENVIRONMENT=development/dev/local. Evil origin → sin ACAO ✅.
+- PENDIENTE (P3, recomendado, no bloqueante): política de password >6, captcha obligatorio en
+  register/forgot (hoy optional=True), restringir EXPO_PUBLIC_GOOGLE_MAPS_KEY por referrer,
+  migrar tokens web de localStorage a cookie httpOnly + TTL más corto (hoy 30 días).
+- Móvil (api.ts) usa SecureStore ✅. Stripe pk_live es publishable (ok). backend/.env gitignored ✅.
+
+## API Keys Dinámicas — Migración .env → DB con Panel Admin (Ago 11, 2026)
+- OBJETIVO: rotar keys de terceros (SendGrid, Twilio, Lob, Plaid, TikTok, OpenAI,
+  Emergent LLM, RapidAPI/Mashvisor, Expo Push) desde el Admin Panel SIN rebuild/redeploy.
+- Backend NUEVO: rental/api_keys_router.py
+  · Registro KEY_REGISTRY (15 keys, agrupadas por servicio, flag secret).
+  · Storage: admin_config {type:"api_keys"} → keys.{ENV} encriptada Fernet
+    (VAULT_ENCRYPTION_KEY, mismas encrypt/decrypt de vault_router) + meta.{ENV} {at, by}.
+  · load_db_keys_into_env(): sync (pymongo), llamado en server.py ANTES de importar routers
+    → inyecta valores DB en os.environ ⇒ TODOS los os.getenv() existentes los usan sin tocar código.
+  · Endpoints: GET /api/admin/api-keys (lista agrupada, enmascarada, source db/env/missing),
+    PUT /api/admin/api-keys/{KEY} (encripta + aplica en vivo a os.environ),
+    GET .../{KEY}/reveal (auditado), DELETE (quita override → restaura .env original).
+  · Auditoría en vault_audit_log (api_key_updated/revealed/deleted).
+- Frontend web: /app/app/admin/configuracion/ApiKeys.tsx — nueva pestaña "API Keys" en
+  Configuración: badges de origen (DB/env/no configurada), rotar, revelar (ojo), copiar,
+  eliminar override, timestamp de última rotación.
+- Lob key NUEVA (live_...a1e1de) guardada encriptada en DB de producción (Atlas) + .env local.
+- TESTED: testing_agent 14/14 backend pytest + UI e2e PASS (iteration_30.json).
+- ⚠️ IMPORTANTE: Railway necesita UN último deploy del backend para activar este sistema;
+  después de eso, ya nunca más se necesita deploy para rotar keys.
+- Usuario ya revocó la key expuesta de App Store Connect (975WHFWA6G) — el .p8 nuevo se
+  ingresa en el flujo Publish de Emergent, NO se guarda en backend.
+
+## Reestructuración para Builds Nativos (Ago 11, 2026)
+- PROBLEMA: el formulario de build iOS de Emergent mostraba com.rosstax.wallet (no editable)
+  porque el pipeline usa /app/frontend por convención, y ahí vivía la app VIEJA de Ross Tax.
+- FIX: /app/frontend → /app/frontend_old_rosstax (archivada, NO borrada);
+  /app/rosslending-app → /app/frontend (app Ross House, bundle com.rosshouse.rentals);
+  symlink /app/rosslending-app → /app/frontend para compatibilidad (supervisor, docs, scripts).
+- Verificado: expo RUNNING, preview web OK (onboarding Ross House).
+- App Store Connect: app "Ross House Rentals", Apple ID 6775734340, bundle com.rosshouse.rentals.
+- Usuario debe: Publish → Reemplazar app (redeploy) → luego generar build iOS (ya mostrará el bundle correcto).
+
+## Fix: chips de filtro invisibles en Oportunidades + verificación de datos (Ago 11, 2026)
+- BUG (reporte usuario): al seleccionar "Todos"/"Nuevos" en admin-opportunities los chips de
+  filtro desaparecían. ROOT CAUSE: el ScrollView horizontal de chips se comprimía (flexShrink
+  default) cuando la FlatList cargaba 50 leads y desbordaba el contenedor → altura 3px.
+- FIX admin-opportunities.tsx: chipsScroll flexShrink:0 + minHeight:34, chip minHeight:30 +
+  lineHeight en texto, removeClippedSubviews={false}, FlatList style flex:1.
+  Hardening igual en add-property.tsx (chipsScroll flexGrow/flexShrink 0).
+- Verificado e2e en web preview midiendo DOM: scrollview h=34 shrink=0 con lista llena ✅.
+- DATOS VERIFICADOS REALES contra Atlas prod: 7606 leads, 800 tax_delinquent, 2 score≥70,
+  2 cartas agosto, gasto Lob $1.98 (~$2), embudo 4/2/3/1 (312-316 N Birge respondió, 3 visitas QR).
+
+## Sesión Ago 11 (2) — Newsletter Pro + Security + fixes de UI/mensajes
+### Newsletter Pro (NUEVO)
+- Backend: rental/newsletter_pro_router.py — CRUD campañas (draft/schedule/recurring/now),
+  envío BILINGÜE (2 emails por persona: ES + EN) con custom_args para tracking,
+  scheduler loop (server.py) para programadas/recurrentes (weekly/biweekly/monthly),
+  AI: /ai/topics, /ai/generate (contenido ES+EN), /ai/year-plan (12 campañas programadas).
+  Tracking por destinatario en newsletter_recipients (delivered/opened/first_open_at/opens/clicked/bounced)
+  vía webhook SendGrid (newsletter_router sendgrid_event_webhook actualizado con campaign_id).
+- Móvil: app/admin-newsletter.tsx (composer con AI, programación, detalle quién abrió/cuándo/no abrió,
+  CRUD). Banner "Newsletter Pro" en admin-marketing.tsx → navega a la pantalla.
+- ⚠️ Railway necesita deploy para activar endpoints pro (preview usa Railway).
+
+### SEGURIDAD (auditoría pre-build)
+- SEC-001 (HIGH) 2FA bypass CERRADO: marketplace-login rechaza role=admin → 403 admin_2fa_required.
+  admin_2fa login-step1 ahora con lockout 5/15min + captcha opcional (móvil). Móvil: AuthContext
+  adminLoginStep1/Step2 + modal OTP en (auth)/login.tsx (dispositivo de confianza 30d en AsyncStorage).
+  Web admin/layout.tsx: login() deshabilitado (solo AdminLoginScreen 2FA), cookies secure+sameSite.
+- SEC-002 (HIGH) credencial Mongo hardcodeada eliminada de backend/tests/test_1099_w9_flow.py (ahora env-only).
+- SEC-003 (MED) backend/credentials_log.txt (PII teléfonos) removido de git + .gitignore.
+- ⚠️ Historia de git AÚN contiene los secretos viejos — usuario debería rotar password Atlas 'rosstax'
+  y considerar purgar historia (BFG). Pendiente de avisar.
+
+### Fixes
+- Mensajes admin: alias GET /chat/conversations/{id}/messages + /read + /ai/status/{id} + /ai/toggle/{id}
+  (por conversación). chat-conversation.tsx ya no invierte doble el orden.
+- Consent forms PDF: get_current_user usaba verify_jwt_token inexistente → reescrito con jwt.decode. Los 4 PDFs OK.
+- Legal terms/privacy: textos usaban C.white (invisible en light) → C.textPrimary. Ya no crashea.
+- Logo: profile.tsx y onboarding.tsx eligen logo negro (ross_house_logo.png) en light, blanco en dark.
+- Chips de filtro Oportunidades: flexShrink:0 (ya documentado antes).
+- Versión app subida a 1.0.1 (build 127) para TestFlight.
+- TESTED: iteration_31.json 23/23 backend PASS. Frontend: smoke screenshots OK.
+
+## Limpieza de Mensajes reales + flujo (Ago 11)
+- Eliminadas conversaciones/mensajes de PRUEBA de chat_conversations/chat_messages:
+  Maria Garcia (maria@test.com), Propietario Test, Test Tenant Chat, conv vacía,
+  3 mensajes 'TEST_iter31/please ignore', 'Prueba de envío desde admin'.
+- Quedan 6 conversaciones REALES: Ross House, Anaelis Ballestero (x2), Usuario 7456 (phone),
+  Yoandy Ross, yoandy ross. (conv 5cc25360 es del chatbot LEGACY de Ross Tax, no aparece en Mensajes de rentas — intacta).
+- unread_admin recalculado por lógica real (última = tenant sin responder → no leído). Total real: 4 (Ross House, imágenes sin responder).
+- Flujo verificado vía curl: admin/conversations, alias /conversations/{id}/messages (orden cronológico),
+  /read (baja contador), /ai/status + /ai/toggle, /admin/send. unread-total suma unread_admin.
+
+## DEPLOY a Railway (Ago 11) — producción actualizada
+- git push origin main → repo Yoandy90/ross-house-backend → Railway auto-deploy OK.
+- Commit b39ee6c: Newsletter Pro, API Keys DB, seguridad 2FA, fixes mensajes/consent.
+- VERIFICADO EN PROD (railway):
+  · marketplace-login admin → 403 (bypass 2FA cerrado) ✅
+  · consent background-check → PDF 74KB ✅
+  · /chat/conversations/{id}/messages alias → 14 mensajes ✅
+  · /chat/admin/send → enviado ✅
+- 2FA admin re-activado, lockout limpio.
+- PENDIENTE usuario: rotar password Atlas 'rosstax' (secreto viejo en historia git).
+
+## BUG CRÍTICO envío de mensajes (Ago 11) — RESUELTO
+- Causa raíz: src/utils/api.ts hacía body: JSON.stringify(body), pero los llamadores
+  (chat-conversation.tsx línea 143, y 13 lugares más incl. admin-newsletter.tsx) ya pasaban
+  body: JSON.stringify({...}) → DOBLE codificación → backend recibía string, Pydantic 422.
+  Por eso GET (sin body) funcionaba y POST fallaba ("No se pudo enviar el mensaje").
+- Fix central en api.ts: serializa solo si body es objeto; si ya es string lo usa tal cual.
+  Un cambio arregla los 14 llamadores.
+- Backend (extra, ya en prod): AdminSendMessageBody/SendMessageBody aceptan content|message|text.
+- VERIFICADO e2e en preview (login email→2FA→abrir Ross House→enviar "OK-99980" visible, input vacío, sin error).
+- Push: frontend repo Yoandy90/ross-house-app main 010d27d; backend main e6b63e6.
+- ⚠️ App TestFlight actual (1.2.8) NO tiene el fix → requiere NUEVO BUILD 1.0.1(127). Preview/Expo Go ya OK.
+
+## Fix eliminar conversaciones (Ago 11) — DESPLEGADO
+- La app llamaba DELETE /chat/admin/conversations/{id}?delete_for_both= pero el endpoint NO existía.
+- Añadido en chat_router.py: delete_for_both=true → borra conv+mensajes para todos;
+  false → hidden_admin:true (solo se oculta al admin; el cliente la conserva).
+- admin_get_conversations filtra hidden_admin≠true; si el tenant escribe de nuevo, hidden_admin:false (reaparece).
+- Probado local (ocultar→lista 5→restaurar→6) y desplegado a Railway (commit 2545312, endpoint responde 401 sin auth ✅).
+- NOTA: este fix es 100% backend → funciona YA en la app TestFlight actual sin nuevo build.
+
+## Expo App — Navegación Admin Dedicada (Ago 11, 2026) ✅ COMPLETADO
+- Requerimiento: el admin aterrizaba en la vista de inquilino y debía tocar un banner para llegar
+  al panel. Usuario eligió Opción A (refactor completo) + botón "Ver como inquilino".
+- Implementación:
+  - AuthContext.tsx: estado `viewAsTenant` + `toggleViewAsTenant()` persistido en AsyncStorage
+    (`view_as_tenant`), se resetea en logout.
+  - (tabs)/_layout.tsx: tabs condicionales vía `href: null`. Admin (role==='admin' && !viewAsTenant):
+    Panel(dashboard), Propiedades, Mensajes, Finanzas, Perfil. Tenant/guest: Inicio, Propiedades,
+    Mercado, Pagos, Perfil.
+  - Nuevos wrappers de tab: (tabs)/dashboard.tsx, (tabs)/messages.tsx, (tabs)/finances.tsx que
+    renderizan admin-dashboard/admin-messages/admin-finanzas con prop `embedded` (oculta flecha
+    atrás + paddingBottom 120 para el tab bar).
+  - (tabs)/properties.tsx: default export ahora es wrapper — si admin view renderiza
+    AdminPropertiesScreen embedded, si no la pantalla de inquilino.
+  - (tabs)/index.tsx: `<Redirect href="/(tabs)/dashboard">` para admin view; banner admin eliminado;
+    quick actions de admin eliminadas (en modo inquilino ve acciones de tenant).
+  - (tabs)/profile.tsx: sección "Modo de vista" (solo admins) con toggle
+    "Ver como inquilino" / "Volver a vista Admin" (router.replace al tab correcto).
+- Testing: iteration_32.json — 6/6 escenarios PASS (landing admin, 5 tabs, sin flecha atrás,
+  toggle ida/vuelta, persistencia al recargar, regresión tenant sin cambios).

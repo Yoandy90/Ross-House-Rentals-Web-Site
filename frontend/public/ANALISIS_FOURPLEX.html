@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Análisis Fourplex + Comparativa de Préstamos 4u vs 6-8u · Ross House Rentals</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: Georgia, 'Times New Roman', serif; color: #1a202c; background: #f1f5f9; line-height: 1.5; }
+  .page { background: #fff; max-width: 8.5in; margin: 24px auto; padding: 0.7in 0.8in; box-shadow: 0 4px 24px rgba(0,0,0,.12); }
+  h1 { font-size: 23px; color: #0f2a4a; }
+  h2 { font-size: 15px; color: #0f2a4a; border-bottom: 3px solid #b8860b; padding-bottom: 5px; margin: 22px 0 10px; text-transform: uppercase; letter-spacing: 1px; }
+  h3 { font-size: 13px; color: #b8860b; margin: 14px 0 6px; }
+  p, li, td, th { font-size: 12px; }
+  table { width: 100%; border-collapse: collapse; margin: 8px 0 14px; }
+  th { background: #0f2a4a; color: #fff; text-align: left; padding: 6px 9px; font-size: 10.5px; text-transform: uppercase; }
+  td { padding: 6px 9px; border-bottom: 1px solid #e2e8f0; }
+  tr:nth-child(even) td { background: #f8fafc; }
+  .total td { background: #fdf6e3 !important; font-weight: bold; border-top: 2px solid #b8860b; }
+  .good { color: #15803d; font-weight: bold; }
+  .bad { color: #b91c1c; font-weight: bold; }
+  .kpi-row { display: flex; gap: 10px; margin: 12px 0; }
+  .kpi { flex: 1; border: 1px solid #d8dee7; border-top: 4px solid #b8860b; padding: 9px 10px; text-align: center; }
+  .kpi .v { font-size: 19px; font-weight: bold; color: #0f2a4a; font-family: Arial; }
+  .kpi .l { font-size: 9px; text-transform: uppercase; letter-spacing: .7px; color: #64748b; font-family: Arial; }
+  .warn { background: #fef2f2; border-left: 4px solid #dc2626; padding: 9px 13px; font-size: 11.5px; margin: 10px 0; }
+  .ok { background: #f0fdf4; border-left: 4px solid #16a34a; padding: 9px 13px; font-size: 11.5px; margin: 10px 0; }
+  .note { background: #f0f6ff; border-left: 4px solid #2563eb; padding: 9px 13px; font-size: 11.5px; margin: 10px 0; }
+  .hdr { display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 4px double #0f2a4a; padding-bottom: 10px; margin-bottom: 16px; }
+  .hdr .b { font-family: Arial; font-size: 11px; color: #b8860b; font-weight: bold; letter-spacing: 2px; text-transform: uppercase; }
+  ol li, ul li { margin: 4px 0 4px 18px; }
+  .printbtn { position: fixed; top: 16px; right: 16px; background: #b8860b; color: #fff; border: none; font: bold 14px Arial; padding: 12px 22px; border-radius: 8px; cursor: pointer; box-shadow: 0 4px 14px rgba(0,0,0,.25); }
+  @media print { body { background:#fff } .page { box-shadow:none; margin:0; padding:0.5in 0.55in; page-break-after: always; } .printbtn { display:none !important } }
+</style>
+</head>
+<body>
+<button class="printbtn" onclick="window.print()">🖨️ Imprimir / Guardar PDF</button>
+
+<!-- PÁGINA 1 · EL PROYECTO FOURPLEX -->
+<div class="page">
+  <div class="hdr">
+    <div><div class="b">Ross House Rentals · Análisis de Inversión</div><h1>Proyecto Fourplex — Texas Panhandle</h1></div>
+    <div style="font-family:Arial;font-size:11px;color:#64748b;text-align:right">Rentar vs. Vender<br>Junio 2026</div>
+  </div>
+
+  <h2>El proyecto modelo</h2>
+  <table>
+    <tr><th>Concepto</th><th>Especificación</th></tr>
+    <tr><td>Edificio</td><td>Fourplex de UNA planta, 4 unidades idénticas 2 hab / 1 baño de 850 sqft (3,400 sqft totales)</td></tr>
+    <tr><td>Por qué una planta</td><td>Cimentación y techo simples = menor costo/sqft; sin escaleras = menos mantenimiento y aptas para todo inquilino</td></tr>
+    <tr><td>Por qué unidades idénticas</td><td>Un solo diseño de cocina/baño ×4 = descuento por volumen en materiales y mano de obra</td></tr>
+    <tr><td>Ubicación objetivo</td><td>Dalhart o Dumas, lote céntrico con servicios (mín. ~90×130 ft, zonificación multifamily — verificar con la ciudad)</td></tr>
+    <tr><td>Financiamiento</td><td><strong>RESIDENCIAL</strong> (4 unidades = reglas de casa): construction-to-permanent, fija 30 años</td></tr>
+  </table>
+
+  <h2>Presupuesto de construcción (Sources &amp; Uses)</h2>
+  <table>
+    <tr><th>Uso de fondos</th><th>Monto</th><th>%</th></tr>
+    <tr><td>Terreno</td><td>$30,000</td><td>6.4%</td></tr>
+    <tr><td>Preparación de sitio, servicios y cimentación</td><td>$58,000</td><td>12.4%</td></tr>
+    <tr><td>Estructura, techo y dry-in</td><td>$118,000</td><td>25.2%</td></tr>
+    <tr><td>MEP — 4 cocinas, 4 baños, 4 HVAC</td><td>$92,000</td><td>19.7%</td></tr>
+    <tr><td>Acabados interiores (×4 unidades)</td><td>$88,000</td><td>18.8%</td></tr>
+    <tr><td>Estacionamiento, banquetas y landscaping</td><td>$24,000</td><td>5.1%</td></tr>
+    <tr><td>Permisos, seguros y soft costs</td><td>$16,000</td><td>3.4%</td></tr>
+    <tr><td><strong>Contingencia (~10%)</strong></td><td>$42,000</td><td>9.0%</td></tr>
+    <tr class="total"><td>COSTO TOTAL DEL PROYECTO</td><td>$468,000</td><td>100%</td></tr>
+    <tr><td>Costo por unidad</td><td>$117,000</td><td></td></tr>
+    <tr><td>Costo por sqft (construcción, sin terreno)</td><td>~$129/sqft</td><td></td></tr>
+  </table>
+  <table>
+    <tr><th>Fuente de fondos</th><th>Monto</th><th>%</th></tr>
+    <tr><td>Préstamo de construcción (80% LTC)</td><td>$374,400</td><td>80%</td></tr>
+    <tr><td>Tu equity (cash y/o terreno propio)</td><td>$93,600</td><td>20%</td></tr>
+    <tr class="total"><td>TOTAL</td><td>$468,000</td><td>100%</td></tr>
+  </table>
+  <div class="note">Cifras modelo con costos Panhandle 2026 (~$129/sqft construcción eficiente). Ajustar con estimados reales de los builders del directorio. Si el terreno ya es tuyo, su valor tasado reduce el cash que necesitas.</div>
+</div>
+
+<!-- PÁGINA 2 · NÚMEROS: RENTAR VS VENDER -->
+<div class="page">
+  <h2>Escenario A — RENTAR (buy &amp; hold)</h2>
+  <table>
+    <tr><th>Línea</th><th>Mensual</th><th>Anual</th></tr>
+    <tr><td>Renta: 4 × $1,300 (unidades NUEVAS cobran premium)</td><td>$5,200</td><td>$62,400</td></tr>
+    <tr><td>Vacancia (5%)</td><td>($260)</td><td>($3,120)</td></tr>
+    <tr><td>Impuestos a la propiedad (est. Dallam/Moore County)</td><td>($783)</td><td>($9,400)</td></tr>
+    <tr><td>Seguro</td><td>($300)</td><td>($3,600)</td></tr>
+    <tr><td>Mantenimiento y reservas (8%)</td><td>($417)</td><td>($5,000)</td></tr>
+    <tr><td>Áreas comunes / misc</td><td>($100)</td><td>($1,200)</td></tr>
+    <tr><td>Administración (self-managed con tu plataforma)</td><td>$0</td><td>$0</td></tr>
+    <tr class="total"><td>NOI (Ingreso Neto Operativo)</td><td>$3,340</td><td>$40,080</td></tr>
+    <tr><td>Hipoteca: $374,400 @ 7.25% / 30 años (P&amp;I)</td><td>($2,565)</td><td>($30,780)</td></tr>
+    <tr class="total"><td>CASH FLOW NETO</td><td class="good">+$775</td><td class="good">+$9,300</td></tr>
+  </table>
+  <div class="kpi-row">
+    <div class="kpi"><div class="v">1.30x</div><div class="l">DSCR (banco pide 1.20+)</div></div>
+    <div class="kpi"><div class="v">9.9%</div><div class="l">Cash-on-cash (sobre $93.6K)</div></div>
+    <div class="kpi"><div class="v">8.6%</div><div class="l">Yield on cost (NOI ÷ costo)</div></div>
+    <div class="kpi"><div class="v">$775/mo</div><div class="l">Cash flow + amortización</div></div>
+  </div>
+  <div class="ok"><strong>✅ Lectura:</strong> el proyecto SE PAGA SOLO con margen. Además del cash flow, los inquilinos amortizan ~$3,800/año de tu principal el primer año (sube cada año), y conservas la apreciación + depreciación fiscal.</div>
+
+  <h2>Escenario B — VENDER estabilizado (build-to-sell)</h2>
+  <p>Un multifamily se vende por <strong>cap rate</strong>: Valor = NOI ÷ cap. Sensibilidad con el NOI del proyecto:</p>
+  <table>
+    <tr><th>Escenario</th><th>NOI</th><th>Cap 7.5%</th><th>Cap 8.0%</th><th>Cap 8.5%</th></tr>
+    <tr><td>Rentas $1,300/unidad</td><td>$40,080</td><td>$534,400</td><td>$501,000</td><td>$471,500</td></tr>
+    <tr><td>Rentas $1,400/unidad</td><td>$44,640</td><td>$595,200</td><td>$558,000</td><td>$525,200</td></tr>
+  </table>
+  <table>
+    <tr><th>Resultado de venta (costo $468K + ~5.5% costos de venta)</th><th>Margen neto</th><th>ROI sobre tu equity</th></tr>
+    <tr><td>Rentas $1,300 · cap 8.0% → precio $501K</td><td class="bad">+$5,400 (break-even)</td><td>6%</td></tr>
+    <tr><td>Rentas $1,300 · cap 7.5% → precio $534K</td><td class="good">+$37,000</td><td class="good">40%</td></tr>
+    <tr><td>Rentas $1,400 · cap 8.0% → precio $558K</td><td class="good">+$59,300</td><td class="good">63%</td></tr>
+    <tr><td>Rentas $1,400 · cap 7.5% → precio $595K</td><td class="good">+$94,500</td><td class="good">101%</td></tr>
+  </table>
+  <div class="warn"><strong>⚠️ Lección clave:</strong> el margen de venta depende BRUTALMENTE del cap rate y de la renta lograda. Vender solo conviene si: (1) logras rentas premium ($1,400+), (2) el edificio está 100% ocupado con historial de pagos documentado (tu plataforma Stripe = oro aquí, suma 10-15% al precio), y (3) encuentras comprador inversionista a cap ≤8%. Si no, RENTAR gana siempre — y con hipoteca fija a 30 años nunca estás forzado a vender barato.</div>
+</div>
+
+<!-- PÁGINA 3 · COMPARATIVA PRÉSTAMOS 4u VS 6-8u -->
+<div class="page">
+  <h2>Préstamo para 4 unidades vs. 6-8 unidades — la comparativa completa</h2>
+  <table>
+    <tr><th style="width:24%">Aspecto</th><th>🏠 4 unidades (RESIDENCIAL)</th><th>🏢 6-8 unidades (COMERCIAL)</th></tr>
+    <tr><td><strong>Producto</strong></td><td>Construction-to-permanent de banco local (un solo cierre)</td><td>Préstamo comercial de construcción + "mini-perm" del banco, o refinanciar a agency al estabilizar</td></tr>
+    <tr><td><strong>Plazo final</strong></td><td><span class="good">Fija a 30 años</span> — nunca te fuerzan a refinanciar</td><td><span class="bad">Balloon a 5-10 años</span> (amortización 25-30) — debes refinanciar o vender antes del balloon</td></tr>
+    <tr><td><strong>Down payment / equity</strong></td><td>20-25% (LTC 75-80%)</td><td>25-30% (LTC 70-75%)</td></tr>
+    <tr><td><strong>Cómo te evalúan</strong></td><td>TU perfil: crédito 680+, DTI ≤43-45%, tus ingresos personales + rentas</td><td>EL EDIFICIO: DSCR proyectado ≥1.20-1.25x. Tu crédito importa (660-680+) pero manda el pro forma</td></tr>
+    <tr><td><strong>Requisitos extra</strong></td><td>Tax returns 2 años, bank statements, contrato builder, planos</td><td>TODO lo anterior + pro forma a 5 años, estudio de rentas de mercado, resume de experiencia, Personal Financial Statement, y usualmente: <strong>net worth ≥ monto del préstamo</strong> y <strong>liquidez de 9-12 meses de pagos</strong></td></tr>
+    <tr><td><strong>Garantía personal</strong></td><td>Siempre (firmas tú)</td><td>Casi siempre en este tamaño ("full recourse"). Non-recourse solo en agency loans grandes ya estabilizados</td></tr>
+    <tr><td><strong>Tasación</strong></td><td>Por comparables de venta (como una casa)</td><td>Por income approach (NOI ÷ cap rate) — en pueblos chicos puede ser difícil por falta de comparables</td></tr>
+    <tr><td><strong>Tasas 2026</strong></td><td>~7.0-7.75% fija</td><td>~6.5-8.0% + origination 1-2% + posible floor rate</td></tr>
+    <tr><td><strong>Costos de cierre</strong></td><td>Menores (tasación ~$700-900)</td><td>Mayores: tasación comercial $3-5K, legal, a veces Phase I ambiental</td></tr>
+    <tr><td><strong>Reservas exigidas</strong></td><td>~6 meses de PITI</td><td>9-12 meses de servicio de deuda + reservas de reemplazo (~$250/unidad/año en escrow)</td></tr>
+    <tr><td><strong>Experiencia previa</strong></td><td><span class="good">No exigida</span> — como construir una casa</td><td><span class="bad">Sí evaluada</span> — sin track record multifamily el banco recorta LTC o pide co-firmante</td></tr>
+    <tr><td><strong>Refinanciamiento futuro</strong></td><td>No necesario (ya tienes 30 años fijos)</td><td>Freddie Mac SBL desde $1M (un 8-plex puede calificar) o mini-perm renovable con el banco local</td></tr>
+    <tr><td><strong>Dificultad primer proyecto</strong></td><td>⭐⭐</td><td>⭐⭐⭐⭐</td></tr>
+  </table>
+
+  <h2>Requisitos en checklist</h2>
+  <h3>Para el fourplex (residencial)</h3>
+  <ul>
+    <li>Crédito 680+ · DTI ≤43% · down 20-25% (terreno cuenta) · reservas 6 meses</li>
+    <li>Contrato precio fijo con builder registrado + planos + presupuesto con contingencia 10%</li>
+    <li>Tax returns 2 años + bank statements 90 días + rent roll actual (ya lo tienes: $2,400/mes)</li>
+  </ul>
+  <h3>Para 6-8 unidades (comercial) — todo lo anterior MÁS:</h3>
+  <ul>
+    <li>Pro forma a 5 años con DSCR ≥1.25x y estudio de rentas comparables del mercado</li>
+    <li>Personal Financial Statement: net worth ≥ préstamo, liquidez 9-12 meses de pagos</li>
+    <li>Resume de experiencia en real estate (aquí tu fourplex previo + tu plataforma cuentan MUCHO)</li>
+    <li>Plan de estabilización (lease-up) y estrategia para el balloon (refi agency o venta)</li>
+  </ul>
+
+  <div class="ok"><strong>🎯 La escalera recomendada:</strong> Fourplex (reglas residenciales, aprende el proceso, construye track record) → segundo fourplex o 6-plex con el mismo banco → 8+ unidades con préstamo comercial ya siendo "cliente probado". Cada peldaño desbloquea mejores términos en el siguiente.</div>
+
+  <p style="margin-top:22px;font-size:10px;color:#94a3b8;text-align:center">
+    Ross House Rentals LLC · Dumas, TX · rosshouserentals.com · Junio 2026<br>
+    Cifras modelo — confirmar con estimados de builders y term sheets de los bancos. Impuestos estimados; verificar con el appraisal district del condado.
+  </p>
+</div>
+
+</body>
+</html>

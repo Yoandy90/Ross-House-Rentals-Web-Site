@@ -1,12 +1,10 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Building2, Mail, Lock, ArrowRight, LogIn, Briefcase } from 'lucide-react';
 
 export default function InvestorLoginPage() {
-  const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -25,7 +23,9 @@ export default function InvestorLoginPage() {
       if (res.ok && data.success) {
         localStorage.setItem('investor_token', data.token);
         localStorage.setItem('investor_user', JSON.stringify(data.user));
-        router.push('/inversor/dashboard');
+        // Full navigation so the layout re-reads the token from localStorage
+        window.location.assign('/inversor/dashboard');
+        return;
       } else {
         setError(data.detail || 'Credenciales inválidas');
       }

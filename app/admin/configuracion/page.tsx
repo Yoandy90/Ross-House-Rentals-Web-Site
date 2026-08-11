@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useAdminAuth } from '../layout';
 import ProcesadoresPago from './ProcesadoresPago';
+import ApiKeys from './ApiKeys';
 import {
   Settings, Save, Building2, DollarSign, CreditCard, Mail,
   FileText, Eye, EyeOff, CheckCircle2, AlertTriangle, RefreshCw,
@@ -257,6 +258,7 @@ export default function ConfiguracionPage() {
     { key: 'firma', label: 'Firma Admin', icon: Pen, color: 'indigo' },
     { key: 'stripe', label: 'Stripe', icon: CreditCard, color: 'purple' },
     { key: 'procesadores', label: 'Procesadores de Pago', icon: CreditCard, color: 'green' },
+    { key: 'apikeys', label: 'API Keys', icon: Key, color: 'violet' },
     { key: 'pagos', label: 'Pagos', icon: DollarSign, color: 'amber' },
     { key: 'contratos', label: 'Contratos', icon: FileText, color: 'emerald' },
     { key: 'notificaciones', label: 'Notificaciones', icon: Bell, color: 'rose' },
@@ -558,6 +560,11 @@ export default function ConfiguracionPage() {
       {/* ═══════════ Tab: Pagos ═══════════ */}
       {activeTab === 'procesadores' && (
         <ProcesadoresPago headers={headers} />
+      )}
+
+      {/* ═══════════ Tab: API Keys ═══════════ */}
+      {activeTab === 'apikeys' && (
+        <ApiKeys headers={headers} />
       )}
 
       {activeTab === 'pagos' && (

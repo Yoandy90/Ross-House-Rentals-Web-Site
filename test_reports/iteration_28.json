@@ -1,0 +1,35 @@
+{
+  "summary": "End-to-end validation of the 1099-NEC / W-9 module (Ross House backend :8002 + Next.js :3001). 14/14 pytest tests passed covering summary, PDF, threshold auto-alert + auto W-9 request, public W-9 GET/POST (valid + invalid TIN + invalid token), reminder cycle (send #2 + escalation + no re-escalation), Copy B config toggle, Copy B batch (sent + already_sent on re-run), deadline reminder, manual request-w9, and admin auth check. Frontend UI: public /w9/[token] mobile form loads (contractor name shown, ES/EN toggle works), all fields fill, certification checkbox and signature work, submit → ¡Listo! thanks screen; provider W-9 persisted in Mongo (TIN 555-44-3333). Admin panel /admin/formularios-1099 renders correctly with cookies rhr_admin_token + rhr_admin_user, QA row visible with $650, Copy B auto/manual toggle is clickable + toggles state (verified visual change + toast '✅ Envío automático activado'), 'Enviar Copy B ahora' button present (not clicked to avoid mass send), W-9 edit + PDF + Enviar buttons visible per row. 'Pedir W-9' button correctly hidden after the W-9 was completed via public form (expected behavior). All 4 QA providers + payments cleaned from Mongo at the end. copyb config restored to auto=true.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "/w9/[token]", "issues": ["Ciudad/Estado/Código postal inputs have no data-testid (only address, legal_name, tin, certify, signature, submit do). Not blocking but makes future testing harder — consider adding w9-city, w9-state, w9-zip."]}
+    ],
+    "react_native_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_1099_w9_flow.py",
+    "/app/test_reports/pytest/iter28_1099_w9.xml"
+  ],
+  "action_items": [
+    "Optional: add data-testid to City / State / Zip inputs in /app/app/w9/[token]/page.tsx for future automation.",
+    "Optional: add data-testid to the W-9 edit button and modal in /app/app/admin/formularios-1099/page.tsx (only the copyb-* and request-w9-* buttons currently have testIDs)."
+  ],
+  "critical_code_review_comments": [
+    "tax_1099_router.py: send_w9_request() gates on W9_RESEND_DAYS (14d) via cooldown; manual /admin/1099/providers/{id}/request-w9 correctly $unsets w9_request.sent_at before calling — good pattern.",
+    "check_1099_threshold() is fired as asyncio.create_task from POST /admin/service-providers/{id}/payments (fire-and-forget) — tests accounted for the async delay with a 5s sleep and it consistently sets tax_1099_alerts + w9_request.token.",
+    "public_w9_submit validates TIN length (9 digits) and returns 422 on invalid — verified.",
+    "w9_reminder_sweep correctly increments sends, and idempotent on escalation (w9_request.escalated_at prevents second escalation) — verified with two consecutive runs."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_1099_w9_flow.py (new)"
+  ],
+  "success_rate": {"backend": "100% (14/14)", "frontend": "100% (public W-9 form + admin panel core UI verified)"},
+  "seed_data_creation": "Created 4 QA providers (qa1099-with-w9-*, qa1099-no-w9-*, qa1099-reminder-*, qa1099-copyb-*, qa1099-ui-w9-*) + associated provider_payments with notes='QA 1099'. All cleaned up in fixture teardown + final cleanup script. copyb config restored to auto=True. A few real SendGrid emails were sent to yoandyross@gmail.com (threshold alert, W-9 requests + reminders, Copy B email to yoandyross+qa1099copyb@gmail.com + yoandyross+qa1099ui@gmail.com, admin summary, deadline reminder, W-9 received confirmation) — as expected per the user's OK.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Backend at http://localhost:8002 (NOT supervisor). Auth header Bearer qa-1099-session-f51c3cad7e57a694; for admin web UI set BOTH cookies rhr_admin_token=<token> AND rhr_admin_user=<JSON of {id,email,name,role}>. MONGO_URL in /app/ross-house-backend/.env — collections service_providers + provider_payments + app_settings (_id='tax_1099_reminders'). Threshold check runs as asyncio.create_task so wait ~3-5s after POST /admin/service-providers/{id}/payments before asserting tax_1099_alerts. Use qa1099-* prefix for seed data + clean up.",
+  "rca_of_issue": "N/A — no bugs found. Module works as specified end-to-end."
+}

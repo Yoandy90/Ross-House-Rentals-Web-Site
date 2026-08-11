@@ -5,7 +5,7 @@ import { useAdminAuth } from '../layout';
 import {
   Repeat, CreditCard, Search, RefreshCw, Zap, CheckCircle2,
   XCircle, Clock, AlertTriangle, Calendar, User, Sparkles,
-  TrendingUp, Play, DollarSign, Activity,
+  TrendingUp, Play, DollarSign, Activity, Plus, Pencil, Trash2, X, Pause,
 } from 'lucide-react';
 
 type AutopayConfig = {
@@ -23,6 +23,9 @@ type AutopayConfig = {
   failed_charges: number;
   updated_at?: string | null;
 };
+
+type TenantCard = { id: string; brand: string; last4: string; exp: string };
+type Tenant = { user_id: string; name: string; email: string; cards: TenantCard[] };
 
 const fmtDate = (iso?: string | null) => {
   if (!iso) return '—';
@@ -48,6 +51,15 @@ export default function AutopagosPage() {
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<'all' | 'enabled' | 'disabled' | 'failed'>('all');
   const [toast, setToast] = useState<{ msg: string; tone: 'ok' | 'err' } | null>(null);
+
+  // CRUD state
+  const [modal, setModal] = useState<{ mode: 'create' } | { mode: 'edit'; config: AutopayConfig } | null>(null);
+  const [tenants, setTenants] = useState<Tenant[]>([]);
+  const [tenantsLoading, setTenantsLoading] = useState(false);
+  const [form, setForm] = useState({ user_id: '', payment_method_id: '', day_of_month: 1, enabled: true });
+  const [saving, setSaving] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState<AutopayConfig | null>(null);
+  const [actingId, setActingId] = useState<string | null>(null);
 
   const showToast = (msg: string, tone: 'ok' | 'err' = 'ok') => {
     setToast({ msg, tone });
@@ -84,6 +96,104 @@ export default function AutopagosPage() {
     }
     setRunning(false);
   };
+
+  const loadTenants = useCallback(async () => {
+    setTenantsLoading(true);
+    try {
+      const res = await fetch('/api/admin/autopay/tenants', { headers: headers() });
+      if (res.ok) {
+        const d = await res.json();
+        setTenants(d.tenants || []);
+      }
+    } catch (e) { console.error(e); }
+    setTenantsLoading(false);
+  }, [headers]);
+
+  const openCreate = () => {
+    setForm({ user_id: '', payment_method_id: '', day_of_month: 1, enabled: true });
+    setModal({ mode: 'create' });
+    loadTenants();
+  };
+
+  const openEdit = (c: AutopayConfig) => {
+    setForm({ user_id: c.user_id, payment_method_id: c.payment_method_id, day_of_month: c.day_of_month, enabled: c.enabled });
+    setModal({ mode: 'edit', config: c });
+    loadTenants();
+  };
+
+  const handleSave = async () => {
+    if (!modal) return;
+    if (modal.mode === 'create' && (!form.user_id || !form.payment_method_id)) {
+      showToast('❌ Selecciona inquilino y tarjeta', 'err');
+      return;
+    }
+    setSaving(true);
+    try {
+      const isCreate = modal.mode === 'create';
+      const url = isCreate ? '/api/admin/autopay/configs' : `/api/admin/autopay/configs/${modal.config.id}`;
+      const res = await fetch(url, {
+        method: isCreate ? 'POST' : 'PUT',
+        headers: { ...headers(), 'Content-Type': 'application/json' },
+        body: JSON.stringify(form),
+      });
+      const d = await res.json().catch(() => ({}));
+      if (res.ok && d.success) {
+        showToast(isCreate ? '✅ Autopago creado' : '✅ Autopago actualizado');
+        setModal(null);
+        await fetchConfigs();
+      } else {
+        showToast(`❌ ${d?.detail || 'Error al guardar'}`, 'err');
+      }
+    } catch (e: any) {
+      showToast(`❌ ${e?.message}`, 'err');
+    }
+    setSaving(false);
+  };
+
+  const handleToggle = async (c: AutopayConfig) => {
+    setActingId(c.id);
+    try {
+      const res = await fetch(`/api/admin/autopay/configs/${c.id}`, {
+        method: 'PUT',
+        headers: { ...headers(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ enabled: !c.enabled }),
+      });
+      const d = await res.json().catch(() => ({}));
+      if (res.ok && d.success) {
+        showToast(c.enabled ? '⏸ Autopago cancelado (pausado)' : '▶ Autopago activado');
+        await fetchConfigs();
+      } else {
+        showToast(`❌ ${d?.detail || 'Error'}`, 'err');
+      }
+    } catch (e: any) {
+      showToast(`❌ ${e?.message}`, 'err');
+    }
+    setActingId(null);
+  };
+
+  const handleDelete = async () => {
+    if (!confirmDelete) return;
+    setActingId(confirmDelete.id);
+    try {
+      const res = await fetch(`/api/admin/autopay/configs/${confirmDelete.id}`, {
+        method: 'DELETE',
+        headers: headers(),
+      });
+      const d = await res.json().catch(() => ({}));
+      if (res.ok && d.success) {
+        showToast('🗑 Autopago eliminado');
+        setConfirmDelete(null);
+        await fetchConfigs();
+      } else {
+        showToast(`❌ ${d?.detail || 'Error al eliminar'}`, 'err');
+      }
+    } catch (e: any) {
+      showToast(`❌ ${e?.message}`, 'err');
+    }
+    setActingId(null);
+  };
+
+  const selectedTenant = useMemo(() => tenants.find(t => t.user_id === form.user_id), [tenants, form.user_id]);
 
   // Stats
   const enabledCount = useMemo(() => configs.filter(c => c.enabled).length, [configs]);
@@ -130,6 +240,12 @@ export default function AutopagosPage() {
             className="p-2.5 border border-white/[0.08] rounded-xl text-gray-400 hover:bg-white/[0.04] transition"
             title="Refrescar"
           ><RefreshCw className="w-4 h-4" /></button>
+          <button
+            onClick={openCreate}
+            className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white rounded-xl text-sm font-bold hover:opacity-90 transition shadow-[0_0_22px_rgba(16,185,129,0.30)]"
+          >
+            <Plus className="w-4 h-4" /> Nuevo Autopago
+          </button>
           <button
             onClick={handleRunNow}
             disabled={running}
@@ -211,7 +327,7 @@ export default function AutopagosPage() {
                 <div className={`absolute top-0 left-0 right-0 h-0.5 rounded-t-xl ${c.enabled ? 'bg-gradient-to-r from-emerald-500/40 to-transparent' : 'bg-transparent'}`} />
                 <div className={`absolute -bottom-4 -right-4 w-24 h-24 rounded-full blur-2xl pointer-events-none ${c.enabled ? 'bg-emerald-500/[0.05]' : 'bg-white/[0.02]'}`} />
 
-                <div className="relative z-10 grid grid-cols-1 sm:grid-cols-[1fr_auto_auto] gap-3 items-center">
+                <div className="relative z-10 grid grid-cols-1 sm:grid-cols-[1fr_auto_auto_auto] gap-3 items-center">
                   {/* User */}
                   <div className="flex items-center gap-3 min-w-0">
                     <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ring-1 ${
@@ -266,6 +382,34 @@ export default function AutopagosPage() {
                       <span className={`text-base font-bold ${(c.failed_charges || 0) > 0 ? 'text-red-400' : 'text-gray-500'}`}>{c.failed_charges || 0}</span>
                     </div>
                   </div>
+
+                  {/* Actions */}
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      onClick={() => handleToggle(c)}
+                      disabled={actingId === c.id}
+                      title={c.enabled ? 'Cancelar (pausar) autopago' : 'Activar autopago'}
+                      className={`p-2 rounded-lg border transition disabled:opacity-50 ${
+                        c.enabled
+                          ? 'border-amber-500/25 text-amber-400 hover:bg-amber-500/10'
+                          : 'border-emerald-500/25 text-emerald-400 hover:bg-emerald-500/10'
+                      }`}
+                    >
+                      {actingId === c.id
+                        ? <div className="w-4 h-4 border-2 border-current/30 border-t-current rounded-full animate-spin" />
+                        : c.enabled ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+                    </button>
+                    <button
+                      onClick={() => openEdit(c)}
+                      title="Editar autopago"
+                      className="p-2 rounded-lg border border-blue-500/25 text-blue-400 hover:bg-blue-500/10 transition"
+                    ><Pencil className="w-4 h-4" /></button>
+                    <button
+                      onClick={() => setConfirmDelete(c)}
+                      title="Eliminar autopago"
+                      className="p-2 rounded-lg border border-red-500/25 text-red-400 hover:bg-red-500/10 transition"
+                    ><Trash2 className="w-4 h-4" /></button>
+                  </div>
                 </div>
 
                 {/* Last attempt info */}
@@ -294,6 +438,161 @@ export default function AutopagosPage() {
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* Create / Edit Modal */}
+      {modal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm" onClick={() => setModal(null)}>
+          <div
+            className="w-full max-w-md bg-[#0C1220] border border-white/10 rounded-2xl p-6 shadow-2xl max-h-[90vh] overflow-y-auto"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-5">
+              <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                {modal.mode === 'create' ? <><Plus className="w-5 h-5 text-emerald-400" /> Nuevo Autopago</> : <><Pencil className="w-5 h-5 text-blue-400" /> Editar Autopago</>}
+              </h3>
+              <button onClick={() => setModal(null)} className="p-1.5 rounded-lg text-gray-400 hover:bg-white/[0.06]"><X className="w-4 h-4" /></button>
+            </div>
+
+            <div className="space-y-4">
+              {/* Tenant */}
+              {modal.mode === 'create' ? (
+                <div>
+                  <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">Inquilino</label>
+                  {tenantsLoading ? (
+                    <div className="text-xs text-gray-500 py-2 flex items-center gap-2"><div className="w-3.5 h-3.5 border-2 border-gray-500/30 border-t-gray-400 rounded-full animate-spin" /> Cargando inquilinos...</div>
+                  ) : (
+                    <select
+                      value={form.user_id}
+                      onChange={e => setForm(f => ({ ...f, user_id: e.target.value, payment_method_id: '' }))}
+                      className="w-full px-3 py-2.5 bg-[#0C1220] border border-white/[0.10] rounded-xl text-sm text-white focus:border-emerald-500 focus:outline-none"
+                    >
+                      <option value="">Selecciona un inquilino...</option>
+                      {tenants.map(t => (
+                        <option key={t.user_id} value={t.user_id}>{t.name || t.email} ({t.cards.length} tarjeta{t.cards.length !== 1 ? 's' : ''})</option>
+                      ))}
+                    </select>
+                  )}
+                </div>
+              ) : (
+                <div className="p-3 bg-white/[0.03] border border-white/[0.08] rounded-xl">
+                  <div className="text-sm font-semibold text-white">{modal.config.user_name || 'Sin nombre'}</div>
+                  <div className="text-xs text-gray-500">{modal.config.user_email}</div>
+                </div>
+              )}
+
+              {/* Card */}
+              <div>
+                <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">Tarjeta</label>
+                {tenantsLoading ? (
+                  <div className="text-xs text-gray-500 py-2 flex items-center gap-2"><div className="w-3.5 h-3.5 border-2 border-gray-500/30 border-t-gray-400 rounded-full animate-spin" /> Cargando tarjetas...</div>
+                ) : selectedTenant && selectedTenant.cards.length > 0 ? (
+                  <div className="space-y-1.5">
+                    {selectedTenant.cards.map(card => (
+                      <button
+                        key={card.id}
+                        onClick={() => setForm(f => ({ ...f, payment_method_id: card.id }))}
+                        className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border text-left transition ${
+                          form.payment_method_id === card.id
+                            ? 'border-emerald-500/50 bg-emerald-500/10 ring-1 ring-emerald-500/30'
+                            : 'border-white/[0.08] bg-white/[0.02] hover:bg-white/[0.05]'
+                        }`}
+                      >
+                        <CreditCard className={`w-4 h-4 ${form.payment_method_id === card.id ? 'text-emerald-400' : 'text-gray-500'}`} />
+                        <div className="flex-1">
+                          <span className="text-sm text-white font-semibold capitalize">{card.brand}</span>
+                          <span className="text-sm text-gray-400 font-mono ml-2">•••• {card.last4}</span>
+                        </div>
+                        <span className="text-[11px] text-gray-500">{card.exp}</span>
+                        {form.payment_method_id === card.id && <CheckCircle2 className="w-4 h-4 text-emerald-400" />}
+                      </button>
+                    ))}
+                  </div>
+                ) : form.user_id ? (
+                  <div className="text-xs text-amber-400 py-2 flex items-center gap-2">
+                    <AlertTriangle className="w-3.5 h-3.5" /> Este inquilino no tiene tarjetas guardadas
+                  </div>
+                ) : (
+                  <div className="text-xs text-gray-600 py-2">Selecciona un inquilino primero</div>
+                )}
+                {modal.mode === 'edit' && !selectedTenant && !tenantsLoading && (
+                  <div className="text-[11px] text-gray-500 mt-1">Tarjeta actual: <span className="font-mono">••{form.payment_method_id.slice(-6)}</span></div>
+                )}
+              </div>
+
+              {/* Day */}
+              <div>
+                <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">Día del mes (1-28)</label>
+                <input
+                  type="number"
+                  min={1}
+                  max={28}
+                  value={form.day_of_month}
+                  onChange={e => setForm(f => ({ ...f, day_of_month: Math.max(1, Math.min(28, Number(e.target.value) || 1)) }))}
+                  className="w-full px-3 py-2.5 bg-[#0C1220] border border-white/[0.10] rounded-xl text-sm text-white focus:border-emerald-500 focus:outline-none"
+                />
+              </div>
+
+              {/* Enabled */}
+              <button
+                onClick={() => setForm(f => ({ ...f, enabled: !f.enabled }))}
+                className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl border transition ${
+                  form.enabled ? 'border-emerald-500/30 bg-emerald-500/[0.06]' : 'border-white/[0.08] bg-white/[0.02]'
+                }`}
+              >
+                <span className="text-sm font-semibold text-white">Autopago activo</span>
+                <div className={`w-10 h-5.5 rounded-full p-0.5 transition ${form.enabled ? 'bg-emerald-500' : 'bg-gray-600'}`} style={{ height: 22 }}>
+                  <div className={`w-[18px] h-[18px] bg-white rounded-full transition-transform ${form.enabled ? 'translate-x-[18px]' : 'translate-x-0'}`} />
+                </div>
+              </button>
+
+              <div className="flex gap-2 pt-1">
+                <button
+                  onClick={() => setModal(null)}
+                  className="flex-1 px-4 py-2.5 border border-white/[0.10] rounded-xl text-sm font-bold text-gray-300 hover:bg-white/[0.04] transition"
+                >Cancelar</button>
+                <button
+                  onClick={handleSave}
+                  disabled={saving}
+                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white rounded-xl text-sm font-bold hover:opacity-90 transition disabled:opacity-50"
+                >
+                  {saving ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
+                  {modal.mode === 'create' ? 'Crear' : 'Guardar'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete confirm */}
+      {confirmDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm" onClick={() => setConfirmDelete(null)}>
+          <div className="w-full max-w-sm bg-[#0C1220] border border-red-500/25 rounded-2xl p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
+            <div className="w-12 h-12 rounded-2xl bg-red-500/15 ring-1 ring-red-500/30 flex items-center justify-center mb-4">
+              <Trash2 className="w-6 h-6 text-red-400" />
+            </div>
+            <h3 className="text-lg font-bold text-white mb-1">¿Eliminar autopago?</h3>
+            <p className="text-sm text-gray-400 mb-1">
+              Se eliminará permanentemente el autopago de <span className="text-white font-semibold">{confirmDelete.user_name || confirmDelete.user_email}</span>.
+            </p>
+            <p className="text-xs text-gray-500 mb-5">Esta acción no se puede deshacer. El inquilino tendría que configurarlo de nuevo.</p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setConfirmDelete(null)}
+                className="flex-1 px-4 py-2.5 border border-white/[0.10] rounded-xl text-sm font-bold text-gray-300 hover:bg-white/[0.04] transition"
+              >Cancelar</button>
+              <button
+                onClick={handleDelete}
+                disabled={actingId === confirmDelete.id}
+                className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-xl text-sm font-bold hover:opacity-90 transition disabled:opacity-50"
+              >
+                {actingId === confirmDelete.id ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                Eliminar
+              </button>
+            </div>
+          </div>
         </div>
       )}
 

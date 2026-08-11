@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Guía Paso a Paso — Tu Primer Proyecto de Construcción · Ross House Rentals</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: Georgia, 'Times New Roman', serif; color: #1a202c; background: #f1f5f9; line-height: 1.55; }
+  .page { background: #fff; max-width: 8.5in; margin: 24px auto; padding: 0.75in 0.85in; box-shadow: 0 4px 24px rgba(0,0,0,.12); }
+  h1 { font-size: 25px; color: #0f2a4a; }
+  h2 { font-size: 16px; color: #0f2a4a; border-bottom: 3px solid #b8860b; padding-bottom: 6px; margin: 24px 0 12px; text-transform: uppercase; letter-spacing: 1px; }
+  h3 { font-size: 13.5px; color: #b8860b; margin: 14px 0 6px; }
+  p, li, td { font-size: 12.5px; }
+  table { width: 100%; border-collapse: collapse; margin: 10px 0 14px; }
+  th { background: #0f2a4a; color: #fff; text-align: left; padding: 6px 10px; font-size: 11px; text-transform: uppercase; }
+  td { padding: 6px 10px; border-bottom: 1px solid #e2e8f0; }
+  tr:nth-child(even) td { background: #f8fafc; }
+  ol li, ul li { margin: 5px 0 5px 20px; }
+  .phase { border: 1px solid #d8dee7; border-left: 5px solid #b8860b; padding: 12px 16px; margin: 12px 0; }
+  .phase .t { font-family: Arial; font-weight: bold; font-size: 13px; color: #0f2a4a; }
+  .phase .w { font-family: Arial; font-size: 10px; color: #b8860b; text-transform: uppercase; letter-spacing: 1px; }
+  .warn { background: #fef2f2; border-left: 4px solid #dc2626; padding: 10px 14px; font-size: 12px; margin: 10px 0; }
+  .ok { background: #f0fdf4; border-left: 4px solid #16a34a; padding: 10px 14px; font-size: 12px; margin: 10px 0; }
+  .note { background: #f0f6ff; border-left: 4px solid #2563eb; padding: 10px 14px; font-size: 12px; margin: 10px 0; }
+  .printbtn { position: fixed; top: 16px; right: 16px; background: #b8860b; color: #fff; border: none; font: bold 14px Arial; padding: 12px 22px; border-radius: 8px; cursor: pointer; box-shadow: 0 4px 14px rgba(0,0,0,.25); }
+  .hdr { display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 4px double #0f2a4a; padding-bottom: 10px; margin-bottom: 18px; }
+  .hdr .b { font-family: Arial; font-size: 11px; color: #b8860b; font-weight: bold; letter-spacing: 2px; text-transform: uppercase; }
+  @media print {
+    body { background: #fff; }
+    .page { box-shadow: none; margin: 0; padding: 0.5in 0.55in; page-break-after: always; }
+    .printbtn { display: none !important; }
+  }
+</style>
+</head>
+<body>
+<button class="printbtn" onclick="window.print()">🖨️ Imprimir / Guardar PDF</button>
+
+<!-- PÁGINA 1 -->
+<div class="page">
+  <div class="hdr">
+    <div><div class="b">Ross House Rentals · Playbook</div><h1>Tu Primer Proyecto de Construcción</h1></div>
+    <div style="font-family:Arial;font-size:11px;color:#64748b;text-align:right">Guía paso a paso<br>Junio 2026</div>
+  </div>
+
+  <p><strong>Para quién es esta guía:</strong> inversionista sin experiencia previa en construcción que quiere construir una casa de renta en el Texas Panhandle (Dalhart / Dumas / Amarillo) con financiamiento bancario construction-to-permanent.</p>
+
+  <h2>El mapa completo (12-15 meses)</h2>
+
+  <div class="phase"><div class="w">Fase 0 · Semana 1</div><div class="t">💰 Pre-calificación bancaria — SIEMPRE PRIMERO</div>
+    <ul>
+      <li>Llama al banco y di: <em>"Quiero pre-calificarme para un construction-to-permanent loan"</em>.</li>
+      <li>Con tu crédito, ingresos y deudas te dicen tu monto máximo. Gratis y sin compromiso.</li>
+      <li>Ese número define TODO: sin él estarías diseñando una casa a ciegas.</li>
+      <li>📞 Dalhart Federal (806) 249-8561 · ANB (806) 358-3008 · Happy State 800-447-2265</li>
+    </ul>
+  </div>
+
+  <div class="phase"><div class="w">Fase 1 · Semanas 2-4</div><div class="t">🗺️ El terreno</div>
+    <ul>
+      <li>Lote dentro de la ciudad con servicios en la calle (agua, alcantarillado, luz). Rural sin servicios = $20-40K extra.</li>
+      <li>Verificar con la ciudad: zonificación residencial y que NO esté en flood zone.</li>
+      <li>Comprarlo en cash si es posible ($10-30K en la zona) → cuenta como down payment.</li>
+    </ul>
+  </div>
+
+  <div class="phase"><div class="w">Fase 2 · Semanas 3-6</div><div class="t">👷 El builder ANTES que el plano (el error clásico es al revés)</div>
+    <ul>
+      <li>Conseguir 2-3 builders con registro municipal, seguro y referencias (directorio en la página 3).</li>
+      <li>Pedir a cada uno: registro/licencia municipal, certificado de seguro, 3 referencias, fotos de obras. <strong>Llamar a las referencias.</strong></li>
+      <li>Preguntar en Happy State Bank por su lista de builders aprobados (Affinity Program = $3,000 de crédito).</li>
+    </ul>
+  </div>
+
+  <div class="phase"><div class="w">Fase 3 · Semanas 5-8</div><div class="t">📐 Plano + Estimado (van juntos, iterando)</div>
+    <ul>
+      <li>NO pagues arquitecto a medida ($8-15K). Para casa de renta usa <strong>planos de catálogo</strong> ($500-$1,500 en houseplans.com o los del propio builder).</li>
+      <li>Eliges plano → builder da estimado preliminar (gratis) → si excede tu presupuesto, recortas (sqft, acabados) → estimado detallado final.</li>
+      <li>Firmas <strong>contrato de precio fijo</strong> con cronograma (ver página 2 — quién lo hace y qué debe incluir).</li>
+    </ul>
+  </div>
+
+  <div class="phase"><div class="w">Fase 4 · Semanas 8-12</div><div class="t">🏦 Solicitud del préstamo</div>
+    <ul>
+      <li>Presentas: Loan Package + planos + contrato del builder + presupuesto detallado.</li>
+      <li>El banco ordena la tasación del VALOR FUTURO (casa terminada) → underwriting (2-4 semanas) → cierre.</li>
+    </ul>
+  </div>
+
+  <div class="phase"><div class="w">Fase 5 · Semanas 12-14</div><div class="t">📄 Permisos y seguro</div>
+    <ul>
+      <li>El BUILDER saca los permisos con la ciudad (va en su contrato — tú no haces trámites).</li>
+      <li>Se activa el builder's risk insurance (el banco lo exige antes del primer draw).</li>
+    </ul>
+  </div>
+
+  <div class="phase"><div class="w">Fase 6 · Meses 4-12</div><div class="t">🏗️ Construcción por draws</div>
+    <ul>
+      <li>Cimentación → estructura → techo → instalaciones → acabados. En cada hito el inspector del banco verifica y el banco le paga al builder.</li>
+      <li><strong>Tu trabajo:</strong> visitar la obra cada 1-2 semanas y aprobar cada draw. NUNCA permitas pagos adelantados al avance real.</li>
+      <li>Pagas solo intereses sobre lo desembolsado (o nada si financiaste el interest reserve).</li>
+    </ul>
+  </div>
+
+  <div class="phase"><div class="w">Fase 7 · Meses 10-12</div><div class="t">🔑 Cierre y renta</div>
+    <ul>
+      <li>Inspección final → Certificado de Ocupación → el préstamo se convierte SOLO en hipoteca de 30 años.</li>
+      <li>Publicas en Ross House Rentals y rentas (~$1,650/mes una 3/2 nueva). La renta paga la hipoteca.</li>
+    </ul>
+  </div>
+</div>
+
+<!-- PÁGINA 2 · CONTRATO DE PRECIO FIJO -->
+<div class="page">
+  <h2>El contrato de precio fijo — ¿Quién lo hace?</h2>
+
+  <table>
+    <tr><th>Quién</th><th>Su papel en el contrato</th></tr>
+    <tr><td><strong>El BUILDER</strong> ✍️</td><td><strong>Él lo redacta y te lo presenta.</strong> Los builders establecidos usan formularios estándar de la industria — en Texas, los de la <strong>Texas Association of Builders (TAB)</strong> son el estándar. Si un builder no tiene contrato escrito propio, es una señal de alarma.</td></tr>
+    <tr><td><strong>TÚ</strong> 🔍</td><td>Lo revisas, negocias las cláusulas y lo firmas. Idealmente lo pasas antes por un <strong>abogado de real estate</strong> ($300-500 por la revisión — la mejor inversión del proyecto). En Amarillo hay varios; pide referido a tu title company.</td></tr>
+    <tr><td><strong>El BANCO</strong> ✅</td><td>NO lo redacta, pero lo <strong>revisa y aprueba como condición del préstamo</strong>. Si el contrato tiene lagunas (sin cronograma, sin precio cerrado), el banco lo rechaza y te protege sin querer. También verifica que el presupuesto del contrato cuadre con la tasación.</td></tr>
+  </table>
+
+  <h3>Las 10 cláusulas que DEBE tener tu contrato (checklist para revisar)</h3>
+  <ol>
+    <li><strong>Precio fijo total</strong> ("Fixed Price / Stipulated Sum") — cifra cerrada, no "estimado".</li>
+    <li><strong>Alcance detallado (specs):</strong> anexo con materiales, marcas y modelos (ej: "ventanas vinyl doble panel", no "ventanas").</li>
+    <li><strong>Cronograma con fecha de terminación</strong> y penalidad por retraso injustificado (ej: $100-150/día después de X días de gracia).</li>
+    <li><strong>Calendario de pagos atado a draws del banco</strong> — el builder cobra por avance verificado, nunca por fechas del calendario.</li>
+    <li><strong>Cambios solo por escrito (Change Orders):</strong> cualquier extra requiere firma tuya con precio antes de ejecutarse.</li>
+    <li><strong>Allowances claros:</strong> partidas variables (pisos, gabinetes) con monto asignado — si eliges algo más caro, pagas solo la diferencia.</li>
+    <li><strong>Garantía:</strong> mínimo 1 año en mano de obra, 2 años en sistemas (plomería/eléctrico/HVAC), 10 años estructural (estándar Texas).</li>
+    <li><strong>Seguros:</strong> el builder mantiene liability + workers comp; el builder's risk se define quién lo paga.</li>
+    <li><strong>Lien waivers:</strong> con cada pago, el builder entrega renuncias de gravamen de sus subcontratistas (evita que un plomero impago te ponga un lien a TU casa).</li>
+    <li><strong>Terminación:</strong> derecho a terminar el contrato si el builder abandona la obra X días, con mecánica clara de liquidación.</li>
+  </ol>
+
+  <div class="warn"><strong>🚩 Señales de alarma para NO firmar:</strong> pide más del 10% de anticipo antes de empezar · no tiene contrato escrito · "cost-plus" en tu primer proyecto · no acepta el sistema de draws del banco · no da lien waivers · precio muy por debajo de los demás (20%+).</div>
+
+  <div class="ok"><strong>✅ Tu protección triple:</strong> (1) contrato de precio fijo revisado por abogado, (2) el banco solo paga por avance verificado por SU inspector, (3) lien waivers en cada pago. Con estas 3 capas, el riesgo de "builder que desaparece con el dinero" prácticamente desaparece.</div>
+
+  <div class="note"><strong>Nota Texas:</strong> Texas NO exige licencia estatal para builders residenciales — "licenciado" aquí significa <strong>registrado en la ciudad</strong> (Dalhart y Amarillo tienen registro municipal de contratistas) + asegurado. Verifica siempre: registro municipal, certificado de seguro vigente y referencias reales.</div>
+</div>
+
+<!-- PÁGINA 3 · DIRECTORIO DE BUILDERS -->
+<div class="page">
+  <h2>Directorio de builders en tu zona (verificados jun 2026)</h2>
+
+  <h3>📍 Dumas</h3>
+  <table>
+    <tr><th>Builder</th><th>Notas</th><th>Contacto</th></tr>
+    <tr><td><strong>Willis Construction</strong></td><td>Casas custom, empresa familiar desde 1977 — el veterano de Dumas</td><td>willisconstructiondumas.com</td></tr>
+  </table>
+
+  <h3>📍 Dalhart</h3>
+  <table>
+    <tr><th>Builder</th><th>Notas</th><th>Contacto</th></tr>
+    <tr><td><strong>Vasquez Building and Construction</strong></td><td>Contratista registrado en la ciudad</td><td>(806) 268-2392</td></tr>
+    <tr><td><strong>Lista oficial de la ciudad</strong></td><td>Registro municipal de contratistas (KO Construction y otros)</td><td>dalharttx.gov/219/Registered-Contractors</td></tr>
+  </table>
+
+  <h3>📍 Amarillo (45-60 min — muchos construyen en toda la región)</h3>
+  <table>
+    <tr><th>Builder</th><th>Notas</th><th>Contacto</th></tr>
+    <tr><td><strong>Jadon Homes</strong></td><td>25+ años, 575+ casas construidas (Amarillo/Canyon/Bushland)</td><td>(806) 673-6418 · jadonhomes.com</td></tr>
+    <tr><td><strong>BLUEHAVEN Homes</strong></td><td>Familiar desde 1954, eficiencia energética</td><td>(806) 803-8110</td></tr>
+    <tr><td><strong>Fuller Homes</strong></td><td>5.0 estrellas · 129 reseñas</td><td>(806) 673-7284</td></tr>
+    <tr><td><strong>7:12 Homes</strong></td><td>Custom, diseño duradero</td><td>(806) 383-0919 · 712homestx.com</td></tr>
+    <tr><td><strong>Champion 1 Builders</strong></td><td>Registrado y asegurado</td><td>champion1builders.com</td></tr>
+    <tr><td><strong>Rod Fielding Custom Builders</strong></td><td>Certificaciones CGB/CGP</td><td>vía Houzz Amarillo</td></tr>
+  </table>
+
+  <h3>📞 Fuentes para verificar y encontrar más</h3>
+  <table>
+    <tr><th>Recurso</th><th>Para qué</th><th>Contacto</th></tr>
+    <tr><td><strong>Texas Panhandle Builders Association (TPBA)</strong></td><td>Directorio oficial de builders activos de la región</td><td>(806) 353-3565 · tpba.org/builders-directory</td></tr>
+    <tr><td><strong>Registro de contratistas — Ciudad de Dalhart</strong></td><td>Verificar registro municipal</td><td>dalharttx.gov/219/Registered-Contractors</td></tr>
+    <tr><td><strong>Lista de contratistas — Ciudad de Amarillo</strong></td><td>Verificar registro municipal</td><td>code.amarillo.gov (PDF Contractors List)</td></tr>
+    <tr><td><strong>Happy State Bank — Builder Affinity Program</strong></td><td>Lista de builders aprobados + $3,000 de crédito</td><td>800-447-2265</td></tr>
+  </table>
+
+  <h2>Guion para tu primera llamada a un builder</h2>
+  <div class="note">
+    <em>"Hola, soy inversionista local de Dumas, tengo pre-aprobación bancaria para construir una casa de renta de 3 habitaciones / 2 baños de unos 1,500 pies cuadrados en [Dalhart/Dumas]. ¿Construyen en esa zona? ¿Cuál es su precio aproximado por pie cuadrado turnkey y su tiempo de entrega actual? ¿Me pueden compartir 2-3 referencias de clientes recientes y su certificado de seguro?"</em>
+  </div>
+  <p style="font-size:11.5px;color:#475569">Con esa llamada de 5 minutos filtras al 80%: quien no da referencias ni seguro, se descarta. Quien responde con precio/sqft claro y referencias, pasa a la reunión.</p>
+
+  <p style="margin-top:30px;font-size:10px;color:#94a3b8;text-align:center">
+    Ross House Rentals LLC · Dumas, TX · rosshouserentals.com<br>
+    Guía preparada junio 2026 · Verificar registro, seguro y referencias de cada builder antes de contratar.
+  </p>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,113 @@
+{
+  "summary": "Ross House Rentals — 100% UI/browser E2E as a real user across all 8 profiles (PUBLIC, LANDLORD, INVESTOR, TENANT sin contrato, TENANT con datos, ADMIN via cookie injection, GUEST via Expo, BUYER via API). All required TEST QA accounts are created and preserved: landlord test.dueno.qa@example.com (via web /landlord/register → 200 pending_kyc, verified in /api/admin/owners) and guest test.invitado.qa@example.com (via Expo app → 200 role=guest, landed on guest home). PUBLIC: home, /propiedades (1 property matches DB), property detail navigation, /noticias (15 posts, 11 category chips), category filter works, newsletter subscription success banner '¡Listo! Bienvenido a la comunidad — revisa tu correo.' AND verified in DB via admin (test.suscriptor.qa@example.com present, source=blog). ADMIN cookie injection works flawlessly (encoded JSON for rhr_admin_user + JWT for rhr_admin_token on .rosshouserentals.com): /admin dashboard shows portfolio 50% occupancy, 4 inquilinos, 1 contract, $1,100 revenue; /admin/inquilinos lists TEST Inquilino QA INQ-2026-004; /admin/proveedores shows TEST Proveedor QA (QA Plumbing LLC, plumbing, active); /admin/marketing shows the test suscriptor + 2 more active subscribers; /admin/oportunidades shows 353 opportunities from the deal-finder radar (Moore County); /admin/interesados shows a Kanban with 1 lead; /admin/contratos shows the 121 Oak Ave / Yandisleydis $1,100/mes contract. TENANT sin contrato: portal loads for TEST Inquilino QA with empty states ($0 rent, no payments, INQ-2026-004 badge). TENANT con datos (yosbelgarrido26): shows $1,100 monthly rent, Sep 1 2026 next due, Yandisleydis. /tenant/utilities loads correctly. GUEST via Expo (390x844): onboarding → Omitir → Registrarse link → filled name/email/phone/password with role Explorar → POST /api/public/marketplace-register 200 → landed on guest home 'Bienvenido, TEST' with quick actions Propiedades/Mercado/Contactar/Perfil and bottom tabs Inicio/Propiedades/Mercado/Perfil, no crash. BUYER: marketplace-login returns role=buyer 200. TWO REAL ISSUES FOUND: (1) BUG: /inversor web login DOES NOT WORK — filling test.inversor.qa@example.com + TestQA2026! and clicking 'Iniciar sesión' keeps the page on the login screen (401 in console). However the SAME credentials succeed on /api/public/marketplace-login returning role=investor, so the /inversor page is calling a different (broken) endpoint. (2) BUG: CORS blocks /api/tenant/payment-config from origin www.rosshouserentals.com — 'has been blocked by CORS policy: No Access-Control-Allow-Origin' errors twice on the tenant dashboard. Also noted: /admin/proveedores hidden Nav — no 'Proveedores' item is visible in the tenant portal side menu (menu shows only Overview/Pay Rent/History/Maintenance/Lease). Turnstile did NOT block the landlord register endpoint (no captcha there, as expected). No newsletter mass drip triggered, no Lob letters, no Stripe charges, no destructive edits. NO existing prod records were mutated. All new TEST QA accounts preserved as requested.",
+  "backend_issues": {
+    "critical": [
+      {
+        "endpoint": "/inversor (web) — login endpoint used by the /inversor page",
+        "issue": "Web /inversor login DOES NOT SUCCEED for test.inversor.qa@example.com/TestQA2026! even though the SAME credentials work on POST /api/public/marketplace-login (returns success:true, role=investor). Console shows 401 during the login submit. Likely the /inversor page is calling a legacy /api/investor/login or wrong endpoint that does not recognize marketplace app_users. Investor cannot enter their portal from the web at all.",
+        "priority": "HIGH"
+      },
+      {
+        "endpoint": "GET /api/tenant/payment-config (CORS)",
+        "issue": "Called from https://www.rosshouserentals.com/tenant/dashboard but the backend does NOT include Access-Control-Allow-Origin for that origin. Two CORS errors captured: 'Access to fetch at https://ross-house-backend-production.up.railway.app/api/tenant/payment-config from origin https://www.rosshouserentals.com has been blocked by CORS policy'. Payment configuration is unavailable in the tenant portal UI as a result.",
+        "priority": "HIGH"
+      }
+    ],
+    "minor": [
+      {
+        "endpoint": "GET /api/admin/newsletter/subscribers",
+        "issue": "Response leaks MongoDB _id in each subscriber row (example: {'_id':'11637a42-...', 'id':'11637a42-...'}). Should be excluded from serialization; the redundant 'id' field is already present."
+      }
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "Tenant portal side navigation",
+        "issue": "There is no visible 'Proveedores' or 'Servicios' link in the tenant portal top nav (only Overview/Pay Rent/History/Maintenance/Lease). Per the review request the tenant should be able to see 'TEST Proveedor QA' from a tenant-facing providers section. API /api/tenant/service-providers works but there is no UI entry point on the web tenant portal (only on the Expo mobile app).",
+        "testID": "n/a",
+        "priority": "MEDIUM"
+      },
+      {
+        "component": "Investor portal /inversor",
+        "issue": "Login button click does not navigate away and the page silently swallows a 401 without showing an error toast/message to the user. Even if the backend endpoint is fixed, the UI should surface auth failures visibly.",
+        "testID": "n/a",
+        "priority": "HIGH"
+      }
+    ],
+    "integration_issues": [
+      {
+        "flow": "Tenant dashboard → payment-config",
+        "issue": "CORS misconfiguration prevents the tenant dashboard from fetching payment methods; the UI will fail silently if the user tries to pay from the web portal.",
+        "affected_testIDs": []
+      },
+      {
+        "flow": "Investor web login → API",
+        "issue": "The /inversor page is not wired to POST /api/public/marketplace-login (which works). Route seems to be calling a different endpoint that does not recognize marketplace users.",
+        "affected_testIDs": []
+      }
+    ],
+    "design_issues": [
+      {
+        "screen": "Web /landlord/register",
+        "issues": [
+          "None of the inputs have name attributes or testIDs — automation had to fill by DOM index (nth-child). Add name/testID to name/email/phone/password/business inputs for reliable QA."
+        ]
+      },
+      {
+        "screen": "Expo register screen",
+        "issues": [
+          "The header link 'Registrarse' and the submit button 'Registrarse' share the exact same text — the header 'Iniciar Sesión' back-link and the submit button also collide by text. Add distinct testID='register-submit-btn' and testID='login-link' to disambiguate."
+        ]
+      }
+    ],
+    "react_native_issues": []
+  },
+  "test_report_links": [
+    "/app/test_reports/iter26_screens/public_home.png",
+    "/app/test_reports/iter26_screens/public_propiedades.png",
+    "/app/test_reports/iter26_screens/public_property_detail.png",
+    "/app/test_reports/iter26_screens/public_noticias.png",
+    "/app/test_reports/iter26_screens/public_newsletter.png",
+    "/app/test_reports/iter26_screens/landlord_filled_v2.png",
+    "/app/test_reports/iter26_screens/landlord_after_submit_v2.png",
+    "/app/test_reports/iter26_screens/inversor_login.png",
+    "/app/test_reports/iter26_screens/inversor_dashboard.png",
+    "/app/test_reports/iter26_screens/tenant_nocontract_dashboard.png",
+    "/app/test_reports/iter26_screens/tenant_nocontract_utilities.png",
+    "/app/test_reports/iter26_screens/tenant_real_dashboard.png",
+    "/app/test_reports/iter26_screens/admin_dashboard.png",
+    "/app/test_reports/iter26_screens/admin_inquilinos.png",
+    "/app/test_reports/iter26_screens/admin_proveedores.png",
+    "/app/test_reports/iter26_screens/admin_marketing.png",
+    "/app/test_reports/iter26_screens/admin_oportunidades.png",
+    "/app/test_reports/iter26_screens/admin_interesados.png",
+    "/app/test_reports/iter26_screens/admin_contratos.png",
+    "/app/test_reports/iter26_screens/expo_register_filled_v2.png",
+    "/app/test_reports/iter26_screens/expo_register_after_v2.png"
+  ],
+  "action_items": [
+    "HIGH — Fix /inversor web login. The page must call POST /api/public/marketplace-login (or an equivalent endpoint that queries app_users with role=investor). Currently returns 401 and traps the user on the login screen. Verified same credentials (test.inversor.qa@example.com / TestQA2026!) succeed via the marketplace-login API.",
+    "HIGH — Add Access-Control-Allow-Origin: https://www.rosshouserentals.com (or configure CORS regex to include the prod domain) to the FastAPI middleware so /api/tenant/payment-config (and other tenant endpoints) do not fail from the web tenant portal.",
+    "MEDIUM — Add a visible 'Proveedores' / 'Servicios del hogar' link in the web tenant portal top nav (or under a submenu). Currently users have to type /tenant/utilities manually; there is no discoverable path to browse providers from the web tenant portal.",
+    "MEDIUM — /inversor login page must display an error toast/message when authentication fails (400/401). Right now it silently stays on the same screen — bad UX.",
+    "LOW — Exclude MongoDB _id from GET /api/admin/newsletter/subscribers response (id is already present as a UUID string).",
+    "LOW — Add data-testid / testID to critical elements to make automated QA less brittle: landlord register inputs (input-name, input-email, input-phone, input-password, input-business, btn-submit), Expo register screen (register-submit-btn vs register-link), tenant/investor login submit buttons."
+  ],
+  "critical_code_review_comments": [
+    "Landlord public register works end-to-end without a captcha (as documented). Response returns {success:true, user_id, status:'pending_kyc'}. Owner is created with role missing from the /api/admin/owners response (role=None) — consider setting role='landlord' explicitly in the DB doc so admin listings can filter by role properly.",
+    "Expo marketplace-register correctly downgrades tenant→guest already verified in iter 25. Guest self-registration lands on the correct guest home. Good.",
+    "Web /admin route protection works: without cookies the /admin route redirects to /admin/login (verified indirectly — with cookies it goes straight to the dashboard). js-cookie encoded-JSON convention is respected.",
+    "Public marketplace-login is the single source of truth for guest/buyer/investor/landlord/admin auth on Railway. The web investor portal /inversor is NOT using this endpoint — inconsistency that breaks the investor role."
+  ],
+  "updated_files": [],
+  "success_rate": {
+    "backend": "n/a — this iteration was UI-only per request. All API checks done here (marketplace-login for landlord/investor/buyer + /api/owner/dashboard for the new landlord + admin GETs via cookie session) passed.",
+    "frontend": "7/8 profiles PASS (public, landlord register, tenant sin contrato, tenant con datos, admin all 6 sub-pages, guest via Expo, buyer via API). 1 FAIL: investor web login."
+  },
+  "seed_data_creation": "Created and PRESERVED as requested: (1) LANDLORD user via web /landlord/register: TEST Dueño QA / test.dueno.qa@example.com / TestQA2026! / QA Properties LLC / phone 8060000005 → user_id 6a75485de07084c16fa82446, kyc_status=pending. (2) GUEST user via Expo /marketplace-register: TEST Invitado QA / test.invitado.qa@example.com / TestQA2026! / phone 8060000006 → user_id 6a75496ce07084c16fa82447, role=guest. (3) Newsletter subscription test.suscriptor.qa@example.com (source=blog, active). Also created a blog comment attempt but form was NOT reached (chip click may have hidden posts). NO records deleted. NO real emails delivered (all @example.com).",
+  "retest_needed": true,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "The web /inversor portal is broken end-to-end for marketplace app_users despite the backend marketplace-login being fine. Re-check after main agent fixes the /inversor route to use the same endpoint. Also CORS for /api/tenant/payment-config must be verified. Admin cookie injection recipe that works: (a) get token via POST /api/public/marketplace-login {yoandyross@gmail.com, admin123}; (b) set cookie rhr_admin_token=<jwt> (raw JWT string) on .rosshouserentals.com; (c) set cookie rhr_admin_user with the URL-encoded JSON of the user object (js-cookie encodes objects this way — do NOT double-encode). All /admin sub-routes then load without OTP. Landlord register endpoint POST /api/public/landlord-register does NOT require captcha. All new test users remain in DB — do NOT delete.",
+  "rca_of_issue": "Two production defects: (1) /inversor web login uses a route that does not recognize marketplace users (role=investor in app_users). Marketplace-login API works, so the fix is to point the /inversor page's login submit at POST /api/public/marketplace-login and gate the redirect on user.role==='investor'. (2) FastAPI CORS middleware is missing the prod web origin for the /api/tenant/* subtree. Add https://www.rosshouserentals.com (and any staging/preview domain) to allow_origins for the tenant router. Both are surface-level fixes on the ross-house-backend + web app."
+}
