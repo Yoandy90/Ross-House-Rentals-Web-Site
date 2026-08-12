@@ -1217,3 +1217,28 @@ Ver /app/memory/test_credentials.md
     "Ver como inquilino" / "Volver a vista Admin" (router.replace al tab correcto).
 - Testing: iteration_32.json — 6/6 escenarios PASS (landing admin, 5 tabs, sin flecha atrás,
   toggle ida/vuelta, persistencia al recargar, regresión tenant sin cambios).
+
+## Chat Web (Rossy) → Admin: Bridge completo (Ago 11, 2026) ✅ COMPLETADO
+- BUG reportado: cliente escribe desde la web y el admin NO recibe notificación ni ve el mensaje
+  en la app ni en el panel. CAUSA RAÍZ: el widget "Rossy" usa public_chatbot_sessions (IA),
+  desconectado de chat_conversations (lo que lee el admin).
+- FIX backend (ross-house-backend commit ea10fa8, deployado a Railway y VERIFICADO en prod):
+  - chatbot_router.py: _bridge_conversation/_bridge_user_message/_bridge_ai_reply — cada mensaje
+    del visitante crea/actualiza chat_conversations (source:'web', chatbot_session_id, unread_admin+1,
+    hidden_admin false) + push a admins; la respuesta de la IA se refleja como sender_type 'ai'.
+    Si se captura el lead, la conversación toma nombre/email/teléfono reales.
+  - chat_router.py: /admin/send refleja la respuesta del admin en la sesión del widget
+    (messages.role assistant + from_admin:true); /admin/conversations soporta ?source=web|app.
+- FIX web (repo ross-tax-website commit 542afc8 squash → Vercel):
+  - PublicChatbot.tsx: restaura historial completo del servidor al recargar; polling 7s de
+    respuestas del admin → burbuja verde "Equipo Ross House" + unreadHint si está cerrado.
+  - NUEVA página /admin/chat ("Chat en Vivo" en nav SISTEMA): lista conversaciones (filtros
+    Todos/Web/App, búsqueda, badge no-leídos), hilo con burbujas tenant/IA/admin, responder,
+    ocultar. Polling convs 8s / hilo 5s.
+- DEPLOY WEB: remote `vercel-site` = github.com/Yoandy90/ross-tax-website (Vercel). SIEMPRE squash:
+  git commit-tree 'HEAD^{tree}' -p vercel-site/main. ⚠️ GitHub Push Protection bloquea
+  frontend_old_rosstax/google-play-service-account.json — se excluyó frontend_old_rosstax/ del tree
+  (usar GIT_INDEX_FILE temporal + update-index --force-remove). Ese JSON de service account estuvo
+  expuesto en repos → RECOMENDAR ROTARLO.
+- NOTA: TENANT_JWT_SECRET del .env local NO coincide con Railway prod (tokens minteados localmente
+  dan 401 en prod). Verificación en prod se hizo directo contra Atlas (mismo MONGO_URL).

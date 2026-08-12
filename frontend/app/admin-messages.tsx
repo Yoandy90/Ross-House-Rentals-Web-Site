@@ -258,7 +258,7 @@ export default function AdminMessagesScreen({ embedded }: { embedded?: boolean }
 
   const fetchConversations = useCallback(async () => {
     try {
-      const data = await apiCall(`/chat/admin/conversations?source=${activeSourceTab}`);
+      const data = await apiCall('/chat/admin/conversations');
       const convs = data.conversations || [];
       const unread = data.total_unread || convs.reduce((acc: number, c: Conversation) => 
         acc + (c.unread_admin || c.unread_count || 0), 0);
@@ -452,6 +452,10 @@ export default function AdminMessagesScreen({ embedded }: { embedded?: boolean }
   // Count conversations by source
   const appCount = conversations.filter(c => !c.source || c.source === 'app' || c.source === 'mobile').length;
   const webCount = conversations.filter(c => c.source === 'web').length;
+  const visibleConversations = filteredConversations.filter(c =>
+    activeSourceTab === 'all' ? true :
+    activeSourceTab === 'web' ? c.source === 'web' :
+    (!c.source || c.source === 'app' || c.source === 'mobile'));
 
   if (loading) {
     return (
@@ -570,7 +574,7 @@ export default function AdminMessagesScreen({ embedded }: { embedded?: boolean }
 
       {/* Conversations List */}
       <FlatList
-        data={filteredConversations}
+        data={visibleConversations}
         renderItem={renderConversation}
         keyExtractor={(item) => item._id || item.conversation_id || Math.random().toString()}
         contentContainerStyle={[styles.listContent, embedded && { paddingBottom: 120 }]}

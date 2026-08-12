@@ -15,7 +15,7 @@ import {
   DollarSign, Building2, TrendingUp, Briefcase, Store, UserCog,
   FileBarChart, MessageSquare, MessagesSquare, ClipboardCheck, Zap, ShieldAlert, ScanLine,
   Wallet, Repeat, Vault, ClipboardList, Heart, Brain, Globe, Smartphone, Share2, Mail, Megaphone,
-  Search, ChevronDown, Landmark, Star, Target, Droplets, Music2,
+  Search, ChevronDown, Landmark, Star, Target, Droplets, Music2, Facebook,
 } from 'lucide-react';
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -108,6 +108,7 @@ const NAV_GROUPS = [
       { href: '/admin/marketing', Icon: Mail, label: 'Newsletter', desc: 'Suscriptores & campañas 📬', color: 'pink' },
       { href: '/admin/marketing/social-poster', Icon: Share2, label: 'Social Poster', desc: 'AI · FB groups · leads 📣', color: 'blue' },
       { href: '/admin/marketing/tiktok', Icon: Music2, label: 'TikTok', desc: 'Publicar videos 🎵', color: 'cyan' },
+      { href: '/admin/marketing/facebook', Icon: Facebook, label: 'Facebook', desc: 'Posts · comentarios · IA 📘', color: 'blue' },
     ],
   },
   {
